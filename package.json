@@ -30,7 +30,7 @@
     "mocha": "^11",
     "oclif": "^4",
     "prettier": "^3.8.1",
-    "shx": "^0.3.3",
+    "shx": "^0.4.0",
     "ts-node": "^10",
     "ts-prune": "^0.10.3",
     "typescript": "^5"
