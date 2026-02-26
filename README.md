@@ -20,7 +20,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.2.0 darwin-arm64 node-v22.14.0
+sdkck/0.2.1 linux-x64 node-v20.20.0
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -34,13 +34,14 @@ USAGE
 * [`sdkck commands`](#sdkck-commands)
 * [`sdkck help [COMMAND]`](#sdkck-help-command)
 * [`sdkck plugins`](#sdkck-plugins)
-* [`sdkck plugins:install PLUGIN...`](#sdkck-pluginsinstall-plugin)
+* [`sdkck plugins add PLUGIN`](#sdkck-plugins-add-plugin)
 * [`sdkck plugins:inspect PLUGIN...`](#sdkck-pluginsinspect-plugin)
-* [`sdkck plugins:install PLUGIN...`](#sdkck-pluginsinstall-plugin)
-* [`sdkck plugins:link PLUGIN`](#sdkck-pluginslink-plugin)
-* [`sdkck plugins:uninstall PLUGIN...`](#sdkck-pluginsuninstall-plugin)
-* [`sdkck plugins:uninstall PLUGIN...`](#sdkck-pluginsuninstall-plugin)
-* [`sdkck plugins:uninstall PLUGIN...`](#sdkck-pluginsuninstall-plugin)
+* [`sdkck plugins install PLUGIN`](#sdkck-plugins-install-plugin)
+* [`sdkck plugins link PATH`](#sdkck-plugins-link-path)
+* [`sdkck plugins remove [PLUGIN]`](#sdkck-plugins-remove-plugin)
+* [`sdkck plugins reset`](#sdkck-plugins-reset)
+* [`sdkck plugins uninstall [PLUGIN]`](#sdkck-plugins-uninstall-plugin)
+* [`sdkck plugins unlink [PLUGIN]`](#sdkck-plugins-unlink-plugin)
 * [`sdkck plugins update`](#sdkck-plugins-update)
 * [`sdkck search QUERY`](#sdkck-search-query)
 * [`sdkck update [CHANNEL]`](#sdkck-update-channel)
@@ -116,44 +117,53 @@ EXAMPLES
   $ sdkck plugins
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/index.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.56/src/commands/plugins/index.ts)_
 
-## `sdkck plugins:install PLUGIN...`
+## `sdkck plugins add PLUGIN`
 
-Installs a plugin into the CLI.
+Installs a plugin into sdkck.
 
 ```
 USAGE
-  $ sdkck plugins add plugins:install PLUGIN...
+  $ sdkck plugins add PLUGIN... [--json] [-f] [-h] [-s | -v]
 
 ARGUMENTS
   PLUGIN...  Plugin to install.
 
 FLAGS
-  -f, --force    Run yarn install with force flag.
+  -f, --force    Force npm to fetch remote resources even if a local copy exists on disk.
   -h, --help     Show CLI help.
-  -v, --verbose
+  -s, --silent   Silences npm output.
+  -v, --verbose  Show verbose npm output.
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
-  Installs a plugin into the CLI.
-  Can be installed from npm or a git url.
+  Installs a plugin into sdkck.
+
+  Uses npm to install plugins.
 
   Installation of a user-installed plugin will override a core plugin.
 
-  e.g. If you have a core plugin that has a 'hello' command, installing a user-installed plugin with a 'hello' command
-  will override the core plugin implementation. This is useful if a user needs to update core plugin functionality in
-  the CLI without the need to patch and update the whole CLI.
-
+  Use the SDKCK_NPM_LOG_LEVEL environment variable to set the npm loglevel.
+  Use the SDKCK_NPM_REGISTRY environment variable to set the npm registry.
 
 ALIASES
   $ sdkck plugins add
 
 EXAMPLES
-  $ sdkck plugins:install myplugin 
+  Install a plugin from npm registry.
 
-  $ sdkck plugins:install https://github.com/someuser/someplugin
+    $ sdkck plugins add myplugin
 
-  $ sdkck plugins:install someuser/someplugin
+  Install a plugin from a github url.
+
+    $ sdkck plugins add https://github.com/someuser/someplugin
+
+  Install a plugin from a github slug.
+
+    $ sdkck plugins add someuser/someplugin
 ```
 
 ## `sdkck plugins:inspect PLUGIN...`
@@ -178,58 +188,67 @@ DESCRIPTION
   Displays installation properties of a plugin.
 
 EXAMPLES
-  $ sdkck plugins:inspect myplugin
+  $ sdkck plugins inspect myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/inspect.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.56/src/commands/plugins/inspect.ts)_
 
-## `sdkck plugins:install PLUGIN...`
+## `sdkck plugins install PLUGIN`
 
-Installs a plugin into the CLI.
+Installs a plugin into sdkck.
 
 ```
 USAGE
-  $ sdkck plugins install PLUGIN...
+  $ sdkck plugins install PLUGIN... [--json] [-f] [-h] [-s | -v]
 
 ARGUMENTS
   PLUGIN...  Plugin to install.
 
 FLAGS
-  -f, --force    Run yarn install with force flag.
+  -f, --force    Force npm to fetch remote resources even if a local copy exists on disk.
   -h, --help     Show CLI help.
-  -v, --verbose
+  -s, --silent   Silences npm output.
+  -v, --verbose  Show verbose npm output.
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
-  Installs a plugin into the CLI.
-  Can be installed from npm or a git url.
+  Installs a plugin into sdkck.
+
+  Uses npm to install plugins.
 
   Installation of a user-installed plugin will override a core plugin.
 
-  e.g. If you have a core plugin that has a 'hello' command, installing a user-installed plugin with a 'hello' command
-  will override the core plugin implementation. This is useful if a user needs to update core plugin functionality in
-  the CLI without the need to patch and update the whole CLI.
-
+  Use the SDKCK_NPM_LOG_LEVEL environment variable to set the npm loglevel.
+  Use the SDKCK_NPM_REGISTRY environment variable to set the npm registry.
 
 ALIASES
   $ sdkck plugins add
 
 EXAMPLES
-  $ sdkck plugins:install myplugin 
+  Install a plugin from npm registry.
 
-  $ sdkck plugins:install https://github.com/someuser/someplugin
+    $ sdkck plugins install myplugin
 
-  $ sdkck plugins:install someuser/someplugin
+  Install a plugin from a github url.
+
+    $ sdkck plugins install https://github.com/someuser/someplugin
+
+  Install a plugin from a github slug.
+
+    $ sdkck plugins install someuser/someplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/install.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.56/src/commands/plugins/install.ts)_
 
-## `sdkck plugins:link PLUGIN`
+## `sdkck plugins link PATH`
 
 Links a plugin into the CLI for development.
 
 ```
 USAGE
-  $ sdkck plugins link PLUGIN
+  $ sdkck plugins link PATH [-h] [--install] [-v]
 
 ARGUMENTS
   PATH  [default: .] path to plugin
@@ -241,6 +260,7 @@ FLAGS
 
 DESCRIPTION
   Links a plugin into the CLI for development.
+
   Installation of a linked plugin will override a user-installed or core plugin.
 
   e.g. If you have a user-installed or core plugin that has a 'hello' command, installing a linked plugin with a 'hello'
@@ -248,21 +268,21 @@ DESCRIPTION
 
 
 EXAMPLES
-  $ sdkck plugins:link myplugin
+  $ sdkck plugins link myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/link.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.56/src/commands/plugins/link.ts)_
 
-## `sdkck plugins:uninstall PLUGIN...`
+## `sdkck plugins remove [PLUGIN]`
 
 Removes a plugin from the CLI.
 
 ```
 USAGE
-  $ sdkck plugins remove plugins:uninstall PLUGIN...
+  $ sdkck plugins remove [PLUGIN...] [-h] [-v]
 
 ARGUMENTS
-  [PLUGIN]  plugin to uninstall
+  [PLUGIN...]  plugin to uninstall
 
 FLAGS
   -h, --help     Show CLI help.
@@ -274,18 +294,36 @@ DESCRIPTION
 ALIASES
   $ sdkck plugins unlink
   $ sdkck plugins remove
+
+EXAMPLES
+  $ sdkck plugins remove myplugin
 ```
 
-## `sdkck plugins:uninstall PLUGIN...`
+## `sdkck plugins reset`
+
+Remove all user-installed and linked plugins.
+
+```
+USAGE
+  $ sdkck plugins reset [--hard] [--reinstall]
+
+FLAGS
+  --hard       Delete node_modules and package manager related files in addition to uninstalling plugins.
+  --reinstall  Reinstall all plugins after uninstalling.
+```
+
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.56/src/commands/plugins/reset.ts)_
+
+## `sdkck plugins uninstall [PLUGIN]`
 
 Removes a plugin from the CLI.
 
 ```
 USAGE
-  $ sdkck plugins uninstall PLUGIN...
+  $ sdkck plugins uninstall [PLUGIN...] [-h] [-v]
 
 ARGUMENTS
-  [PLUGIN]  plugin to uninstall
+  [PLUGIN...]  plugin to uninstall
 
 FLAGS
   -h, --help     Show CLI help.
@@ -297,20 +335,23 @@ DESCRIPTION
 ALIASES
   $ sdkck plugins unlink
   $ sdkck plugins remove
+
+EXAMPLES
+  $ sdkck plugins uninstall myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/uninstall.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.56/src/commands/plugins/uninstall.ts)_
 
-## `sdkck plugins:uninstall PLUGIN...`
+## `sdkck plugins unlink [PLUGIN]`
 
 Removes a plugin from the CLI.
 
 ```
 USAGE
-  $ sdkck plugins unlink plugins:uninstall PLUGIN...
+  $ sdkck plugins unlink [PLUGIN...] [-h] [-v]
 
 ARGUMENTS
-  [PLUGIN]  plugin to uninstall
+  [PLUGIN...]  plugin to uninstall
 
 FLAGS
   -h, --help     Show CLI help.
@@ -322,6 +363,9 @@ DESCRIPTION
 ALIASES
   $ sdkck plugins unlink
   $ sdkck plugins remove
+
+EXAMPLES
+  $ sdkck plugins unlink myplugin
 ```
 
 ## `sdkck plugins update`
@@ -340,7 +384,7 @@ DESCRIPTION
   Update installed plugins.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/update.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.56/src/commands/plugins/update.ts)_
 
 ## `sdkck search QUERY`
 
@@ -367,7 +411,7 @@ EXAMPLES
   $ sdkck search "update jira" --details
 ```
 
-_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.2.0/src/commands/search.ts)_
+_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.2.1/src/commands/search.ts)_
 
 ## `sdkck update [CHANNEL]`
 
