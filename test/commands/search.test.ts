@@ -17,8 +17,8 @@ describe('search', () => {
   })
 
   it('matches fuzzy abbreviations', async () => {
-    const {stdout} = await runCommand(['search', 'plgn'])
-    expect(stdout).to.contain('plugins')
+    const {stdout} = await runCommand(['search', 'updt'])
+    expect(stdout).to.contain('update')
   })
 
   it('reports no matches for unknown query', async () => {
