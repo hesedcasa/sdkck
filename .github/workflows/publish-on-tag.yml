@@ -1,0 +1,51 @@
+name: publish-on-tag
+
+on:
+  push:
+    tags:
+      - 'sdkck-v*'
+  workflow_dispatch:
+    inputs:
+      npm-publish:
+        description: 'Try to publish to NPM'
+        default: false
+        type: boolean
+
+permissions:
+  id-token: write # Required for OIDC
+  contents: read
+
+jobs:
+  publish-to-npm:
+    runs-on: ubuntu-latest
+    if: ${{ (github.event_name != 'workflow_dispatch') || (inputs.npm-publish && always()) }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          cache: npm
+          node-version-file: '.nvmrc'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - run: npm run prepack
+
+      - name: Publish
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+
+      - run: npm run postpack

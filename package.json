@@ -1,0 +1,86 @@
+{
+  "name": "sdkck",
+  "description": "Agentic CLI that provides multiple tools via plugins",
+  "version": "0.1.0",
+  "author": "Hesed",
+  "bin": {
+    "sdkck": "./bin/run.js"
+  },
+  "bugs": "https://github.com/hesedcasa/sdkck/issues",
+  "dependencies": {
+    "@oclif/core": "^4",
+    "@oclif/plugin-commands": "^4.1.40",
+    "@oclif/plugin-help": "^6",
+    "@oclif/plugin-not-found": "^3.2.74",
+    "@oclif/plugin-plugins": "^3.1.0",
+    "@oclif/plugin-update": "^4.7.19",
+    "@oclif/plugin-version": "^2.2.36"
+  },
+  "devDependencies": {
+    "@eslint/compat": "^1",
+    "@oclif/prettier-config": "^0.2.1",
+    "@oclif/test": "^4",
+    "@types/chai": "^4",
+    "@types/mocha": "^10",
+    "@types/node": "^18",
+    "chai": "^4",
+    "eslint": "^9",
+    "eslint-config-oclif": "^6",
+    "eslint-config-prettier": "^10",
+    "mocha": "^10",
+    "oclif": "^4",
+    "prettier": "^3.8.1",
+    "shx": "^0.3.3",
+    "ts-node": "^10",
+    "ts-prune": "^0.10.3",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "./bin",
+    "./dist",
+    "./oclif.manifest.json"
+  ],
+  "homepage": "https://github.com/hesedcasa/sdkck",
+  "keywords": [
+    "sidekick",
+    "cli",
+    "ai",
+    "agent",
+    "llm"
+  ],
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "type": "module",
+  "oclif": {
+    "bin": "sdkck",
+    "dirname": "sdkck",
+    "commands": "./dist/commands",
+    "plugins": [
+      "@oclif/plugin-*"
+    ],
+    "topicSeparator": " ",
+    "topics": {},
+    "update": {
+      "autoupdate": {
+        "debounce": 7
+      }
+    }
+  },
+  "repository": "hesedcasa/sdkck",
+  "scripts": {
+    "build": "shx rm -rf dist && tsc -b",
+    "lint": "eslint",
+    "postpack": "shx rm -f oclif.manifest.json",
+    "posttest": "npm run lint",
+    "prepack": "oclif manifest && oclif readme",
+    "test": "mocha --forbid-only \"test/**/*.test.ts\"",
+    "version": "oclif readme && git add README.md",
+    "find-deadcode": "ts-prune --ignore '(run|default)'",
+    "format": "eslint --cache --fix --quiet . && prettier --write --cache .",
+    "pre-commit": "npm run format && npm run find-deadcode"
+  },
+  "types": "dist/index.d.ts"
+}
