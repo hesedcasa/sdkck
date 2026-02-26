@@ -27,7 +27,7 @@
     "eslint": "^9",
     "eslint-config-oclif": "^6",
     "eslint-config-prettier": "^10",
-    "mocha": "^10",
+    "mocha": "^11",
     "oclif": "^4",
     "prettier": "^3.8.1",
     "shx": "^0.3.3",
