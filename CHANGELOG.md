@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/hesedcasa/sdkck/compare/v0.2.1...v0.3.0) (2026-03-04)
+
+
+### 🎉 Features
+
+* add JIT plugin auto-installation hook ([#11](https://github.com/hesedcasa/sdkck/issues/11)) ([93a3d0b](https://github.com/hesedcasa/sdkck/commit/93a3d0b01c6830bea8bc266557e86a5e0924b85c))
+
 ## [0.2.1](https://github.com/hesedcasa/sdkck/compare/v0.2.0...v0.2.1) (2026-02-26)
 
 
