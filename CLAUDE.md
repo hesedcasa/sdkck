@@ -24,9 +24,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Topic separator:** Space-based (`topicSeparator: " "`), so commands use `sdkck topic command` not `sdkck topic:command`.
 - **Module system:** ESM (`"type": "module"` in package.json, `"module": "Node16"` in tsconfig)
 
+## JIT Plugins
+
+The `oclif.jitPlugins` field in `package.json` declares plugins that are auto-installed on first use (e.g., `@hesed/jira`, `@hesed/conni`, `@hesed/bb`, `@hesed/sentry`, `@hesed/mysql`, `@hesed/psql`, `@hesed/supabase`). When a JIT plugin's command is invoked, the `jit_plugin_not_installed` hook (`src/hooks/jit_plugin_not_installed/jit-install.ts`) runs `plugins:install <pluginName>@<pluginVersion>` automatically.
+
+## Testing Patterns
+
+Tests directly instantiate command/hook classes rather than using `@oclif/test`'s `runCommand`. The mock config passed to commands must include `runHook: async () => ({failures: [], successes: []})` to satisfy oclif's internal requirements. Use `Parameters<typeof hook>[0]` to extract hook option types for type-safe test helpers.
+
 ## Conventions
 
 - **Node version:** v22 (see `.nvmrc`). Build uses this version; tests run against Node 22–24.
 - **Package manager:** npm only (yarn.lock and pnpm-lock.yaml are gitignored).
 - **PR titles** must follow [Conventional Commits](https://www.conventionalcommits.org/) (enforced by CI).
 - **Releases** managed via [release-please](https://github.com/googleapis/release-please).
+- **Dead code:** Run `npm run find-deadcode` (ts-prune) to detect unused exports. `run` and `default` exports are ignored.
+- **Pre-commit:** `npm run pre-commit` runs format + dead code check (not enforced by a git hook, run manually).
