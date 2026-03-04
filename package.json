@@ -61,12 +61,24 @@
     "plugins": [
       "@oclif/plugin-*"
     ],
+    "jitPlugins": {
+      "@hesed/jira": "^0.2.0",
+      "@hesed/conni": "^0.2.0",
+      "@hesed/bb": "^0.2.0",
+      "@hesed/sentry": "^0.2.0",
+      "@hesed/mysql": "^0.2.0",
+      "@hesed/psql": "^0.2.0",
+      "@hesed/supabase": "^0.2.0"
+    },
     "topicSeparator": " ",
     "topics": {},
     "update": {
       "autoupdate": {
         "debounce": 7
       }
+    },
+    "hooks": {
+      "jit_plugin_not_installed": "./dist/hooks/jit_plugin_not_installed/jit-install"
     }
   },
   "repository": "hesedcasa/sdkck",
