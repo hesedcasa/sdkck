@@ -20,7 +20,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.2.1 linux-x64 node-v20.20.0
+sdkck/0.3.0 linux-x64 node-v20.20.0
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -411,7 +411,7 @@ EXAMPLES
   $ sdkck search "update jira" --details
 ```
 
-_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.2.1/src/commands/search.ts)_
+_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.3.0/src/commands/search.ts)_
 
 ## `sdkck update [CHANNEL]`
 
