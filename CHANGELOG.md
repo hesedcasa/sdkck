@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/hesedcasa/sdkck/compare/v0.3.0...v0.4.0) (2026-03-09)
+
+
+### 🎉 Features
+
+* improve search command with MCP sampling-inspired LLM search ([#18](https://github.com/hesedcasa/sdkck/issues/18)) ([b40d261](https://github.com/hesedcasa/sdkck/commit/b40d26191a88ed06196feb447a9ab8b72c11865a))
+
 ## [0.3.0](https://github.com/hesedcasa/sdkck/compare/v0.2.1...v0.3.0) (2026-03-04)
 
 
