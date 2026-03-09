@@ -14,7 +14,8 @@
     "@oclif/plugin-not-found": "^3.2.74",
     "@oclif/plugin-plugins": "^5.4.56",
     "@oclif/plugin-update": "^4.7.19",
-    "@oclif/plugin-version": "^2.2.36"
+    "@oclif/plugin-version": "^2.2.36",
+    "openai": "^6.27.0"
   },
   "devDependencies": {
     "@eslint/compat": "^2",
