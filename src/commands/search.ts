@@ -1,5 +1,5 @@
-import {Anthropic} from '@anthropic-ai/sdk'
 import {Args, Command, CommandHelp, Flags, toConfiguredId} from '@oclif/core'
+import {OpenAI} from 'openai'
 
 /**
  * Fuzzy match: checks if all characters of the query appear in order within the target.
@@ -50,14 +50,18 @@ interface CommandEntry {
 }
 
 /**
- * Minimal structural interface for the Anthropic client required by samplingSearch.
+ * Minimal structural interface for the OpenAI client required by samplingSearch.
  * Using a structural type here makes the property easy to mock in tests without
- * importing the Anthropic SDK's namespace-augmented class.
+ * importing the OpenAI SDK's class directly.
  */
 interface SamplingClient {
-  messages: {
-    stream(params: Anthropic.MessageStreamParams): {
-      finalMessage(): Promise<{content: ReadonlyArray<{text?: string; type: string}>}>
+  chat: {
+    completions: {
+      create(params: {
+        max_tokens?: number
+        messages: Array<{content: string; role: string}>
+        model: string
+      }): Promise<{choices: Array<{message: {content: null | string}}>}>
     }
   }
 }
@@ -75,10 +79,15 @@ async function samplingSearch(query: string, commands: CommandEntry[], client: S
     })
     .join('\n')
 
-  const stream = client.messages.stream({
+  const completion = await client.chat.completions.create({
     // eslint-disable-next-line camelcase
     max_tokens: 1024,
     messages: [
+      {
+        content:
+          'You are a CLI command search assistant. Respond with only a valid JSON array, no markdown or explanation.',
+        role: 'system',
+      },
       {
         content: `Find the most relevant CLI commands for this search query: "${query}"
 
@@ -90,14 +99,10 @@ Return [] if no commands match. Example: ["help", "plugins update"]`,
         role: 'user',
       },
     ],
-    model: 'claude-opus-4-6',
-    system: 'You are a CLI command search assistant. Respond with only a valid JSON array, no markdown or explanation.',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    thinking: {type: 'adaptive'} as any,
+    model: 'gpt-4o',
   })
 
-  const message = await stream.finalMessage()
-  const text = message.content.find((b) => b.type === 'text')?.text ?? ''
+  const text = completion.choices[0]?.message.content ?? ''
   const match = text.match(/\[[\s\S]*?]/)
   if (!match) return []
   return JSON.parse(match[0]) as string[]
@@ -107,17 +112,17 @@ export default class Search extends Command {
   static args = {
     query: Args.string({description: 'Search term to filter commands by', required: true}),
   }
-static description = 'Search for available commands'
-static examples = [
+  static description = 'Search for available commands'
+  static examples = [
     '<%= config.bin %> search "create pr"',
     '<%= config.bin %> search jira -d',
     '<%= config.bin %> search "update jira" --details',
   ]
-static flags = {
+  static flags = {
     details: Flags.boolean({char: 'd', description: 'Show full help for each matched command', required: false}),
   }
-// Exposed for testing — inject a mock client to exercise the LLM search path
-  _anthropicClient: null | SamplingClient = null
+  // Exposed for testing — inject a mock client to exercise the LLM search path
+  _llmClient: null | SamplingClient = null
 
   async run(): Promise<void> {
     const {args, flags} = await this.parse(Search)
@@ -132,7 +137,7 @@ static flags = {
       summary: c.summary ?? '',
     }))
 
-    const client = this._anthropicClient ?? this._createAnthropicClient()
+    const client = this._llmClient ?? this._createOpenAIClient()
     type ScoredEntry = {cmd: Command.Loadable; score: number}
     let scored: ScoredEntry[]
 
@@ -181,10 +186,11 @@ static flags = {
     }
   }
 
-  private _createAnthropicClient(): null | SamplingClient {
-    const apiKey = process.env.ANTHROPIC_API_KEY
+  private _createOpenAIClient(): null | SamplingClient {
+    const apiKey = process.env.OPENAI_API_KEY
+    console.log(apiKey)
     if (!apiKey) return null
-    return new Anthropic({apiKey})
+    return new OpenAI({apiKey}) as unknown as SamplingClient
   }
 
   private _fuzzySearch(query: string, commands: Command.Loadable[]): Array<{cmd: Command.Loadable; score: number}> {

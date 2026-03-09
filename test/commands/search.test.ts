@@ -31,6 +31,9 @@ function makeSearch(argv: string[]): {cmd: Search; output: () => string} {
     lines.push(String(message))
   }
 
+  // Prevent any real OpenAI call; tests that need LLM inject _llmClient directly
+  ;(cmd as unknown as {_createOpenAIClient: () => null})._createOpenAIClient = () => null
+
   return {cmd, output: () => lines.join('\n')}
 }
 
@@ -38,14 +41,14 @@ function makeSearch(argv: string[]): {cmd: Search; output: () => string} {
  * Creates a minimal mock sampling client that simulates LLM sampling responses.
  * Returns a predefined list of command IDs as if the LLM ranked them.
  */
-function makeMockSamplingClient(resultIds: string[]): Search['_anthropicClient'] {
+function makeMockSamplingClient(resultIds: string[]): Search['_llmClient'] {
   return {
-    messages: {
-      stream: () => ({
-        finalMessage: async () => ({
-          content: [{text: JSON.stringify(resultIds), type: 'text'}],
+    chat: {
+      completions: {
+        create: async () => ({
+          choices: [{message: {content: JSON.stringify(resultIds)}}],
         }),
-      }),
+      },
     },
   }
 }
@@ -99,7 +102,7 @@ describe('search', () => {
   describe('LLM sampling search (with mock sampling client)', () => {
     it('uses LLM results when a sampling client is injected', async () => {
       const {cmd, output} = makeSearch(['help'])
-      cmd._anthropicClient = makeMockSamplingClient(['help'])
+      cmd._llmClient = makeMockSamplingClient(['help'])
       await cmd.run()
       expect(output()).to.contain('help')
       expect(output()).to.match(/Found \d+ commands? matching "help"/)
@@ -108,7 +111,7 @@ describe('search', () => {
     it('respects LLM ordering — first result appears first in output', async () => {
       const {cmd, output} = makeSearch(['anything'])
       // LLM ranks 'update' above 'help'
-      cmd._anthropicClient = makeMockSamplingClient(['update', 'help'])
+      cmd._llmClient = makeMockSamplingClient(['update', 'help'])
       await cmd.run()
       const lines = output()
         .split('\n')
@@ -119,7 +122,7 @@ describe('search', () => {
 
     it('reports no matches when LLM returns an empty array', async () => {
       const {cmd, output} = makeSearch(['zzz'])
-      cmd._anthropicClient = makeMockSamplingClient([])
+      cmd._llmClient = makeMockSamplingClient([])
       await cmd.run()
       expect(output()).to.contain('No commands found')
     })
@@ -127,7 +130,7 @@ describe('search', () => {
     it('skips unknown command IDs returned by LLM', async () => {
       const {cmd, output} = makeSearch(['help'])
       // LLM hallucinated a non-existent command ID alongside a valid one
-      cmd._anthropicClient = makeMockSamplingClient(['nonexistent-command', 'help'])
+      cmd._llmClient = makeMockSamplingClient(['nonexistent-command', 'help'])
       await cmd.run()
       expect(output()).to.contain('help')
       expect(output()).to.not.contain('nonexistent-command')
@@ -135,13 +138,13 @@ describe('search', () => {
 
     it('falls back to fuzzy matching when sampling client throws', async () => {
       const {cmd, output} = makeSearch(['updt'])
-      cmd._anthropicClient = {
-        messages: {
-          stream: () => ({
-            async finalMessage() {
+      cmd._llmClient = {
+        chat: {
+          completions: {
+            async create() {
               throw new Error('LLM unavailable')
             },
-          }),
+          },
         },
       }
       await cmd.run()

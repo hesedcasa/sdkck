@@ -32,6 +32,12 @@ The `oclif.jitPlugins` field in `package.json` declares plugins that are auto-in
 
 Tests directly instantiate command/hook classes rather than using `@oclif/test`'s `runCommand`. The mock config passed to commands must include `runHook: async () => ({failures: [], successes: []})` to satisfy oclif's internal requirements. Use `Parameters<typeof hook>[0]` to extract hook option types for type-safe test helpers.
 
+Commands that depend on external clients (e.g., `Search._llmClient`) use public properties for dependency injection — set them directly in tests to exercise different code paths without real API calls.
+
+## Environment
+
+- **`OPENAI_API_KEY`:** Required to enable LLM-powered semantic search in `sdkck search`. When unset, search falls back to fuzzy matching. The search command uses `gpt-4o` via the `openai` npm package.
+
 ## Conventions
 
 - **Node version:** v22 (see `.nvmrc`). Build uses this version; tests run against Node 22–24.

@@ -8,14 +8,14 @@
   },
   "bugs": "https://github.com/hesedcasa/sdkck/issues",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.78.0",
     "@oclif/core": "^4",
     "@oclif/plugin-commands": "^4.1.40",
     "@oclif/plugin-help": "^6",
     "@oclif/plugin-not-found": "^3.2.74",
     "@oclif/plugin-plugins": "^5.4.56",
     "@oclif/plugin-update": "^4.7.19",
-    "@oclif/plugin-version": "^2.2.36"
+    "@oclif/plugin-version": "^2.2.36",
+    "openai": "^6.27.0"
   },
   "devDependencies": {
     "@eslint/compat": "^2",
