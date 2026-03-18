@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/hesedcasa/sdkck/compare/v0.4.0...v0.5.0) (2026-03-18)
+
+
+### 🎉 Features
+
+* add plugin command allowlist with allow/disallow/list/export/import/reset ([#26](https://github.com/hesedcasa/sdkck/issues/26)) ([ea5ad4d](https://github.com/hesedcasa/sdkck/commit/ea5ad4deda6c930da9278f4829286cb1f5c79633))
+
 ## [0.4.0](https://github.com/hesedcasa/sdkck/compare/v0.3.0...v0.4.0) (2026-03-09)
 
 
