@@ -9,6 +9,47 @@
  */
 
 // ---------------------------------------------------------------------------
+// 0. Structured-output detection
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true when the output should be passed through unfiltered.
+ * Detects JSON objects/arrays, TOML documents, CSV data, and oclif tables.
+ */
+export function isStructuredOutput(text: string): boolean {
+  const trimmed = text.trimStart()
+
+  // JSON: starts with { or [
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      JSON.parse(trimmed)
+      return true
+    } catch {
+      // not valid JSON — fall through
+    }
+  }
+
+  // TOML: contains [section] headers or key = value pairs on the first lines
+  const firstLines = trimmed.split('\n').slice(0, 10).join('\n')
+  if (/^\s*\[[\w.]+\]/m.test(firstLines) || /^\s*\w[\w-]*\s*=/m.test(firstLines)) {
+    return true
+  }
+
+  // CSV: first non-blank line has 2+ comma-separated fields and no template syntax
+  const firstDataLine = trimmed.split('\n').find((l) => l.trim() !== '') ?? ''
+  if (firstDataLine.includes(',') && firstDataLine.split(',').length >= 2 && !firstDataLine.includes(' ')) {
+    return true
+  }
+
+  // oclif table: contains box-drawing characters or repeated ─ / = separators
+  if (/[─━═┌┐└┘├┤┬┴┼│]/u.test(text) || /[-=]{4,}/.test(text)) {
+    return true
+  }
+
+  return false
+}
+
+// ---------------------------------------------------------------------------
 // 1. Smart Filtering
 // ---------------------------------------------------------------------------
 
@@ -143,5 +184,8 @@ export function deduplicate(lines: string[]): DeduplicatedLine[] {
  * Mirrors RTK's `[×{}]` formatting in `analyze_logs()`.
  */
 export function formatDeduplicated(entries: DeduplicatedLine[]): string {
-  return entries.map((e) => (e.count > 1 ? `[×${e.count}] ${e.line}` : e.line)).join('\n')
+  return entries
+    .filter((e) => e.line.trim() !== '')
+    .map((e) => (e.count > 1 ? `[×${e.count}] ${e.line}` : e.line))
+    .join('\n')
 }

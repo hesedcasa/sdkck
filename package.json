@@ -80,6 +80,7 @@
     },
     "hooks": {
       "init": "./dist/hooks/init/stdout-filter",
+      "finally": "./dist/hooks/finally/stdout-filter",
       "jit_plugin_not_installed": "./dist/hooks/jit_plugin_not_installed/jit-install"
     }
   },
