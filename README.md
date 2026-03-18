@@ -20,7 +20,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.4.0 linux-x64 node-v20.20.0
+sdkck/0.5.0 linux-x64 node-v20.20.1
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -33,6 +33,12 @@ USAGE
 <!-- commands -->
 * [`sdkck commands`](#sdkck-commands)
 * [`sdkck help [COMMAND]`](#sdkck-help-command)
+* [`sdkck permission allow PATTERN`](#sdkck-permission-allow-pattern)
+* [`sdkck permission disallow PATTERN`](#sdkck-permission-disallow-pattern)
+* [`sdkck permission export FILE`](#sdkck-permission-export-file)
+* [`sdkck permission import FILE`](#sdkck-permission-import-file)
+* [`sdkck permission list`](#sdkck-permission-list)
+* [`sdkck permission reset`](#sdkck-permission-reset)
 * [`sdkck plugins`](#sdkck-plugins)
 * [`sdkck plugins add PLUGIN`](#sdkck-plugins-add-plugin)
 * [`sdkck plugins:inspect PLUGIN...`](#sdkck-pluginsinspect-plugin)
@@ -96,6 +102,139 @@ DESCRIPTION
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.37/src/commands/help.ts)_
 
+## `sdkck permission allow PATTERN`
+
+Allow a command pattern in the plugin command permission list
+
+```
+USAGE
+  $ sdkck permission allow PATTERN
+
+ARGUMENTS
+  PATTERN  Command pattern to allow. Use a full command ID ("jira issue create"), a topic ("jira"), a topic wildcard
+           ("jira *"), or "*" for everything.
+
+DESCRIPTION
+  Allow a command pattern in the plugin command permission list
+
+EXAMPLES
+  $ sdkck permission allow "*"
+
+  $ sdkck permission allow jira
+
+  $ sdkck permission allow "jira *"
+
+  $ sdkck permission allow "jira issue create"
+```
+
+_See code: [src/commands/permission/allow.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.0/src/commands/permission/allow.ts)_
+
+## `sdkck permission disallow PATTERN`
+
+Disallow a command pattern in the plugin command permission list
+
+```
+USAGE
+  $ sdkck permission disallow PATTERN
+
+ARGUMENTS
+  PATTERN  Command pattern to disallow. Use a full command ID ("jira issue create"), a topic ("jira"), a topic wildcard
+           ("jira *"), or "*" for everything.
+
+DESCRIPTION
+  Disallow a command pattern in the plugin command permission list
+
+EXAMPLES
+  $ sdkck permission disallow "*"
+
+  $ sdkck permission disallow jira
+
+  $ sdkck permission disallow "jira *"
+
+  $ sdkck permission disallow "jira issue create"
+```
+
+_See code: [src/commands/permission/disallow.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.0/src/commands/permission/disallow.ts)_
+
+## `sdkck permission export FILE`
+
+Export the plugin command permission configuration to a JSON file
+
+```
+USAGE
+  $ sdkck permission export FILE
+
+ARGUMENTS
+  FILE  Path to the JSON file to export the permission configuration to
+
+DESCRIPTION
+  Export the plugin command permission configuration to a JSON file
+
+EXAMPLES
+  $ sdkck permission export permission.json
+```
+
+_See code: [src/commands/permission/export.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.0/src/commands/permission/export.ts)_
+
+## `sdkck permission import FILE`
+
+Import the plugin command permission configuration from a JSON file
+
+```
+USAGE
+  $ sdkck permission import FILE
+
+ARGUMENTS
+  FILE  Path to the JSON file to import the permission configuration from
+
+DESCRIPTION
+  Import the plugin command permission configuration from a JSON file
+
+EXAMPLES
+  $ sdkck permission import permission.json
+```
+
+_See code: [src/commands/permission/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.0/src/commands/permission/import.ts)_
+
+## `sdkck permission list`
+
+List all rules in the plugin command permission list
+
+```
+USAGE
+  $ sdkck permission list
+
+DESCRIPTION
+  List all rules in the plugin command permission list
+
+EXAMPLES
+  $ sdkck permission list
+```
+
+_See code: [src/commands/permission/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.0/src/commands/permission/list.ts)_
+
+## `sdkck permission reset`
+
+Reset all plugin command permission rules
+
+```
+USAGE
+  $ sdkck permission reset [--confirm]
+
+FLAGS
+  --confirm  Skip the confirmation prompt
+
+DESCRIPTION
+  Reset all plugin command permission rules
+
+EXAMPLES
+  $ sdkck permission reset
+
+  $ sdkck permission reset --confirm
+```
+
+_See code: [src/commands/permission/reset.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.0/src/commands/permission/reset.ts)_
+
 ## `sdkck plugins`
 
 List installed plugins.
@@ -117,7 +256,7 @@ EXAMPLES
   $ sdkck plugins
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.57/src/commands/plugins/index.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.58/src/commands/plugins/index.ts)_
 
 ## `sdkck plugins add PLUGIN`
 
@@ -191,7 +330,7 @@ EXAMPLES
   $ sdkck plugins inspect myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.57/src/commands/plugins/inspect.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.58/src/commands/plugins/inspect.ts)_
 
 ## `sdkck plugins install PLUGIN`
 
@@ -240,7 +379,7 @@ EXAMPLES
     $ sdkck plugins install someuser/someplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.57/src/commands/plugins/install.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.58/src/commands/plugins/install.ts)_
 
 ## `sdkck plugins link PATH`
 
@@ -271,7 +410,7 @@ EXAMPLES
   $ sdkck plugins link myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.57/src/commands/plugins/link.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.58/src/commands/plugins/link.ts)_
 
 ## `sdkck plugins remove [PLUGIN]`
 
@@ -312,7 +451,7 @@ FLAGS
   --reinstall  Reinstall all plugins after uninstalling.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.57/src/commands/plugins/reset.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.58/src/commands/plugins/reset.ts)_
 
 ## `sdkck plugins uninstall [PLUGIN]`
 
@@ -340,7 +479,7 @@ EXAMPLES
   $ sdkck plugins uninstall myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.57/src/commands/plugins/uninstall.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.58/src/commands/plugins/uninstall.ts)_
 
 ## `sdkck plugins unlink [PLUGIN]`
 
@@ -384,7 +523,7 @@ DESCRIPTION
   Update installed plugins.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.57/src/commands/plugins/update.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.58/src/commands/plugins/update.ts)_
 
 ## `sdkck search QUERY`
 
@@ -411,7 +550,7 @@ EXAMPLES
   $ sdkck search "update jira" --details
 ```
 
-_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.4.0/src/commands/search.ts)_
+_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.0/src/commands/search.ts)_
 
 ## `sdkck update [CHANNEL]`
 
@@ -449,7 +588,7 @@ EXAMPLES
     $ sdkck update --available
 ```
 
-_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/v4.7.19/src/commands/update.ts)_
+_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/4.7.22/src/commands/update.ts)_
 
 ## `sdkck version`
 
