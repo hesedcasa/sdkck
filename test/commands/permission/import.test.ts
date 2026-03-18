@@ -3,17 +3,17 @@ import {mkdtemp, rm, writeFile} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
-import {readAllowlistConfig} from '../../../src/allowlist-config.js'
-import AllowlistImport from '../../../src/commands/allowlist/import.js'
+import PermissionImport from '../../../src/commands/permission/import.js'
+import {readPermissionConfig} from '../../../src/permission-config.js'
 
-function makeImport(argv: string[], configDir: string): {cmd: AllowlistImport; output: () => string} {
+function makeImport(argv: string[], configDir: string): {cmd: PermissionImport; output: () => string} {
   const lines: string[] = []
   const config = {
     bin: 'sdkck',
     configDir,
     runHook: async () => ({failures: [], successes: []}),
   } as never
-  const cmd = new AllowlistImport(argv, config)
+  const cmd = new PermissionImport(argv, config)
   cmd.log = (message = '') => {
     lines.push(String(message))
   }
@@ -21,7 +21,7 @@ function makeImport(argv: string[], configDir: string): {cmd: AllowlistImport; o
   return {cmd, output: () => lines.join('\n')}
 }
 
-describe('allowlist import', () => {
+describe('permission import', () => {
   let tmpDir: string
 
   beforeEach(async () => {
@@ -44,7 +44,7 @@ describe('allowlist import', () => {
     await cmd.run()
 
     expect(output()).to.contain('Imported 2 rules')
-    const saved = await readAllowlistConfig(tmpDir)
+    const saved = await readPermissionConfig(tmpDir)
     expect(saved.rules).to.deep.equal(rules)
   })
 

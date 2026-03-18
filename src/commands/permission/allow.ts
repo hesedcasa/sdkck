@@ -1,8 +1,8 @@
 import {Args, Command} from '@oclif/core'
 
-import {readAllowlistConfig, writeAllowlistConfig} from '../../allowlist-config.js'
+import {readPermissionConfig, writePermissionConfig} from '../../permission-config.js'
 
-export default class AllowlistAllow extends Command {
+export default class PermissionAllow extends Command {
   static args = {
     pattern: Args.string({
       description:
@@ -10,19 +10,19 @@ export default class AllowlistAllow extends Command {
       required: true,
     }),
   }
-  static description = 'Allow a command pattern in the plugin command allowlist'
+  static description = 'Allow a command pattern in the plugin command permission list'
   static examples = [
-    '<%= config.bin %> allowlist allow "*"',
-    '<%= config.bin %> allowlist allow jira',
-    '<%= config.bin %> allowlist allow "jira *"',
-    '<%= config.bin %> allowlist allow "jira issue create"',
+    '<%= config.bin %> permission allow "*"',
+    '<%= config.bin %> permission allow jira',
+    '<%= config.bin %> permission allow "jira *"',
+    '<%= config.bin %> permission allow "jira issue create"',
   ]
 
   async run(): Promise<void> {
-    const {args} = await this.parse(AllowlistAllow)
+    const {args} = await this.parse(PermissionAllow)
     const {pattern} = args
 
-    const config = await readAllowlistConfig(this.config.configDir)
+    const config = await readPermissionConfig(this.config.configDir)
 
     const exists = config.rules.some((r) => r.pattern === pattern && r.action === 'allow')
     if (exists) {
@@ -34,7 +34,7 @@ export default class AllowlistAllow extends Command {
     config.rules = config.rules.filter((r) => !(r.pattern === pattern && r.action === 'disallow'))
     config.rules.push({action: 'allow', pattern})
 
-    await writeAllowlistConfig(this.config.configDir, config)
-    this.log(`Added allow rule for pattern "${pattern}".`)
+    await writePermissionConfig(this.config.configDir, config)
+    this.log(`Added allow rule for "${pattern}".`)
   }
 }

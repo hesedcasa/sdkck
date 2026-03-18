@@ -3,17 +3,17 @@ import {mkdtemp, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
-import {readAllowlistConfig, writeAllowlistConfig} from '../../../src/allowlist-config.js'
-import AllowlistReset from '../../../src/commands/allowlist/reset.js'
+import PermissionReset from '../../../src/commands/permission/reset.js'
+import {readPermissionConfig, writePermissionConfig} from '../../../src/permission-config.js'
 
-function makeReset(argv: string[], configDir: string): {cmd: AllowlistReset; output: () => string} {
+function makeReset(argv: string[], configDir: string): {cmd: PermissionReset; output: () => string} {
   const lines: string[] = []
   const config = {
     bin: 'sdkck',
     configDir,
     runHook: async () => ({failures: [], successes: []}),
   } as never
-  const cmd = new AllowlistReset(argv, config)
+  const cmd = new PermissionReset(argv, config)
   cmd.log = (message = '') => {
     lines.push(String(message))
   }
@@ -21,7 +21,7 @@ function makeReset(argv: string[], configDir: string): {cmd: AllowlistReset; out
   return {cmd, output: () => lines.join('\n')}
 }
 
-describe('allowlist reset', () => {
+describe('permission reset', () => {
   let tmpDir: string
 
   beforeEach(async () => {
@@ -32,8 +32,15 @@ describe('allowlist reset', () => {
     await rm(tmpDir, {recursive: true})
   })
 
+  it('exits early when there are no rules', async () => {
+    const {cmd, output} = makeReset(['--confirm'], tmpDir)
+    await cmd.run()
+
+    expect(output()).to.contain('No permission rules to reset.')
+  })
+
   it('clears all rules when --confirm is passed', async () => {
-    await writeAllowlistConfig(tmpDir, {
+    await writePermissionConfig(tmpDir, {
       rules: [
         {action: 'allow', pattern: 'jira'},
         {action: 'disallow', pattern: 'mysql'},
@@ -43,13 +50,13 @@ describe('allowlist reset', () => {
     const {cmd, output} = makeReset(['--confirm'], tmpDir)
     await cmd.run()
 
-    expect(output()).to.contain('All allowlist rules have been removed.')
-    const saved = await readAllowlistConfig(tmpDir)
+    expect(output()).to.contain('All permission rules have been removed.')
+    const saved = await readPermissionConfig(tmpDir)
     expect(saved.rules).to.deep.equal([])
   })
 
   it('cancels when the prompt response is not "yes"', async () => {
-    await writeAllowlistConfig(tmpDir, {rules: [{action: 'allow', pattern: 'jira'}]})
+    await writePermissionConfig(tmpDir, {rules: [{action: 'allow', pattern: 'jira'}]})
 
     const {cmd, output} = makeReset([], tmpDir)
     // Override prompt to return a non-confirming answer
@@ -57,19 +64,19 @@ describe('allowlist reset', () => {
     await cmd.run()
 
     expect(output()).to.contain('Reset cancelled.')
-    const saved = await readAllowlistConfig(tmpDir)
+    const saved = await readPermissionConfig(tmpDir)
     expect(saved.rules).to.have.length(1)
   })
 
   it('proceeds when the prompt response is "yes"', async () => {
-    await writeAllowlistConfig(tmpDir, {rules: [{action: 'allow', pattern: 'jira'}]})
+    await writePermissionConfig(tmpDir, {rules: [{action: 'allow', pattern: 'jira'}]})
 
     const {cmd, output} = makeReset([], tmpDir)
     cmd._prompt = async () => 'yes'
     await cmd.run()
 
-    expect(output()).to.contain('All allowlist rules have been removed.')
-    const saved = await readAllowlistConfig(tmpDir)
+    expect(output()).to.contain('All permission rules have been removed.')
+    const saved = await readPermissionConfig(tmpDir)
     expect(saved.rules).to.deep.equal([])
   })
 })

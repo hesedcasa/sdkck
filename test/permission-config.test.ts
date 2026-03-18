@@ -1,6 +1,6 @@
 import {expect} from 'chai'
 
-import {matchesPattern} from '../src/allowlist-config.js'
+import {matchesPattern} from '../src/permission-config.js'
 
 describe('matchesPattern', () => {
   it('returns true for wildcard "*"', () => {

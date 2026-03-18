@@ -1,8 +1,8 @@
 import {Args, Command} from '@oclif/core'
 
-import {readAllowlistConfig, writeAllowlistConfig} from '../../allowlist-config.js'
+import {readPermissionConfig, writePermissionConfig} from '../../permission-config.js'
 
-export default class AllowlistDisallow extends Command {
+export default class PermissionDisallow extends Command {
   static args = {
     pattern: Args.string({
       description:
@@ -10,19 +10,19 @@ export default class AllowlistDisallow extends Command {
       required: true,
     }),
   }
-  static description = 'Disallow a command pattern in the plugin command allowlist'
+  static description = 'Disallow a command pattern in the plugin command permission list'
   static examples = [
-    '<%= config.bin %> allowlist disallow "*"',
-    '<%= config.bin %> allowlist disallow jira',
-    '<%= config.bin %> allowlist disallow "jira *"',
-    '<%= config.bin %> allowlist disallow "jira issue create"',
+    '<%= config.bin %> permission disallow "*"',
+    '<%= config.bin %> permission disallow jira',
+    '<%= config.bin %> permission disallow "jira *"',
+    '<%= config.bin %> permission disallow "jira issue create"',
   ]
 
   async run(): Promise<void> {
-    const {args} = await this.parse(AllowlistDisallow)
+    const {args} = await this.parse(PermissionDisallow)
     const {pattern} = args
 
-    const config = await readAllowlistConfig(this.config.configDir)
+    const config = await readPermissionConfig(this.config.configDir)
 
     const exists = config.rules.some((r) => r.pattern === pattern && r.action === 'disallow')
     if (exists) {
@@ -34,7 +34,7 @@ export default class AllowlistDisallow extends Command {
     config.rules = config.rules.filter((r) => !(r.pattern === pattern && r.action === 'allow'))
     config.rules.push({action: 'disallow', pattern})
 
-    await writeAllowlistConfig(this.config.configDir, config)
-    this.log(`Added disallow rule for pattern "${pattern}".`)
+    await writePermissionConfig(this.config.configDir, config)
+    this.log(`Added disallow rule for "${pattern}".`)
   }
 }

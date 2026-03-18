@@ -1,6 +1,6 @@
 import {Errors, Hook} from '@oclif/core'
 
-import {matchesPattern, readAllowlistConfig} from '../../allowlist-config.js'
+import {matchesPattern, readPermissionConfig} from '../../permission-config.js'
 
 /**
  * Blocks execution of disallowed commands even when invoked directly by name.
@@ -11,13 +11,14 @@ import {matchesPattern, readAllowlistConfig} from '../../allowlist-config.js'
  * allowed by default.
  */
 const hook: Hook<'prerun'> = async function ({Command, config}) {
-  const allowlistConfig = await readAllowlistConfig(config.configDir)
-  if (allowlistConfig.rules.length === 0) return
+  const permissionConfig = await readPermissionConfig(config.configDir)
+  if (permissionConfig.rules.length === 0) return
 
-  for (const rule of allowlistConfig.rules) {
-    if (matchesPattern(Command.id, rule.pattern)) {
+  const normalizedId = Command.id.replaceAll(':', config.topicSeparator)
+  for (const rule of permissionConfig.rules) {
+    if (matchesPattern(normalizedId, rule.pattern)) {
       if (rule.action === 'disallow') {
-        throw new Errors.CLIError(`Command "${Command.id}" is not permitted by the allowlist.`)
+        throw new Errors.CLIError(`Command "${normalizedId}" is not permitted.`)
       }
 
       return

@@ -3,17 +3,17 @@ import {mkdtemp, readFile, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
-import {writeAllowlistConfig} from '../../../src/allowlist-config.js'
-import AllowlistExport from '../../../src/commands/allowlist/export.js'
+import PermissionExport from '../../../src/commands/permission/export.js'
+import {writePermissionConfig} from '../../../src/permission-config.js'
 
-function makeExport(argv: string[], configDir: string): {cmd: AllowlistExport; output: () => string} {
+function makeExport(argv: string[], configDir: string): {cmd: PermissionExport; output: () => string} {
   const lines: string[] = []
   const config = {
     bin: 'sdkck',
     configDir,
     runHook: async () => ({failures: [], successes: []}),
   } as never
-  const cmd = new AllowlistExport(argv, config)
+  const cmd = new PermissionExport(argv, config)
   cmd.log = (message = '') => {
     lines.push(String(message))
   }
@@ -21,7 +21,7 @@ function makeExport(argv: string[], configDir: string): {cmd: AllowlistExport; o
   return {cmd, output: () => lines.join('\n')}
 }
 
-describe('allowlist export', () => {
+describe('permission export', () => {
   let tmpDir: string
 
   beforeEach(async () => {
@@ -47,7 +47,7 @@ describe('allowlist export', () => {
       {action: 'allow', pattern: 'jira'},
       {action: 'disallow', pattern: 'mysql *'},
     ]
-    await writeAllowlistConfig(tmpDir, {rules} as never)
+    await writePermissionConfig(tmpDir, {rules} as never)
 
     const outFile = join(tmpDir, 'out.json')
     const {cmd} = makeExport([outFile], tmpDir)

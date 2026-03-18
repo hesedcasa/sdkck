@@ -3,17 +3,17 @@ import {mkdtemp, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
-import {writeAllowlistConfig} from '../../../src/allowlist-config.js'
-import AllowlistList from '../../../src/commands/allowlist/list.js'
+import PermissionList from '../../../src/commands/permission/list.js'
+import {writePermissionConfig} from '../../../src/permission-config.js'
 
-function makeList(configDir: string): {cmd: AllowlistList; output: () => string} {
+function makeList(configDir: string): {cmd: PermissionList; output: () => string} {
   const lines: string[] = []
   const config = {
     bin: 'sdkck',
     configDir,
     runHook: async () => ({failures: [], successes: []}),
   } as never
-  const cmd = new AllowlistList([], config)
+  const cmd = new PermissionList([], config)
   cmd.log = (message = '') => {
     lines.push(String(message))
   }
@@ -21,7 +21,7 @@ function makeList(configDir: string): {cmd: AllowlistList; output: () => string}
   return {cmd, output: () => lines.join('\n')}
 }
 
-describe('allowlist list', () => {
+describe('permission list', () => {
   let tmpDir: string
 
   beforeEach(async () => {
@@ -36,11 +36,11 @@ describe('allowlist list', () => {
     const {cmd, output} = makeList(tmpDir)
     await cmd.run()
 
-    expect(output()).to.contain('No allowlist rules configured.')
+    expect(output()).to.contain('No permission rules configured.')
   })
 
   it('lists allow rules', async () => {
-    await writeAllowlistConfig(tmpDir, {rules: [{action: 'allow', pattern: 'jira'}]})
+    await writePermissionConfig(tmpDir, {rules: [{action: 'allow', pattern: 'jira'}]})
     const {cmd, output} = makeList(tmpDir)
     await cmd.run()
 
@@ -49,7 +49,7 @@ describe('allowlist list', () => {
   })
 
   it('lists disallow rules', async () => {
-    await writeAllowlistConfig(tmpDir, {rules: [{action: 'disallow', pattern: 'mysql *'}]})
+    await writePermissionConfig(tmpDir, {rules: [{action: 'disallow', pattern: 'mysql *'}]})
     const {cmd, output} = makeList(tmpDir)
     await cmd.run()
 
@@ -58,7 +58,7 @@ describe('allowlist list', () => {
   })
 
   it('shows the rule count', async () => {
-    await writeAllowlistConfig(tmpDir, {
+    await writePermissionConfig(tmpDir, {
       rules: [
         {action: 'allow', pattern: 'jira'},
         {action: 'disallow', pattern: 'mysql'},
@@ -71,7 +71,7 @@ describe('allowlist list', () => {
   })
 
   it('shows singular "rule" for a single entry', async () => {
-    await writeAllowlistConfig(tmpDir, {rules: [{action: 'allow', pattern: '*'}]})
+    await writePermissionConfig(tmpDir, {rules: [{action: 'allow', pattern: '*'}]})
     const {cmd, output} = makeList(tmpDir)
     await cmd.run()
 

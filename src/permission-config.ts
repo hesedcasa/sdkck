@@ -2,32 +2,32 @@ import {existsSync} from 'node:fs'
 import {mkdir, readFile, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
-export type RuleAction = 'allow' | 'disallow'
+type RuleAction = 'allow' | 'disallow'
 
-export interface AllowlistRule {
+interface PermissionRule {
   action: RuleAction
   pattern: string
 }
 
-export interface AllowlistConfig {
-  rules: AllowlistRule[]
+export interface PermissionConfig {
+  rules: PermissionRule[]
 }
 
-export function configFilePath(configDir: string): string {
-  return join(configDir, 'allowlist.json')
+function configFilePath(configDir: string): string {
+  return join(configDir, 'permission.json')
 }
 
-export async function readAllowlistConfig(configDir: string): Promise<AllowlistConfig> {
+export async function readPermissionConfig(configDir: string): Promise<PermissionConfig> {
   const filePath = configFilePath(configDir)
   try {
     const content = await readFile(filePath, 'utf8')
-    return JSON.parse(content) as AllowlistConfig
+    return JSON.parse(content) as PermissionConfig
   } catch {
     return {rules: []}
   }
 }
 
-export async function writeAllowlistConfig(configDir: string, config: AllowlistConfig): Promise<void> {
+export async function writePermissionConfig(configDir: string, config: PermissionConfig): Promise<void> {
   if (!existsSync(configDir)) {
     await mkdir(configDir, {recursive: true})
   }
