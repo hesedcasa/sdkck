@@ -1,16 +1,100 @@
+```
+ ____  _     _      _    _      _    
+/ ___|(_) __| | ___| | _(_) ___| | __
+\___ \| |/ _` |/ _ \ |/ / |/ __| |/ /   o _
+ ___) | | (_| |  __/   <| | (__|   <    /\/
+|____/|_|\__,_|\___|_|\_\_|\___|_|\_\    /
+```
+
 # Sidekick (sdkck)
 
-Agentic CLI that provides multiple tools via plugins
+### The Best Companion Tool for AI Agents
 
-[![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
-[![Version](https://img.shields.io/npm/v/test.svg)](https://npmjs.org/package/sdkck)
-[![Downloads/week](https://img.shields.io/npm/dw/test.svg)](https://npmjs.org/package/sdkck)
+One CLI to search, connect, and command every tool in your stack. Zero context window bloat. Maximum productivity.
 
-<!-- toc -->
-* [Sidekick (sdkck)](#sidekick-sdkck)
-* [Usage](#usage)
-* [Commands](#commands)
-<!-- tocstop -->
+[![Version](https://img.shields.io/npm/v/sdkck.svg)](https://npmjs.org/package/sdkck)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/hesedcasa/sdkck/blob/main/LICENSE)
+[![Downloads/week](https://img.shields.io/npm/dw/sdkck.svg)](https://npmjs.org/package/sdkck)
+
+---
+
+## Key Features
+
+**Semantic Search** — Find the right command instantly with AI-powered search. Your agent runs `sdkck search "create a jira ticket"` and gets exactly what it needs. No browsing tool catalogs.
+
+**Just-In-Time Plugins** — Plugins install automatically on first use. Run a Jira command? The Jira plugin appears. No upfront configuration, no bloated installs.
+
+**Permission System** — Fine-grained control over which commands plugins can execute. Allow, disallow, import, and export permission rules. Perfect for enterprise environments and shared agent setups.
+
+**Plugin Ecosystem** — Connect your entire stack through a single CLI:
+
+| Plugin | What It Does |
+|---|---|
+| `@hesed/jira` | Create, search, and manage Jira issues |
+| `@hesed/bb` | Bitbucket pull requests, repos, and pipelines |
+| `@hesed/sentry` | Error tracking and issue management |
+| `@hesed/mysql` | Query and manage MySQL databases |
+| `@hesed/psql` | Query and manage PostgreSQL databases |
+| `@hesed/supabase` | Supabase project and database operations |
+| `@hesed/conni` | Confluence page management |
+
+## Quick Start
+
+```bash
+# Install globally
+npm install -g sdkck
+
+# Search for commands (works immediately — plugins install on demand)
+sdkck search "create issue"
+
+# Use any integration — it auto-installs on first run
+sdkck jira issue create --project MYPROJ --summary "Fix login bug"
+
+# AI-powered search (set your API key for semantic matching)
+export OPENAI_API_KEY=sk-...
+sdkck search "find recent errors in production"
+```
+
+## How AI Agents Use Sidekick
+
+Sidekick is purpose-built for AI agent workflows. Here's what it looks like when Claude Code uses Sidekick:
+
+```
+Agent: I need to check recent Sentry errors and create a Jira ticket.
+
+> sdkck search "sentry errors"          # Discovers the right command
+> sdkck sentry issues list --recent     # Gets the data
+> sdkck jira issue create ...           # Acts on it
+```
+
+## Permissions for Safe Agent Usage
+
+Lock down what your agent can and can't do:
+
+```bash
+# Allow only Jira read commands
+sdkck permission allow "jira issue list"
+sdkck permission allow "jira issue view"
+sdkck permission disallow "jira *"
+
+# Export your permission config for team sharing
+sdkck permission export permissions.json
+
+# View current rules
+sdkck permission list
+```
+
+## Roadmap
+
+We're building the future of agent-tool interaction:
+
+- **Built-in MCP Server** — Expose Sidekick's entire plugin ecosystem as an MCP server with intelligent tool search. Instead of loading hundreds of tool schemas into context, agents query the MCP server with natural language and get back only the relevant tools.
+
+- **Instant Commands from OpenAPI** — Import any OpenAPI/Swagger spec and generate fully functional Sidekick commands automatically. No code required.
+
+- **Agent Workflow Recipes** — Pre-built command chains for common agent workflows (triage Sentry errors to Jira, sync Confluence docs with code changes, automated PR reviews with database checks).
+
+---
 
 # Usage
 
