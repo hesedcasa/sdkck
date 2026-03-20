@@ -104,7 +104,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.5.0 linux-x64 node-v20.20.1
+sdkck/0.5.1 linux-x64 node-v20.20.1
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -184,7 +184,7 @@ DESCRIPTION
   Display help for sdkck.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.37/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/6.2.38/src/commands/help.ts)_
 
 ## `sdkck permission allow PATTERN`
 
@@ -211,7 +211,7 @@ EXAMPLES
   $ sdkck permission allow "jira issue create"
 ```
 
-_See code: [src/commands/permission/allow.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.0/src/commands/permission/allow.ts)_
+_See code: [src/commands/permission/allow.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.1/src/commands/permission/allow.ts)_
 
 ## `sdkck permission disallow PATTERN`
 
@@ -238,7 +238,7 @@ EXAMPLES
   $ sdkck permission disallow "jira issue create"
 ```
 
-_See code: [src/commands/permission/disallow.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.0/src/commands/permission/disallow.ts)_
+_See code: [src/commands/permission/disallow.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.1/src/commands/permission/disallow.ts)_
 
 ## `sdkck permission export FILE`
 
@@ -258,7 +258,7 @@ EXAMPLES
   $ sdkck permission export permission.json
 ```
 
-_See code: [src/commands/permission/export.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.0/src/commands/permission/export.ts)_
+_See code: [src/commands/permission/export.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.1/src/commands/permission/export.ts)_
 
 ## `sdkck permission import FILE`
 
@@ -278,7 +278,7 @@ EXAMPLES
   $ sdkck permission import permission.json
 ```
 
-_See code: [src/commands/permission/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.0/src/commands/permission/import.ts)_
+_See code: [src/commands/permission/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.1/src/commands/permission/import.ts)_
 
 ## `sdkck permission list`
 
@@ -295,7 +295,7 @@ EXAMPLES
   $ sdkck permission list
 ```
 
-_See code: [src/commands/permission/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.0/src/commands/permission/list.ts)_
+_See code: [src/commands/permission/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.1/src/commands/permission/list.ts)_
 
 ## `sdkck permission reset`
 
@@ -317,7 +317,7 @@ EXAMPLES
   $ sdkck permission reset --confirm
 ```
 
-_See code: [src/commands/permission/reset.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.0/src/commands/permission/reset.ts)_
+_See code: [src/commands/permission/reset.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.1/src/commands/permission/reset.ts)_
 
 ## `sdkck plugins`
 
@@ -634,7 +634,7 @@ EXAMPLES
   $ sdkck search "update jira" --details
 ```
 
-_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.0/src/commands/search.ts)_
+_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.1/src/commands/search.ts)_
 
 ## `sdkck update [CHANNEL]`
 
@@ -692,5 +692,5 @@ FLAG DESCRIPTIONS
     Additionally shows the architecture, node version, operating system, and versions of plugins that the CLI is using.
 ```
 
-_See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/v2.2.36/src/commands/version.ts)_
+_See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/2.2.38/src/commands/version.ts)_
 <!-- commandsstop -->

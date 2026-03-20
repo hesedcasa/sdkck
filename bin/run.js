@@ -2,7 +2,6 @@
 
 import {Config, flush, handle, run} from '@oclif/core'
 
-// eslint-disable-next-line import/no-unresolved
 import {registerOpenApiCommands} from '../dist/openapi-dynamic-commands.js'
 
 const config = await Config.load(import.meta.url)
