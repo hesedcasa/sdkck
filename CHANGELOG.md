@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/hesedcasa/sdkck/compare/v0.5.0...v0.5.1) (2026-03-20)
+
+
+### 📄 Documentation
+
+* overhaul README and add comprehensive wiki pages ([#33](https://github.com/hesedcasa/sdkck/issues/33)) ([3efe670](https://github.com/hesedcasa/sdkck/commit/3efe670552453e246dfe58403a394a88d2f485d7))
+
 ## [0.5.0](https://github.com/hesedcasa/sdkck/compare/v0.4.0...v0.5.0) (2026-03-18)
 
 
