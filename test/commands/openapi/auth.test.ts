@@ -75,7 +75,10 @@ describe('openapi auth', () => {
 
   it('updates to apikey auth', async () => {
     const configDir = await freshConfig()
-    const {cmd} = makeAuth(['petstore', '--type', 'apikey', '--api-key', 'key99', '--api-key-header', 'X-Token'], configDir)
+    const {cmd} = makeAuth(
+      ['petstore', '--type', 'apikey', '--api-key', 'key99', '--api-key-header', 'X-Token'],
+      configDir,
+    )
     await cmd.run()
 
     const store = await readStore(configDir)

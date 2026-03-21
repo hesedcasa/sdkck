@@ -42,19 +42,19 @@ export default class OpenApiList extends Command {
         ]
         const paramsStr = paramNames.length > 0 ? `  ${paramNames.join(' ')}` : ''
         this.log(`  ${op.method.toUpperCase().padEnd(7)} ${op.operationId}${paramsStr}`)
-        this.log(`           ${op.description}`)
-        this.log(`           → ${op.path}`)
+        this.log(`          ${op.description}`)
+        this.log(`          → ${op.path}`)
         this.log('')
       }
     } else {
-      this.log(`Imported APIs (${specs.length}):\n`)
+      this.log(`Imported APIs (${specs.length}):`)
       for (const spec of specs) {
-        this.log(`  ${spec.name.padEnd(24)} ${spec.title}  (${spec.operations.length} operations)`)
-        this.log(`    ${spec.baseUrl || '(no base URL)'}`)
+        this.log(`  ${spec.name}: ${spec.title} (${spec.operations.length} operations)`)
+        this.log(`  → ${spec.baseUrl || '(no base URL)'}`)
       }
 
       this.log('')
-      this.log(`Run \`${this.config.bin} openapi list <name>\` to see operations for a specific API.`)
+      this.log(`Run \`openapi list <name>\` to see operations for a specific API.`)
     }
   }
 }

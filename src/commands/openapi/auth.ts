@@ -9,8 +9,8 @@ export default class OpenApiAuth extends Command {
       required: true,
     }),
   }
-static description = 'Update the authentication settings for an imported OpenAPI spec'
-static examples = [
+  static description = 'Update the authentication settings for an imported OpenAPI spec'
+  static examples = [
     '<%= config.bin %> openapi auth petstore --type bearer --token sk-...',
     '<%= config.bin %> openapi auth petstore --type apikey --api-key mykey',
     '<%= config.bin %> openapi auth petstore --type apikey --api-key mykey --api-key-header Authorization',
@@ -18,7 +18,7 @@ static examples = [
     '<%= config.bin %> openapi auth petstore --type none',
     '<%= config.bin %> openapi auth petstore --show',
   ]
-static flags = {
+  static flags = {
     'api-key': Flags.string({
       description: 'API key value (used with --type apikey)',
       required: false,
@@ -78,31 +78,31 @@ static flags = {
     let auth: AuthScheme
 
     switch (flags.type) {
-    case 'apikey': {
-      if (!flags['api-key']) this.error('--api-key is required when --type is apikey')
-      auth = {apiKey: flags['api-key'], header: flags['api-key-header']!, type: 'apikey'}
-    
-    break;
-    }
+      case 'apikey': {
+        if (!flags['api-key']) this.error('--api-key is required when --type is apikey')
+        auth = {apiKey: flags['api-key'], header: flags['api-key-header']!, type: 'apikey'}
 
-    case 'basic': {
-      if (!flags.username) this.error('--username is required when --type is basic')
-      if (!flags.password) this.error('--password is required when --type is basic')
-      auth = {password: flags.password, type: 'basic', username: flags.username}
-    
-    break;
-    }
+        break
+      }
 
-    case 'bearer': {
-      if (!flags.token) this.error('--token is required when --type is bearer')
-      auth = {scheme: 'bearer', token: flags.token, type: 'http'}
-    
-    break;
-    }
+      case 'basic': {
+        if (!flags.username) this.error('--username is required when --type is basic')
+        if (!flags.password) this.error('--password is required when --type is basic')
+        auth = {password: flags.password, type: 'basic', username: flags.username}
 
-    default: {
-      auth = {type: 'none'}
-    }
+        break
+      }
+
+      case 'bearer': {
+        if (!flags.token) this.error('--token is required when --type is bearer')
+        auth = {scheme: 'bearer', token: flags.token, type: 'http'}
+
+        break
+      }
+
+      default: {
+        auth = {type: 'none'}
+      }
     }
 
     spec.auth = auth

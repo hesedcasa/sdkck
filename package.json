@@ -81,7 +81,10 @@
       }
     },
     "hooks": {
-      "init": "./dist/hooks/init/apply-permission",
+      "init": [
+        "./dist/hooks/init/register-openapi-commands",
+        "./dist/hooks/init/apply-permission"
+      ],
       "jit_plugin_not_installed": "./dist/hooks/jit_plugin_not_installed/jit-install",
       "prerun": "./dist/hooks/prerun/check-permission"
     }

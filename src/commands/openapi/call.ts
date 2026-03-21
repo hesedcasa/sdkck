@@ -1,12 +1,13 @@
 import {Args, Command, Flags} from '@oclif/core'
 
-import {buildAuthHeaders, buildUrl, readStore, type StoredOperation} from '../../openapi-store.js'
+import {buildAuthHeaders, buildUrl, parseKV, readStore, type StoredOperation} from '../../openapi-store.js'
 
 /**
  * Minimal interface for the fetch-like function used to make HTTP requests.
  * Using a structural type here makes the property easy to mock in tests without
  * depending on the global `fetch` type, which ESLint flags as experimental for Node < 21.
  */
+// ts-prune-ignore-next
 export interface FetchLike {
   (
     url: string,
@@ -31,12 +32,10 @@ export default class OpenApiCall extends Command {
     '<%= config.bin %> openapi call petstore getPetById --param petId=42',
     '<%= config.bin %> openapi call petstore createPet --body name=Fido --body tag=dog',
     '<%= config.bin %> openapi call petstore listPets --query limit=10 --header X-Trace=abc',
-    '<%= config.bin %> openapi call petstore listPets --base-url https://staging.example.com',
-    '<%= config.bin %> openapi call petstore listPets --raw',
   ]
   static flags = {
     'base-url': Flags.string({
-      description: 'Override the base URL for this call',
+      description: 'Override the base URL for this request',
       required: false,
     }),
     body: Flags.string({
@@ -55,7 +54,7 @@ export default class OpenApiCall extends Command {
       required: false,
     }),
     raw: Flags.boolean({
-      description: 'Print raw response body instead of formatted JSON',
+      description: 'Print the raw response body without JSON formatting',
       required: false,
     }),
   }
@@ -72,9 +71,7 @@ export default class OpenApiCall extends Command {
       this.error(`No spec found with name "${args.name}". Run \`openapi list\` to see available specs.`)
     }
 
-    const operation: StoredOperation | undefined = spec.operations.find(
-      (o) => o.operationId === args.operationId,
-    )
+    const operation: StoredOperation | undefined = spec.operations.find((o) => o.operationId === args.operationId)
     if (!operation) {
       this.error(
         `Operation "${args.operationId}" not found in "${args.name}". Run \`openapi list ${args.name}\` to see operations.`,
@@ -83,9 +80,7 @@ export default class OpenApiCall extends Command {
 
     const baseUrl = flags['base-url'] ?? spec.baseUrl
     if (!baseUrl) {
-      this.error(
-        'No base URL set. Supply one with --base-url or re-import with `openapi import --base-url <url>`.',
-      )
+      this.error('No base URL set. Supply one with --base-url or re-import with `openapi import --base-url <url>`.')
     }
 
     // ── Parse key=value pairs ──────────────────────────────────────────────────
@@ -135,14 +130,13 @@ export default class OpenApiCall extends Command {
 
     if (flags.raw) {
       this.log(responseText)
-      return
-    }
-
-    try {
-      const parsed = JSON.parse(responseText)
-      this.log(JSON.stringify(parsed, null, 2))
-    } catch {
-      this.log(responseText)
+    } else {
+      try {
+        const parsed = JSON.parse(responseText)
+        this.log(JSON.stringify(parsed, null, 2))
+      } catch {
+        this.log(responseText)
+      }
     }
   }
 
@@ -185,28 +179,11 @@ export default class OpenApiCall extends Command {
     return {headerParams, pathParams, queryParams}
   }
 
-  private _validateBodyParams(
-    bodyParams: StoredOperation['bodyParams'],
-    parsedBody: Record<string, string>,
-  ): void {
+  private _validateBodyParams(bodyParams: StoredOperation['bodyParams'], parsedBody: Record<string, string>): void {
     for (const [name, def] of Object.entries(bodyParams)) {
       if (def.required && parsedBody[name] === undefined) {
         this.error(`Missing required body field: ${name}`)
       }
     }
   }
-}
-
-function parseKV(pairs: string[]): Record<string, string> {
-  const result: Record<string, string> = {}
-  for (const pair of pairs) {
-    const idx = pair.indexOf('=')
-    if (idx === -1) {
-      result[pair] = ''
-    } else {
-      result[pair.slice(0, idx)] = pair.slice(idx + 1)
-    }
-  }
-
-  return result
 }

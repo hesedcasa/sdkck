@@ -1,4 +1,5 @@
 import {Args, Command, Flags} from '@oclif/core'
+import {action} from '@oclif/core/ux'
 
 import {
   type AuthScheme,
@@ -12,13 +13,12 @@ import {
 export default class OpenApiImport extends Command {
   static args = {
     source: Args.string({
-      description: 'Path to a local OpenAPI/Swagger file or a URL',
+      description: 'Path to a local OpenAPI file or a URL',
       required: true,
     }),
   }
-static description =
-    'Import an OpenAPI or Swagger spec and register its endpoints as callable commands'
-static examples = [
+  static description = 'Import an OpenAPI spec and register its endpoints as commands'
+  static examples = [
     '<%= config.bin %> openapi import ./petstore.yaml',
     '<%= config.bin %> openapi import https://petstore3.swagger.io/api/v3/openapi.json',
     '<%= config.bin %> openapi import ./api.json --name myapi --base-url https://api.example.com',
@@ -26,7 +26,7 @@ static examples = [
     '<%= config.bin %> openapi import ./api.yaml --auth-type apikey --api-key mykey --api-key-header X-API-Key',
     '<%= config.bin %> openapi import ./api.yaml --auth-type basic --username user --password pass',
   ]
-static flags = {
+  static flags = {
     'api-key': Flags.string({
       description: 'API key value (used with --auth-type apikey)',
       required: false,
@@ -66,16 +66,18 @@ static flags = {
   async run(): Promise<void> {
     const {args, flags} = await this.parse(OpenApiImport)
 
-    this.log(`Loading spec from ${args.source} …`)
+    action.start(`Loading spec from ${args.source}`)
     let spec
     try {
       spec = await loadSpec(args.source)
+      action.stop('✓')
     } catch (error) {
+      action.stop('✗')
       this.error(`Failed to load spec: ${(error as Error).message}`)
     }
 
     if (!spec.paths) {
-      this.error('Spec has no "paths" section — is this a valid OpenAPI/Swagger document?')
+      this.error('Spec has no "paths" section')
     }
 
     const title = spec.info?.title ?? 'Unnamed API'
@@ -100,28 +102,28 @@ static flags = {
 
     const authType = flags['auth-type']
     switch (authType) {
-    case 'apikey': {
-      if (!flags['api-key']) this.error('--api-key is required when --auth-type is apikey')
-      auth = {apiKey: flags['api-key'], header: flags['api-key-header']!, type: 'apikey'}
-    
-    break;
-    }
+      case 'apikey': {
+        if (!flags['api-key']) this.error('--api-key is required when --auth-type is apikey')
+        auth = {apiKey: flags['api-key'], header: flags['api-key-header']!, type: 'apikey'}
 
-    case 'basic': {
-      if (!flags.username) this.error('--username is required when --auth-type is basic')
-      if (!flags.password) this.error('--password is required when --auth-type is basic')
-      auth = {password: flags.password, type: 'basic', username: flags.username}
-    
-    break;
-    }
+        break
+      }
 
-    case 'bearer': {
-      if (!flags.token) this.error('--token is required when --auth-type is bearer')
-      auth = {scheme: 'bearer', token: flags.token, type: 'http'}
-    
-    break;
-    }
-    // No default
+      case 'basic': {
+        if (!flags.username) this.error('--username is required when --auth-type is basic')
+        if (!flags.password) this.error('--password is required when --auth-type is basic')
+        auth = {password: flags.password, type: 'basic', username: flags.username}
+
+        break
+      }
+
+      case 'bearer': {
+        if (!flags.token) this.error('--token is required when --auth-type is bearer')
+        auth = {scheme: 'bearer', token: flags.token, type: 'http'}
+
+        break
+      }
+      // No default
     }
 
     // ── Extract operations ─────────────────────────────────────────────────────
