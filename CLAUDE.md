@@ -12,6 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Test:** `npm run test` (runs mocha, then lint via `posttest`)
 - **Run single test:** `npx mocha --forbid-only "test/path/to/file.test.ts"`
 - **Lint:** `npm run lint` (ESLint with oclif + prettier configs)
+- **Format:** `npm run format` (ESLint --fix + Prettier write)
 - **Dev run:** `./bin/dev.js <command>` (runs CLI from source via ts-node, no build needed)
 - **Production run:** `./bin/run.js <command>` (runs from compiled `dist/`)
 - **Generate manifest:** `npx oclif manifest` (creates `oclif.manifest.json` for packaging)
@@ -23,6 +24,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Plugin system:** Uses oclif's built-in plugin architecture (`@oclif/plugin-plugins`, `@oclif/plugin-update`, etc.). Third-party plugins are loaded via `@oclif/plugin-*` glob in package.json `oclif.plugins`.
 - **Topic separator:** Space-based (`topicSeparator: " "`), so commands use `sdkck topic command` not `sdkck topic:command`.
 - **Module system:** ESM (`"type": "module"` in package.json, `"module": "Node16"` in tsconfig)
+
+## Built-in Features
+
+### OpenAPI Import (`openapi` topic)
+
+`openapi import <name> <spec-file-or-url>` reads an OpenAPI spec (JSON/YAML) and stores each operation in `~/.local/share/sdkck/openapi/<name>/`. The `init` hook (`src/hooks/init/register-openapi-commands.ts`) runs at startup and calls `registerOpenApiCommands` to load every stored operation as a first-class oclif command under `<specName> <operationId>`. These dynamic commands appear in `sdkck help` and `sdkck commands` exactly like static commands.
+
+Key files: `src/openapi-store.ts` (CRUD for stored specs/ops), `src/openapi-dynamic-commands.ts` (command factory), `src/hooks/init/register-openapi-commands.ts`.
+
+Other subcommands: `openapi auth`, `openapi call`, `openapi list`, `openapi config`, `openapi remove`.
+
+### Permission Allowlist (`permission` topic)
+
+`permission allow/disallow <pattern>` manages a JSON rule list at `<configDir>/permission.json`. The `prerun` hook (`src/hooks/prerun/check-permission.ts`) enforces rules before every command runs — first matching rule wins; unmatched commands are allowed. Rules use glob-style patterns against the space-separated command ID.
+
+Key file: `src/permission-config.ts`.
+
+Subcommands: `permission allow`, `permission disallow`, `permission list`, `permission export`, `permission import`, `permission reset`.
 
 ## JIT Plugins
 
