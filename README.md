@@ -20,6 +20,28 @@ One CLI to search, connect, and command every tool in your stack. Zero context w
 
 ## Key Features
 
+**Instant Commands from OpenAPI** — Point Sidekick at any OpenAPI/Swagger spec — local file or URL — and every endpoint becomes a first-class CLI command instantly. No code, no plugins, no configuration files. Import once and your API appears in `sdkck help`, responds to `sdkck search`, and is callable by name from any AI agent.
+
+```bash
+# Import a spec from a URL or local file
+sdkck openapi import https://petstore3.swagger.io/api/v3/openapi.json --name petstore
+
+# Every operation is now a real command
+sdkck petstore listPets
+sdkck petstore getPetById --param petId=42
+sdkck petstore createPet --body name=Fido --body tag=dog
+
+# Searchable like any built-in command
+sdkck search "list pets"
+```
+
+Auth is built in — configure bearer tokens, API keys, or basic auth once and every generated command uses it automatically:
+
+```bash
+sdkck openapi auth petstore --type bearer --token sk-...
+sdkck openapi auth myapi --type apikey --api-key mykey --api-key-header X-API-Key
+```
+
 **Semantic Search** — Find the right command instantly with AI-powered search. Your agent runs `sdkck search "create a jira ticket"` and gets exactly what it needs. No browsing tool catalogs.
 
 **Just-In-Time Plugins** — Plugins install automatically on first use. Run a Jira command? The Jira plugin appears. No upfront configuration, no bloated installs.
@@ -43,6 +65,10 @@ One CLI to search, connect, and command every tool in your stack. Zero context w
 ```bash
 # Install globally
 npm install -g sdkck
+
+# Turn any OpenAPI spec into CLI commands instantly
+sdkck openapi import https://petstore3.swagger.io/api/v3/openapi.json --name petstore
+sdkck petstore listPets
 
 # Search for commands (works immediately — plugins install on demand)
 sdkck search "create issue"
@@ -89,8 +115,6 @@ sdkck permission list
 We're building the future of agent-tool interaction:
 
 - **Built-in MCP Server** — Expose Sidekick's entire plugin ecosystem as an MCP server with intelligent tool search. Instead of loading hundreds of tool schemas into context, agents query the MCP server with natural language and get back only the relevant tools.
-
-- **Instant Commands from OpenAPI** — Import any OpenAPI/Swagger spec and generate fully functional Sidekick commands automatically. No code required.
 
 - **Agent Workflow Recipes** — Pre-built command chains for common agent workflows (triage Sentry errors to Jira, sync Confluence docs with code changes, automated PR reviews with database checks).
 
