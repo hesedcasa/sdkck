@@ -60,6 +60,18 @@ sdkck openapi auth myapi --type apikey --api-key mykey --api-key-header X-API-Ke
 | `@hesed/supabase` | Supabase project and database operations |
 | `@hesed/conni` | Confluence page management |
 
+Don't see your tool? **Build your own plugin.** Sidekick is built on [oclif](https://oclif.io), so any oclif plugin works as a Sidekick plugin. Create a package that exports oclif commands and install it with:
+
+```bash
+# Install any oclif-compatible plugin directly
+sdkck plugins install my-custom-plugin
+
+# Or from a GitHub repo
+sdkck plugins install myorg/my-custom-plugin
+```
+
+Your plugin's commands appear in `sdkck help`, are discoverable via `sdkck search`, and are subject to the same permission rules as built-in plugins — no extra wiring needed.
+
 ## Quick Start
 
 ```bash
