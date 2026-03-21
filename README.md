@@ -104,7 +104,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.5.1 linux-x64 node-v20.20.1
+sdkck/0.6.0 linux-x64 node-v20.20.1
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -117,6 +117,12 @@ USAGE
 <!-- commands -->
 * [`sdkck commands`](#sdkck-commands)
 * [`sdkck help [COMMAND]`](#sdkck-help-command)
+* [`sdkck openapi auth NAME`](#sdkck-openapi-auth-name)
+* [`sdkck openapi call NAME OPERATIONID`](#sdkck-openapi-call-name-operationid)
+* [`sdkck openapi config NAME`](#sdkck-openapi-config-name)
+* [`sdkck openapi import SOURCE`](#sdkck-openapi-import-source)
+* [`sdkck openapi list [NAME]`](#sdkck-openapi-list-name)
+* [`sdkck openapi remove NAME`](#sdkck-openapi-remove-name)
 * [`sdkck permission allow PATTERN`](#sdkck-permission-allow-pattern)
 * [`sdkck permission disallow PATTERN`](#sdkck-permission-disallow-pattern)
 * [`sdkck permission export FILE`](#sdkck-permission-export-file)
@@ -164,7 +170,7 @@ DESCRIPTION
   List all sdkck commands.
 ```
 
-_See code: [@oclif/plugin-commands](https://github.com/oclif/plugin-commands/blob/v4.1.40/src/commands/commands.ts)_
+_See code: [@oclif/plugin-commands](https://github.com/oclif/plugin-commands/blob/4.1.42/src/commands/commands.ts)_
 
 ## `sdkck help [COMMAND]`
 
@@ -184,7 +190,198 @@ DESCRIPTION
   Display help for sdkck.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/6.2.38/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/6.2.39/src/commands/help.ts)_
+
+## `sdkck openapi auth NAME`
+
+Update the authentication settings for an imported OpenAPI spec
+
+```
+USAGE
+  $ sdkck openapi auth NAME [--api-key <value>] [--api-key-header <value>] [--password <value>] [--show] [--token
+    <value>] [--type none|bearer|apikey|basic] [--username <value>]
+
+ARGUMENTS
+  NAME  API name to update authentication for
+
+FLAGS
+  --api-key=<value>         API key value (used with --type apikey)
+  --api-key-header=<value>  [default: X-API-Key] Header name for the API key
+  --password=<value>        Password for basic auth
+  --show                    Show the current authentication settings (tokens are redacted)
+  --token=<value>           Bearer token
+  --type=<option>           Authentication type to configure
+                            <options: none|bearer|apikey|basic>
+  --username=<value>        Username for basic auth
+
+DESCRIPTION
+  Update the authentication settings for an imported OpenAPI spec
+
+EXAMPLES
+  $ sdkck openapi auth petstore --type bearer --token sk-...
+
+  $ sdkck openapi auth petstore --type apikey --api-key mykey
+
+  $ sdkck openapi auth petstore --type apikey --api-key mykey --api-key-header Authorization
+
+  $ sdkck openapi auth petstore --type basic --username user --password secret
+
+  $ sdkck openapi auth petstore --type none
+
+  $ sdkck openapi auth petstore --show
+```
+
+_See code: [src/commands/openapi/auth.ts](https://github.com/hesedcasa/sdkck/blob/v0.6.0/src/commands/openapi/auth.ts)_
+
+## `sdkck openapi call NAME OPERATIONID`
+
+Call an imported OpenAPI operation
+
+```
+USAGE
+  $ sdkck openapi call NAME OPERATIONID [--base-url <value>] [--body <value>...] [--header <value>...] [--param
+    <value>...] [--raw]
+
+ARGUMENTS
+  NAME         API name (as shown in `openapi list`)
+  OPERATIONID  Operation ID to call (as shown in `openapi list <name>`)
+
+FLAGS
+  --base-url=<value>   Override the base URL for this request
+  --body=<value>...    Request body field as key=value (repeatable)
+  --header=<value>...  Extra request header as Key=Value (repeatable)
+  --param=<value>...   Path or query parameter as key=value (repeatable)
+  --raw                Print the raw response body without JSON formatting
+
+DESCRIPTION
+  Call an imported OpenAPI operation
+
+EXAMPLES
+  $ sdkck openapi call petstore listPets
+
+  $ sdkck openapi call petstore getPetById --param petId=42
+
+  $ sdkck openapi call petstore createPet --body name=Fido --body tag=dog
+
+  $ sdkck openapi call petstore listPets --query limit=10 --header X-Trace=abc
+```
+
+_See code: [src/commands/openapi/call.ts](https://github.com/hesedcasa/sdkck/blob/v0.6.0/src/commands/openapi/call.ts)_
+
+## `sdkck openapi config NAME`
+
+Update configuration for an imported OpenAPI spec
+
+```
+USAGE
+  $ sdkck openapi config NAME [--base-url <value>] [--description <value>] [--rename <value>] [--title <value>]
+
+ARGUMENTS
+  NAME  API name (as shown in `openapi list`)
+
+FLAGS
+  --base-url=<value>     New base URL for API calls
+  --description=<value>  New description for the spec
+  --rename=<value>       New short identifier for this API
+  --title=<value>        New display title for the spec
+
+DESCRIPTION
+  Update configuration for an imported OpenAPI spec
+
+EXAMPLES
+  $ sdkck openapi config petstore --base-url https://api.example.com
+
+  $ sdkck openapi config petstore --rename mystore
+
+  $ sdkck openapi config petstore --title "My Petstore" --description "A pet store API"
+```
+
+_See code: [src/commands/openapi/config.ts](https://github.com/hesedcasa/sdkck/blob/v0.6.0/src/commands/openapi/config.ts)_
+
+## `sdkck openapi import SOURCE`
+
+Import an OpenAPI spec and register its endpoints as commands
+
+```
+USAGE
+  $ sdkck openapi import SOURCE [--api-key <value>] [--api-key-header <value>] [--auth-type
+    none|bearer|apikey|basic] [--base-url <value>] [--name <value>] [--password <value>] [--token <value>] [--username
+    <value>]
+
+ARGUMENTS
+  SOURCE  Path to a local OpenAPI file or a URL
+
+FLAGS
+  --api-key=<value>         API key value (used with --auth-type apikey)
+  --api-key-header=<value>  [default: X-API-Key] Header name for the API key
+  --auth-type=<option>      Authentication type
+                            <options: none|bearer|apikey|basic>
+  --base-url=<value>        Override the base URL for API calls (e.g. https://api.example.com)
+  --name=<value>            Short identifier for this API (defaults to the spec title slug)
+  --password=<value>        Password for basic auth
+  --token=<value>           Bearer token (used with --auth-type bearer)
+  --username=<value>        Username for basic auth
+
+DESCRIPTION
+  Import an OpenAPI spec and register its endpoints as commands
+
+EXAMPLES
+  $ sdkck openapi import ./petstore.yaml
+
+  $ sdkck openapi import https://petstore3.swagger.io/api/v3/openapi.json
+
+  $ sdkck openapi import ./api.json --name myapi --base-url https://api.example.com
+
+  $ sdkck openapi import ./api.yaml --auth-type bearer --token sk-...
+
+  $ sdkck openapi import ./api.yaml --auth-type apikey --api-key mykey --api-key-header X-API-Key
+
+  $ sdkck openapi import ./api.yaml --auth-type basic --username user --password pass
+```
+
+_See code: [src/commands/openapi/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.6.0/src/commands/openapi/import.ts)_
+
+## `sdkck openapi list [NAME]`
+
+List imported OpenAPI specs and their available operations
+
+```
+USAGE
+  $ sdkck openapi list [NAME]
+
+ARGUMENTS
+  [NAME]  API name to list operations for (omit to list all imported APIs)
+
+DESCRIPTION
+  List imported OpenAPI specs and their available operations
+
+EXAMPLES
+  $ sdkck openapi list
+
+  $ sdkck openapi list petstore
+```
+
+_See code: [src/commands/openapi/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.6.0/src/commands/openapi/list.ts)_
+
+## `sdkck openapi remove NAME`
+
+Remove an imported OpenAPI spec
+
+```
+USAGE
+  $ sdkck openapi remove NAME
+
+ARGUMENTS
+  NAME  API name to remove
+
+DESCRIPTION
+  Remove an imported OpenAPI spec
+
+EXAMPLES
+  $ sdkck openapi remove petstore
+```
+
+_See code: [src/commands/openapi/remove.ts](https://github.com/hesedcasa/sdkck/blob/v0.6.0/src/commands/openapi/remove.ts)_
 
 ## `sdkck permission allow PATTERN`
 
@@ -211,7 +408,7 @@ EXAMPLES
   $ sdkck permission allow "jira issue create"
 ```
 
-_See code: [src/commands/permission/allow.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.1/src/commands/permission/allow.ts)_
+_See code: [src/commands/permission/allow.ts](https://github.com/hesedcasa/sdkck/blob/v0.6.0/src/commands/permission/allow.ts)_
 
 ## `sdkck permission disallow PATTERN`
 
@@ -238,7 +435,7 @@ EXAMPLES
   $ sdkck permission disallow "jira issue create"
 ```
 
-_See code: [src/commands/permission/disallow.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.1/src/commands/permission/disallow.ts)_
+_See code: [src/commands/permission/disallow.ts](https://github.com/hesedcasa/sdkck/blob/v0.6.0/src/commands/permission/disallow.ts)_
 
 ## `sdkck permission export FILE`
 
@@ -258,7 +455,7 @@ EXAMPLES
   $ sdkck permission export permission.json
 ```
 
-_See code: [src/commands/permission/export.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.1/src/commands/permission/export.ts)_
+_See code: [src/commands/permission/export.ts](https://github.com/hesedcasa/sdkck/blob/v0.6.0/src/commands/permission/export.ts)_
 
 ## `sdkck permission import FILE`
 
@@ -278,7 +475,7 @@ EXAMPLES
   $ sdkck permission import permission.json
 ```
 
-_See code: [src/commands/permission/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.1/src/commands/permission/import.ts)_
+_See code: [src/commands/permission/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.6.0/src/commands/permission/import.ts)_
 
 ## `sdkck permission list`
 
@@ -295,7 +492,7 @@ EXAMPLES
   $ sdkck permission list
 ```
 
-_See code: [src/commands/permission/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.1/src/commands/permission/list.ts)_
+_See code: [src/commands/permission/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.6.0/src/commands/permission/list.ts)_
 
 ## `sdkck permission reset`
 
@@ -317,7 +514,7 @@ EXAMPLES
   $ sdkck permission reset --confirm
 ```
 
-_See code: [src/commands/permission/reset.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.1/src/commands/permission/reset.ts)_
+_See code: [src/commands/permission/reset.ts](https://github.com/hesedcasa/sdkck/blob/v0.6.0/src/commands/permission/reset.ts)_
 
 ## `sdkck plugins`
 
@@ -340,7 +537,7 @@ EXAMPLES
   $ sdkck plugins
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.58/src/commands/plugins/index.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.59/src/commands/plugins/index.ts)_
 
 ## `sdkck plugins add PLUGIN`
 
@@ -414,7 +611,7 @@ EXAMPLES
   $ sdkck plugins inspect myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.58/src/commands/plugins/inspect.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.59/src/commands/plugins/inspect.ts)_
 
 ## `sdkck plugins install PLUGIN`
 
@@ -463,7 +660,7 @@ EXAMPLES
     $ sdkck plugins install someuser/someplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.58/src/commands/plugins/install.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.59/src/commands/plugins/install.ts)_
 
 ## `sdkck plugins link PATH`
 
@@ -494,7 +691,7 @@ EXAMPLES
   $ sdkck plugins link myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.58/src/commands/plugins/link.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.59/src/commands/plugins/link.ts)_
 
 ## `sdkck plugins remove [PLUGIN]`
 
@@ -535,7 +732,7 @@ FLAGS
   --reinstall  Reinstall all plugins after uninstalling.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.58/src/commands/plugins/reset.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.59/src/commands/plugins/reset.ts)_
 
 ## `sdkck plugins uninstall [PLUGIN]`
 
@@ -563,7 +760,7 @@ EXAMPLES
   $ sdkck plugins uninstall myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.58/src/commands/plugins/uninstall.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.59/src/commands/plugins/uninstall.ts)_
 
 ## `sdkck plugins unlink [PLUGIN]`
 
@@ -607,7 +804,7 @@ DESCRIPTION
   Update installed plugins.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.58/src/commands/plugins/update.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.59/src/commands/plugins/update.ts)_
 
 ## `sdkck search QUERY`
 
@@ -634,7 +831,7 @@ EXAMPLES
   $ sdkck search "update jira" --details
 ```
 
-_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.5.1/src/commands/search.ts)_
+_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.6.0/src/commands/search.ts)_
 
 ## `sdkck update [CHANNEL]`
 
@@ -672,7 +869,7 @@ EXAMPLES
     $ sdkck update --available
 ```
 
-_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/4.7.22/src/commands/update.ts)_
+_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/4.7.24/src/commands/update.ts)_
 
 ## `sdkck version`
 
@@ -692,5 +889,5 @@ FLAG DESCRIPTIONS
     Additionally shows the architecture, node version, operating system, and versions of plugins that the CLI is using.
 ```
 
-_See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/2.2.38/src/commands/version.ts)_
+_See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/2.2.39/src/commands/version.ts)_
 <!-- commandsstop -->
