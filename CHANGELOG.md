@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/hesedcasa/sdkck/compare/v0.5.1...v0.6.0) (2026-03-21)
+
+
+### 🎉 Features
+
+* add openapi import commands for auto-generating API calls from specs ([#34](https://github.com/hesedcasa/sdkck/issues/34)) ([3506daa](https://github.com/hesedcasa/sdkck/commit/3506daa79286ec3edceeed461bd3657b5509b2c3))
+
 ## [0.5.1](https://github.com/hesedcasa/sdkck/compare/v0.5.0...v0.5.1) (2026-03-20)
 
 
