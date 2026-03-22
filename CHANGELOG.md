@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/hesedcasa/sdkck/compare/v0.7.0...v0.7.1) (2026-03-22)
+
+
+### 🛠️ Fixes
+
+* make dynamic OpenAPI commands dispatchable and visible in commands list ([#39](https://github.com/hesedcasa/sdkck/issues/39)) ([b6a7ef2](https://github.com/hesedcasa/sdkck/commit/b6a7ef2612c0129ef2175eb4f072cca7914a2bca))
+
 ## [0.7.0](https://github.com/hesedcasa/sdkck/compare/v0.6.0...v0.7.0) (2026-03-22)
 
 
