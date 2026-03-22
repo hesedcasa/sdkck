@@ -6,6 +6,54 @@ import {join} from 'node:path'
 import OpenApiImport from '../../../src/commands/openapi/import.js'
 import {readStore} from '../../../src/openapi-store.js'
 
+const POSTMAN_COLLECTION = {
+  info: {
+    '_postman_id': 'test-123',
+    description: 'A sample Petstore via Postman',
+    name: 'Petstore Postman',
+    schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+  },
+  item: [
+    {
+      name: 'List Pets',
+      request: {
+        description: 'List all pets',
+        method: 'GET',
+        url: {
+          host: ['petstore', 'example', 'com'],
+          path: ['pets'],
+          query: [{key: 'limit', value: '10'}],
+          raw: 'https://petstore.example.com/pets?limit=10',
+        },
+      },
+    },
+    {
+      name: 'Create Pet',
+      request: {
+        body: {mode: 'raw', raw: '{"name": "Fido"}'},
+        method: 'POST',
+        url: {
+          host: ['petstore', 'example', 'com'],
+          path: ['pets'],
+          raw: 'https://petstore.example.com/pets',
+        },
+      },
+    },
+    {
+      name: 'Get Pet',
+      request: {
+        method: 'GET',
+        url: {
+          host: ['petstore', 'example', 'com'],
+          path: ['pets', ':petId'],
+          raw: 'https://petstore.example.com/pets/:petId',
+          variable: [{key: 'petId', value: '1'}],
+        },
+      },
+    },
+  ],
+}
+
 const PETSTORE_SPEC = {
   info: {description: 'A sample API', title: 'Petstore', version: '1.0.0'},
   openapi: '3.0.0',
@@ -165,5 +213,58 @@ describe('openapi import', () => {
 
     const store = await readStore(configDir)
     expect(store.specs.petstore.baseUrl).to.equal('https://staging.example.com')
+  })
+
+  it('imports a Postman collection and converts to operations', async () => {
+    const configDir = join(tmpDir, 'config-import-postman-1')
+    const postmanFile = join(tmpDir, 'petstore_postman.json')
+    await writeFile(postmanFile, JSON.stringify(POSTMAN_COLLECTION), 'utf8')
+
+    const {cmd, output} = makeImport([postmanFile], configDir)
+    await cmd.run()
+
+    const out = output()
+    expect(out).to.include('Petstore Postman')
+    expect(out).to.include('3') // 3 operations
+
+    const store = await readStore(configDir)
+    expect(store.specs).to.have.key('petstore-postman')
+    expect(store.specs['petstore-postman'].operations).to.have.length(3)
+  })
+
+  it('uses --name flag to override slug for Postman collection', async () => {
+    const configDir = join(tmpDir, 'config-import-postman-2')
+    const postmanFile = join(tmpDir, 'petstore_postman2.json')
+    await writeFile(postmanFile, JSON.stringify(POSTMAN_COLLECTION), 'utf8')
+
+    const {cmd} = makeImport([postmanFile, '--name', 'mypets'], configDir)
+    await cmd.run()
+
+    const store = await readStore(configDir)
+    expect(store.specs).to.have.key('mypets')
+  })
+
+  it('extracts base URL from Postman collection', async () => {
+    const configDir = join(tmpDir, 'config-import-postman-3')
+    const postmanFile = join(tmpDir, 'petstore_postman3.json')
+    await writeFile(postmanFile, JSON.stringify(POSTMAN_COLLECTION), 'utf8')
+
+    const {cmd} = makeImport([postmanFile], configDir)
+    await cmd.run()
+
+    const store = await readStore(configDir)
+    expect(store.specs['petstore-postman'].baseUrl).to.equal('https://petstore.example.com')
+  })
+
+  it('allows --base-url to override Postman collection base URL', async () => {
+    const configDir = join(tmpDir, 'config-import-postman-4')
+    const postmanFile = join(tmpDir, 'petstore_postman4.json')
+    await writeFile(postmanFile, JSON.stringify(POSTMAN_COLLECTION), 'utf8')
+
+    const {cmd} = makeImport([postmanFile, '--base-url', 'https://staging.example.com'], configDir)
+    await cmd.run()
+
+    const store = await readStore(configDir)
+    expect(store.specs['petstore-postman'].baseUrl).to.equal('https://staging.example.com')
   })
 })

@@ -3,6 +3,8 @@ import {existsSync} from 'node:fs'
 import {mkdir, readdir, readFile, unlink, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
+import {isPostmanCollection, postmanToOpenApi} from './postman-converter.js'
+
 // ─── OpenAPI types ────────────────────────────────────────────────────────────
 
 interface OpenApiParameter {
@@ -183,11 +185,15 @@ export async function loadSpec(source: string): Promise<OpenApiSpec> {
   }
 
   const trimmed = raw.trimStart()
-  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-    return JSON.parse(raw) as OpenApiSpec
+  const parsed = (trimmed.startsWith('{') || trimmed.startsWith('['))
+    ? JSON.parse(raw)
+    : yamlLoad(raw)
+
+  if (isPostmanCollection(parsed)) {
+    return postmanToOpenApi(parsed) as unknown as OpenApiSpec
   }
 
-  return yamlLoad(raw) as OpenApiSpec
+  return parsed as OpenApiSpec
 }
 
 // ─── Command name generation ──────────────────────────────────────────────────
