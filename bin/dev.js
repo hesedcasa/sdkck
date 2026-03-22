@@ -8,7 +8,16 @@ import {registerOpenApiCommands} from '../src/openapi-dynamic-commands.js'
 process.env.NODE_ENV = 'development'
 settings.debug = true
 
-const config = await Config.load(import.meta.url)
-await registerOpenApiCommands(config)
+// Patch Config.load so every config instance (including those created inside
+// Command.run) automatically gets the dynamic OpenAPI commands registered.
+// This also ensures commands are present when normalizeArgv() parses argv.
+const originalLoad = Config.load.bind(Config)
+Config.load = async (...args) => {
+  const config = await originalLoad(...args)
+  await registerOpenApiCommands(config).catch(() => {})
+  return config
+}
 
-await run(process.argv.slice(2), config).then(flush).catch(handle)
+await run(process.argv.slice(2), import.meta.url)
+  .then(flush)
+  .catch(handle)
