@@ -1,9 +1,10 @@
 ```
  ____  _     _      _    _      _    
 / ___|(_) __| | ___| | _(_) ___| | __
-\___ \| |/ _` |/ _ \ |/ / |/ __| |/ /   o _
- ___) | | (_| |  __/   <| | (__|   <    /\/
-|____/|_|\__,_|\___|_|\_\_|\___|_|\_\    /
+\___ \| |/ _` |/ _ \ |/ / |/ __| |/ /
+ ___) | | (_| |  __/   <| | (__|   < 
+|____/|_|\__,_|\___|_|\_\_|\___|_|\_\
+
 ```
 
 # Sidekick (sdkck)
@@ -20,23 +21,60 @@ One CLI to search, connect, and command every tool in your stack. Zero context w
 
 ## Key Features
 
-**Semantic Search** — Find the right command instantly with AI-powered search. Your agent runs `sdkck search "create a jira ticket"` and gets exactly what it needs. No browsing tool catalogs.
+### Instant Commands from OpenAPI
 
-**Just-In-Time Plugins** — Plugins install automatically on first use. Run a Jira command? The Jira plugin appears. No upfront configuration, no bloated installs.
+- Point Sidekick at any OpenAPI/Swagger spec — local file or URL — and every endpoint becomes a CLI command instantly.
 
-**Permission System** — Fine-grained control over which commands plugins can execute. Allow, disallow, import, and export permission rules. Perfect for enterprise environments and shared agent setups.
+  ```bash
+  # Import a spec from a URL or local file
+  sdkck openapi import https://petstore3.swagger.io/api/v3/openapi.json --name petstore
 
-**Plugin Ecosystem** — Connect your entire stack through a single CLI:
+  # Every operation is now a real command
+  sdkck petstore listPets
+  sdkck petstore getPetById --param petId=42
+  sdkck petstore createPet --body name=Fido --body tag=dog
 
-| Plugin | What It Does |
-|---|---|
-| `@hesed/jira` | Create, search, and manage Jira issues |
-| `@hesed/bb` | Bitbucket pull requests, repos, and pipelines |
-| `@hesed/sentry` | Error tracking and issue management |
-| `@hesed/mysql` | Query and manage MySQL databases |
-| `@hesed/psql` | Query and manage PostgreSQL databases |
-| `@hesed/supabase` | Supabase project and database operations |
-| `@hesed/conni` | Confluence page management |
+  # Searchable like any built-in command
+  sdkck search "list pets"
+  ```
+
+- Auth is built in — configure bearer tokens, API keys, or basic auth once and every generated command uses it automatically:
+
+  ```bash
+  sdkck openapi auth petstore --type bearer --token sk-...
+  sdkck openapi auth myapi --type apikey --api-key mykey --api-key-header X-API-Key
+  ```
+
+### Semantic Search
+
+- Find the right command instantly with fuzzy algorithem or AI-powered. Your agent runs `sdkck search "create a jira ticket"` and gets exactly what it needs. No browsing tool catalogs.
+
+### Plugins
+
+- Official plugins install automatically on first use. No upfront configuration, no bloated installs.
+- | Plugin            | What It Does                                  |
+  | ----------------- | --------------------------------------------- |
+  | `@hesed/jira`     | Create, search, and manage Jira issues        |
+  | `@hesed/bb`       | Bitbucket pull requests, repos, and pipelines |
+  | `@hesed/sentry`   | Error tracking and issue management           |
+  | `@hesed/mysql`    | Query and manage MySQL databases              |
+  | `@hesed/psql`     | Query and manage PostgreSQL databases         |
+  | `@hesed/supabase` | Supabase project and database operations      |
+  | `@hesed/conni`    | Confluence page management                    |
+
+- Build your own plugin. Sidekick is built on [oclif](https://oclif.io), so any oclif plugin works as a Sidekick plugin. Create a package that exports oclif commands and install it with:
+
+  ```bash
+  # Install any oclif-compatible plugin directly
+  sdkck plugins install my-custom-plugin
+
+  # Or from a GitHub repo
+  sdkck plugins install myorg/my-custom-plugin
+  ```
+
+### Permission System
+
+- Fine-grained control over which commands plugins can execute. Allow, disallow, import, and export permission rules. Perfect for enterprise environments and shared agent setups.
 
 ## Quick Start
 
@@ -44,7 +82,11 @@ One CLI to search, connect, and command every tool in your stack. Zero context w
 # Install globally
 npm install -g sdkck
 
-# Search for commands (works immediately — plugins install on demand)
+# Turn any OpenAPI spec into CLI commands instantly
+sdkck openapi import https://petstore3.swagger.io/api/v3/openapi.json --name petstore
+sdkck petstore listPets
+
+# Search for commands
 sdkck search "create issue"
 
 # Use any integration — it auto-installs on first run
@@ -57,42 +99,65 @@ sdkck search "find recent errors in production"
 
 ## How AI Agents Use Sidekick
 
-Sidekick is purpose-built for AI agent workflows. Here's what it looks like when Claude Code uses Sidekick:
-
+- Simply add this instruction to your AGENT.md or CLAUDE.md file
 ```
-Agent: I need to check recent Sentry errors and create a Jira ticket.
-
-> sdkck search "sentry errors"          # Discovers the right command
-> sdkck sentry issues list --recent     # Gets the data
-> sdkck jira issue create ...           # Acts on it
+Before any tool call run `sdkck commands | grep <keywords>` to find the available tools in sdkck, e.g.: `sdkck commands | grep -i "\|atlassian\|issue"`
 ```
+
+- Sidekick is purpose-built for AI agent workflows. Here's what it looks like when Claude Code uses Sidekick:
+
+  ```
+  Agent: I need to check recent Sentry errors and create a Jira ticket.
+
+  > sdkck search "sentry errors"          # Discovers the right command
+  > sdkck sentry issues list --recent     # Gets the data
+  > sdkck jira issue create ...           # Acts on it
+  ```
 
 ## Permissions for Safe Agent Usage
 
-Lock down what your agent can and can't do:
+- Lock down what your agent can and can't do:
 
-```bash
-# Allow only Jira read commands
-sdkck permission allow "jira issue list"
-sdkck permission allow "jira issue view"
-sdkck permission disallow "jira *"
+  ```bash
+  # Allow only Jira read commands
+  sdkck permission allow "jira issue list"
+  sdkck permission allow "jira issue view"
+  sdkck permission disallow "jira *"
 
-# Export your permission config for team sharing
-sdkck permission export permissions.json
+  # Export your permission config for team sharing
+  sdkck permission export permissions.json
 
-# View current rules
-sdkck permission list
-```
+  # View current rules
+  sdkck permission list
+  ```
 
 ## Roadmap
 
-We're building the future of agent-tool interaction:
+- Subjected to changes overtime
 
-- **Built-in MCP Server** — Expose Sidekick's entire plugin ecosystem as an MCP server with intelligent tool search. Instead of loading hundreds of tool schemas into context, agents query the MCP server with natural language and get back only the relevant tools.
+### Built-in MCP Server
 
-- **Instant Commands from OpenAPI** — Import any OpenAPI/Swagger spec and generate fully functional Sidekick commands automatically. No code required.
+- Expose Sidekick's entire plugin ecosystem as an MCP server with intelligent tool search. Instead of loading hundreds of tool schemas into context, agents query the MCP server with natural language and get back only the relevant tools.
 
-- **Agent Workflow Recipes** — Pre-built command chains for common agent workflows (triage Sentry errors to Jira, sync Confluence docs with code changes, automated PR reviews with database checks).
+### Agent Workflow Recipes
+
+- Pre-built command chains for common agent workflows (triage Sentry errors to Jira, sync Confluence docs with code changes, automated PR reviews with database checks).
+
+### Output Piping & Chaining
+
+- Pipe the output of one command directly into another. Run `sdkck sentry issues list | sdkck jira issue create` and let Sidekick wire up the data transformation automatically, so agents can build multi-step workflows from single-purpose commands.
+
+### Command History & Replay
+
+- Record every command an agent runs, with inputs, outputs, and timing. Replay any past command or sequence, diff outputs between runs, and audit exactly what your agent did and when.
+
+### Rate Limiting & Quota Guards
+
+- Declare per-command or per-API rate limits and let Sidekick enforce them before a request is sent. Prevents agents from accidentally hammering external APIs or blowing through paid-tier quotas.
+
+### Response Caching
+
+- Cache the results of read-only commands for a configurable TTL. Agents that search the same Jira project or call the same OpenAPI endpoint repeatedly get instant responses without hitting the network.
 
 ---
 
