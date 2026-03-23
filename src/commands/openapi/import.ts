@@ -19,14 +19,12 @@ export default class OpenApiImport extends Command {
   }
   static description = 'Import an OpenAPI spec or Postman collection and register its endpoints as commands'
   static examples = [
-    '<%= config.bin %> openapi import ./petstore.yaml',
+    '<%= config.bin %> openapi import ./petstore.json  --name petstore',
+    '<%= config.bin %> openapi import ./postman_collection.json --name myapi',
     '<%= config.bin %> openapi import https://petstore3.swagger.io/api/v3/openapi.json',
-    '<%= config.bin %> openapi import ./api.json --name myapi --base-url https://api.example.com',
     '<%= config.bin %> openapi import ./api.yaml --auth-type bearer --token sk-...',
     '<%= config.bin %> openapi import ./api.yaml --auth-type apikey --api-key mykey --api-key-header X-API-Key',
     '<%= config.bin %> openapi import ./api.yaml --auth-type basic --username user --password pass',
-    '<%= config.bin %> openapi import ./postman_collection.json',
-    '<%= config.bin %> openapi import ./postman_collection.json --name myapi --base-url https://api.example.com',
   ]
   static flags = {
     'api-key': Flags.string({
