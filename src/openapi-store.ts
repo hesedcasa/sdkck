@@ -3,6 +3,8 @@ import {existsSync} from 'node:fs'
 import {mkdir, readdir, readFile, unlink, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
+import type {PostmanCollection} from './postman-converter.js'
+
 import {isPostmanCollection, postmanToOpenApi} from './postman-converter.js'
 
 // ─── OpenAPI types ────────────────────────────────────────────────────────────
@@ -190,7 +192,7 @@ export async function loadSpec(source: string): Promise<OpenApiSpec> {
     : yamlLoad(raw)
 
   if (isPostmanCollection(parsed)) {
-    return postmanToOpenApi(parsed) as unknown as OpenApiSpec
+    return postmanToOpenApi(parsed as PostmanCollection) as unknown as OpenApiSpec
   }
 
   return parsed as OpenApiSpec

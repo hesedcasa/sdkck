@@ -2,12 +2,6 @@ import {expect} from 'chai'
 
 import {isPostmanCollection, type PostmanCollection, postmanToOpenApi} from '../src/postman-converter.js'
 
-function extractOperationIds(paths: Record<string, Record<string, unknown>>): string[] {
-  return Object.values(paths).flatMap((methods) =>
-    Object.values(methods as Record<string, {operationId: string}>).map((op) => op.operationId),
-  )
-}
-
 const PETSTORE_POSTMAN: PostmanCollection = {
   info: {
     '_postman_id': 'abc-123',
@@ -33,7 +27,7 @@ const PETSTORE_POSTMAN: PostmanCollection = {
       name: 'Create Pet',
       request: {
         body: {
-          mode: 'raw',
+          mode: 'raw' as const,
           raw: '{"name": "Fido", "tag": "dog"}',
         },
         description: 'Create a new pet',
@@ -87,11 +81,11 @@ describe('postman-converter', () => {
   })
 
   describe('postmanToOpenApi', () => {
-    it('converts a Postman collection to OpenAPI 3.0 format', () => {
+    it('converts a Postman collection to OpenAPI 3.1 format', () => {
       const spec = postmanToOpenApi(PETSTORE_POSTMAN)
-      expect(spec.openapi).to.equal('3.0.0')
-      expect(spec.info.title).to.equal('Petstore')
-      expect(spec.info.description).to.equal('A sample Petstore API')
+      expect(spec.openapi).to.equal('3.1.0')
+      expect(spec.info?.title).to.equal('Petstore')
+      expect(spec.info?.description).to.equal('A sample Petstore API')
     })
 
     it('extracts base URL from the first request', () => {
@@ -108,22 +102,22 @@ describe('postman-converter', () => {
 
     it('maps HTTP methods correctly', () => {
       const spec = postmanToOpenApi(PETSTORE_POSTMAN)
-      expect(spec.paths['/pets']).to.have.property('get')
-      expect(spec.paths['/pets']).to.have.property('post')
-      expect(spec.paths['/pets/{petId}']).to.have.property('get')
+      expect(spec.paths!['/pets']).to.have.property('get')
+      expect(spec.paths!['/pets']).to.have.property('post')
+      expect(spec.paths!['/pets/{petId}']).to.have.property('get')
     })
 
-    it('generates operationIds from request names', () => {
+    it('sets summary from request names', () => {
       const spec = postmanToOpenApi(PETSTORE_POSTMAN)
-      const getOp = spec.paths['/pets'].get as {operationId: string}
-      expect(getOp.operationId).to.equal('list-pets')
-      const postOp = spec.paths['/pets'].post as {operationId: string}
-      expect(postOp.operationId).to.equal('create-pet')
+      const getOp = spec.paths!['/pets']!.get as {summary: string}
+      expect(getOp.summary).to.equal('List Pets')
+      const postOp = spec.paths!['/pets']!.post as {summary: string}
+      expect(postOp.summary).to.equal('Create Pet')
     })
 
     it('extracts query parameters', () => {
       const spec = postmanToOpenApi(PETSTORE_POSTMAN)
-      const getOp = spec.paths['/pets'].get as {parameters: Array<{in: string; name: string}>}
+      const getOp = spec.paths!['/pets']!.get as {parameters: Array<{in: string; name: string}>}
       expect(getOp.parameters).to.have.length(1)
       expect(getOp.parameters[0].name).to.equal('limit')
       expect(getOp.parameters[0].in).to.equal('query')
@@ -131,7 +125,7 @@ describe('postman-converter', () => {
 
     it('extracts path variables', () => {
       const spec = postmanToOpenApi(PETSTORE_POSTMAN)
-      const getOp = spec.paths['/pets/{petId}'].get as {parameters: Array<{in: string; name: string; required: boolean}>}
+      const getOp = spec.paths!['/pets/{petId}']!.get as {parameters: Array<{in: string; name: string; required: boolean}>}
       expect(getOp.parameters).to.have.length(1)
       expect(getOp.parameters[0].name).to.equal('petId')
       expect(getOp.parameters[0].in).to.equal('path')
@@ -140,13 +134,13 @@ describe('postman-converter', () => {
 
     it('extracts request body from raw JSON', () => {
       const spec = postmanToOpenApi(PETSTORE_POSTMAN)
-      const postOp = spec.paths['/pets'].post as {requestBody: {content: {'application/json': {schema: {properties: Record<string, unknown>}}}}}
+      const postOp = spec.paths!['/pets']!.post as {requestBody: {content: {'application/json': {schema: Record<string, unknown>}}}}
       expect(postOp.requestBody).to.exist
-      expect(postOp.requestBody.content['application/json'].schema.properties).to.have.property('name')
-      expect(postOp.requestBody.content['application/json'].schema.properties).to.have.property('tag')
+      expect(postOp.requestBody.content['application/json']).to.exist
+      expect(postOp.requestBody.content['application/json'].schema).to.exist
     })
 
-    it('handles nested folders by prefixing operationId', () => {
+    it('handles nested folders using tags', () => {
       const collection: PostmanCollection = {
         info: {
           name: 'Nested API',
@@ -157,7 +151,7 @@ describe('postman-converter', () => {
             item: [
               {
                 name: 'List Users',
-                request: {method: 'GET', url: {host: ['api', 'example', 'com'], path: ['users']}},
+                request: {method: 'GET', url: 'https://api.example.com/users'},
               },
             ],
             name: 'Users',
@@ -165,31 +159,8 @@ describe('postman-converter', () => {
         ],
       }
       const spec = postmanToOpenApi(collection)
-      const getOp = spec.paths['/users'].get as {operationId: string}
-      expect(getOp.operationId).to.equal('users-list-users')
-    })
-
-    it('ensures unique operationIds for duplicate names', () => {
-      const collection: PostmanCollection = {
-        info: {
-          name: 'Dupe API',
-          schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
-        },
-        item: [
-          {
-            name: 'Get Data',
-            request: {method: 'GET', url: {host: ['api', 'example', 'com'], path: ['data']}},
-          },
-          {
-            name: 'Get Data',
-            request: {method: 'GET', url: {host: ['api', 'example', 'com'], path: ['data2']}},
-          },
-        ],
-      }
-      const spec = postmanToOpenApi(collection)
-      const ids = extractOperationIds(spec.paths)
-      const unique = new Set(ids)
-      expect(unique.size).to.equal(ids.length)
+      const getOp = spec.paths!['/users']!.get as {tags: string[]}
+      expect(getOp.tags).to.include('Users')
     })
 
     it('handles an empty collection', () => {

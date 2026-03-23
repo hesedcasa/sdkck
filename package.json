@@ -15,6 +15,7 @@
     "@oclif/plugin-plugins": "^5.4.56",
     "@oclif/plugin-update": "^4.7.19",
     "@oclif/plugin-version": "^2.2.36",
+    "@scalar/postman-to-openapi": "^0.5.3",
     "js-yaml": "^4.1.1",
     "openai": "^6.27.0"
   },
