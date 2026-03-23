@@ -93,9 +93,7 @@ export default class OpenApiImport extends Command {
 
     const baseUrl = flags['base-url'] ?? extractBaseUrl(spec)
     if (!baseUrl) {
-      this.warn(
-        'Could not determine a base URL from the spec. Use --base-url to set one, or pass it per-call with `openapi call --base-url`.',
-      )
+      this.warn('Could not determine a base URL from the spec. Use --base-url to set one.')
     }
 
     // ── Build auth scheme ──────────────────────────────────────────────────────
@@ -144,10 +142,9 @@ export default class OpenApiImport extends Command {
     await writeStore(this.config.configDir, store)
 
     this.log(`\nImported "${title}" as "${nameSlug}"`)
-    this.log(`  Base URL  : ${baseUrl || '(none — supply with --base-url at call time)'}`)
+    this.log(`  Base URL  : ${baseUrl || 'none'}`)
     this.log(`  Auth      : ${authType ?? 'none'}`)
     this.log(`  Operations: ${operations.length}`)
-    this.log(`\nRun \`${this.config.bin} openapi list ${nameSlug}\` to see all operations.`)
-    this.log(`Run \`${this.config.bin} openapi call ${nameSlug} <operationId> [params]\` to make a call.`)
+    this.log(`\nRun \`${this.config.bin} ${nameSlug}\` to see all operations.`)
   }
 }
