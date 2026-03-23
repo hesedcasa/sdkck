@@ -8,7 +8,7 @@ import {readStore} from '../../../src/openapi-store.js'
 
 const POSTMAN_COLLECTION = {
   info: {
-    '_postman_id': 'test-123',
+    _postman_id: 'test-123',
     description: 'A sample Petstore via Postman',
     name: 'Petstore Postman',
     schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',

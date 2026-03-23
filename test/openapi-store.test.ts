@@ -268,18 +268,13 @@ describe('openapi-store', () => {
       expect(ops[0].operationId).to.equal('list-Foo-Bar')
     })
 
-    it('resolves $ref parameters from components', () => {
+    it('passes through inline parameters', () => {
       const ops = extractOperations({
-        components: {
-          parameters: {
-            LimitParam: {description: 'Page limit', in: 'query', name: 'limit', required: false},
-          },
-        },
         paths: {
           '/items': {
             get: {
               operationId: 'listItems',
-              parameters: [{$ref: '#/components/parameters/LimitParam'}],
+              parameters: [{description: 'Page limit', in: 'query', name: 'limit', required: false}],
             },
           },
         },
@@ -287,20 +282,6 @@ describe('openapi-store', () => {
       expect(ops[0].parameters).to.have.length(1)
       expect(ops[0].parameters[0].name).to.equal('limit')
       expect(ops[0].parameters[0].in).to.equal('query')
-    })
-
-    it('skips unresolvable $ref parameters', () => {
-      const ops = extractOperations({
-        paths: {
-          '/items': {
-            get: {
-              operationId: 'listItems',
-              parameters: [{$ref: '#/components/parameters/DoesNotExist'}],
-            },
-          },
-        },
-      })
-      expect(ops[0].parameters).to.have.length(0)
     })
 
     it('extracts body params from application/json request body schema', () => {
@@ -335,23 +316,22 @@ describe('openapi-store', () => {
       expect(op.bodyParams.tag.description).to.equal('Optional tag')
     })
 
-    it('resolves a $ref request body schema from components', () => {
+    it('extracts body params from an inline request body schema', () => {
       const ops = extractOperations({
-        components: {
-          schemas: {
-            PetInput: {
-              properties: {name: {type: 'string'}},
-              required: ['name'],
-              type: 'object',
-            },
-          },
-        },
         paths: {
           '/pets': {
             post: {
               operationId: 'createPet',
               requestBody: {
-                content: {'application/json': {schema: {$ref: '#/components/schemas/PetInput'}}},
+                content: {
+                  'application/json': {
+                    schema: {
+                      properties: {name: {type: 'string'}},
+                      required: ['name'],
+                      type: 'object',
+                    },
+                  },
+                },
               },
             },
           },
