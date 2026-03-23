@@ -63,6 +63,7 @@ export default class OpenApiImport extends Command {
     }),
   }
 
+  // eslint-disable-next-line complexity
   async run(): Promise<void> {
     const {args, flags} = await this.parse(OpenApiImport)
 
@@ -126,6 +127,12 @@ export default class OpenApiImport extends Command {
       // No default
     }
 
+    // ── Duplicate name check ───────────────────────────────────────────────────
+    const store = await readStore(this.config.configDir)
+    if (store.specs[nameSlug]) {
+      this.error(`A spec named "${nameSlug}" already exists.`)
+    }
+
     // ── Extract operations ─────────────────────────────────────────────────────
     const operations = extractOperations(spec)
     if (operations.length === 0) {
@@ -133,7 +140,6 @@ export default class OpenApiImport extends Command {
     }
 
     // ── Persist ────────────────────────────────────────────────────────────────
-    const store = await readStore(this.config.configDir)
     store.specs[nameSlug] = {auth, baseUrl, description, name: nameSlug, operations, source: args.source, title}
     await writeStore(this.config.configDir, store)
 

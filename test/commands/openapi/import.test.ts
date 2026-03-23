@@ -8,7 +8,7 @@ import {readStore} from '../../../src/openapi-store.js'
 
 const POSTMAN_COLLECTION = {
   info: {
-    _postman_id: 'test-123',
+    _postman_id: 'test-123', // eslint-disable-line camelcase
     description: 'A sample Petstore via Postman',
     name: 'Petstore Postman',
     schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
@@ -254,6 +254,20 @@ describe('openapi import', () => {
 
     const store = await readStore(configDir)
     expect(store.specs['petstore-postman'].baseUrl).to.equal('https://petstore.example.com')
+  })
+
+  it('errors when importing with a name that already exists', async () => {
+    const configDir = join(tmpDir, 'config-import-duplicate')
+    const {cmd: cmd1} = makeImport([specFile], configDir)
+    await cmd1.run()
+
+    const {cmd: cmd2} = makeImport([specFile], configDir)
+    try {
+      await cmd2.run()
+      expect.fail('Expected an error to be thrown')
+    } catch (error) {
+      expect((error as Error).message).to.include('"petstore" already exists')
+    }
   })
 
   it('allows --base-url to override Postman collection base URL', async () => {

@@ -4,7 +4,7 @@ import {isPostmanCollection, type PostmanCollection, postmanToOpenApi} from '../
 
 const PETSTORE_POSTMAN: PostmanCollection = {
   info: {
-    _postman_id: 'abc-123',
+    _postman_id: 'abc-123', // eslint-disable-line camelcase
     description: 'A sample Petstore API',
     name: 'Petstore',
     schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
@@ -64,7 +64,7 @@ describe('postman-converter', () => {
     })
 
     it('returns true for a collection with info._postman_id', () => {
-      expect(isPostmanCollection({info: {_postman_id: 'abc-123'}})).to.be.true
+      expect(isPostmanCollection({info: {_postman_id: 'abc-123'}})).to.be.true // eslint-disable-line camelcase
     })
 
     it('returns false for an OpenAPI spec', () => {
