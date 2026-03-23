@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.0](https://github.com/hesedcasa/sdkck/compare/v0.7.1...v0.8.0) (2026-03-23)
+
+
+### 🎉 Features
+
+* add Postman collection import support to openapi import command ([#41](https://github.com/hesedcasa/sdkck/issues/41)) ([75a6e0d](https://github.com/hesedcasa/sdkck/commit/75a6e0d1ba6947714a6e87ed9af682a253de60d8))
+
+
+### 🛠️ Fixes
+
+* remove accidental API key logging in search command ([#43](https://github.com/hesedcasa/sdkck/issues/43)) ([24c1be7](https://github.com/hesedcasa/sdkck/commit/24c1be7a9235d041094ecef4e0ffe14c58abc538))
+* simplify openapi import output messages ([#44](https://github.com/hesedcasa/sdkck/issues/44)) ([80d0262](https://github.com/hesedcasa/sdkck/commit/80d0262ccb877c004c0d8d454b93fdff8dcc1464))
+
 ## [0.7.1](https://github.com/hesedcasa/sdkck/compare/v0.7.0...v0.7.1) (2026-03-22)
 
 
