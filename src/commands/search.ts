@@ -188,7 +188,6 @@ export default class Search extends Command {
 
   private _createOpenAIClient(): null | SamplingClient {
     const apiKey = process.env.OPENAI_API_KEY
-    console.log(apiKey)
     if (!apiKey) return null
     return new OpenAI({apiKey}) as unknown as SamplingClient
   }
