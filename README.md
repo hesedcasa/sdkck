@@ -21,13 +21,16 @@ One CLI to search, connect, and command every tool in your stack. Zero context w
 
 ## Key Features
 
-### Instant Commands from OpenAPI
+### Instant Commands from OpenAPI/Postman
 
-- Point Sidekick at any OpenAPI/Swagger spec — local file or URL — and every endpoint becomes a CLI command instantly.
+- Point Sidekick at any OpenAPI/Swagger spec or Postman collection — local file or URL — and every endpoint becomes a CLI command instantly.
 
   ```bash
-  # Import a spec from a URL or local file
+  # Import an OpenAPI spec from a URL or local file
   sdkck openapi import https://petstore3.swagger.io/api/v3/openapi.json --name petstore
+
+  # Import a Postman collection the same way
+  sdkck openapi import ./postman_collection.json --name myapi
 
   # Every operation is now a real command
   sdkck petstore listPets

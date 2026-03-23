@@ -29,9 +29,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### OpenAPI Import (`openapi` topic)
 
-`openapi import <name> <spec-file-or-url>` reads an OpenAPI spec (JSON/YAML) and stores each operation in `~/.local/share/sdkck/openapi/<name>/`. The `init` hook (`src/hooks/init/register-openapi-commands.ts`) runs at startup and calls `registerOpenApiCommands` to load every stored operation as a first-class oclif command under `<specName> <operationId>`. These dynamic commands appear in `sdkck help` and `sdkck commands` exactly like static commands.
+`openapi import <source>` reads an OpenAPI spec (JSON/YAML) or Postman collection and stores each operation in `~/.local/share/sdkck/openapi/<name>/`. The name defaults to the spec title slug but can be overridden with `--name`. The `init` hook (`src/hooks/init/register-openapi-commands.ts`) runs at startup and calls `registerOpenApiCommands` to load every stored operation as a first-class oclif command under `<specName> <operationId>`. These dynamic commands appear in `sdkck help` and `sdkck commands` exactly like static commands.
 
-Key files: `src/openapi-store.ts` (CRUD for stored specs/ops), `src/openapi-dynamic-commands.ts` (command factory), `src/hooks/init/register-openapi-commands.ts`.
+Key files: `src/openapi-store.ts` (CRUD for stored specs/ops), `src/openapi-dynamic-commands.ts` (command factory), `src/hooks/init/register-openapi-commands.ts`, `src/postman-converter.ts` (Postman→OpenAPI via `@scalar/postman-to-openapi`).
 
 Other subcommands: `openapi auth`, `openapi call`, `openapi list`, `openapi config`, `openapi remove`.
 
@@ -56,6 +56,13 @@ Commands that depend on external clients (e.g., `Search._llmClient`) use public 
 ## Environment
 
 - **`OPENAI_API_KEY`:** Required to enable LLM-powered semantic search in `sdkck search`. When unset, search falls back to fuzzy matching. The search command uses `gpt-4o` via the `openai` npm package.
+
+## Gotchas
+
+- **Lint false-positive after build:** `npm run build` wipes `dist/`, so the `posttest` lint step always errors on `bin/run.js` (`Unable to resolve path to module '../dist/openapi-dynamic-commands.js'`). Pre-existing; not a regression.
+- **`@scalar/openapi-parser` peer dep:** Installing this package also requires `npm install @scalar/types` explicitly — npm does not auto-install it.
+- **`@scalar/postman-to-openapi` peer dep:** Same pattern — also requires `npm install @scalar/types` explicitly.
+- **`extractOperations` expects a dereferenced spec:** Call `loadSpec` (which runs `dereference` internally) before passing a spec to `extractOperations`. Tests that call `extractOperations` directly should use inline specs without `$ref`s.
 
 ## Conventions
 

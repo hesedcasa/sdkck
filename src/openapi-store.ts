@@ -1,7 +1,12 @@
+import {dereference} from '@scalar/openapi-parser'
 import {load as yamlLoad} from 'js-yaml'
 import {existsSync} from 'node:fs'
 import {mkdir, readdir, readFile, unlink, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
+
+import type {PostmanCollection} from './postman-converter.js'
+
+import {isPostmanCollection, postmanToOpenApi} from './postman-converter.js'
 
 // ─── OpenAPI types ────────────────────────────────────────────────────────────
 
@@ -13,10 +18,8 @@ interface OpenApiParameter {
   schema?: {enum?: string[]; type?: string}
 }
 
-type RawParameter = OpenApiParameter | {$ref: string}
-
 interface OpenApiMediaType {
-  schema?: OpenApiSchema | {$ref: string}
+  schema?: OpenApiSchema
 }
 
 interface OpenApiRequestBody {
@@ -40,7 +43,7 @@ interface OpenApiSchemaProperty {
 interface OpenApiOperation {
   description?: string
   operationId?: string
-  parameters?: RawParameter[]
+  parameters?: OpenApiParameter[]
   requestBody?: OpenApiRequestBody
   summary?: string
   tags?: string[]
@@ -183,11 +186,14 @@ export async function loadSpec(source: string): Promise<OpenApiSpec> {
   }
 
   const trimmed = raw.trimStart()
-  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-    return JSON.parse(raw) as OpenApiSpec
+  let parsed = trimmed.startsWith('{') || trimmed.startsWith('[') ? JSON.parse(raw) : yamlLoad(raw)
+
+  if (isPostmanCollection(parsed)) {
+    parsed = postmanToOpenApi(parsed as PostmanCollection)
   }
 
-  return yamlLoad(raw) as OpenApiSpec
+  const {schema} = await dereference(parsed)
+  return (schema ?? parsed) as OpenApiSpec
 }
 
 // ─── Command name generation ──────────────────────────────────────────────────
@@ -200,46 +206,13 @@ function deriveOperationId(method: string, path: string): string {
   return `${method}-${segments.join('-')}`
 }
 
-// ─── $ref resolution ──────────────────────────────────────────────────────────
-
-function resolveParameterRef(spec: OpenApiSpec, ref: string): null | OpenApiParameter {
-  const match = /^#\/components\/parameters\/(.+)$/.exec(ref)
-  if (!match) return null
-  return spec.components?.parameters?.[match[1]] ?? null
-}
-
-function resolveSchemaRef(spec: OpenApiSpec, ref: string): null | OpenApiSchema {
-  const match = /^#\/components\/schemas\/(.+)$/.exec(ref)
-  if (!match) return null
-  return spec.components?.schemas?.[match[1]] ?? null
-}
-
 // ─── Spec extraction ──────────────────────────────────────────────────────────
 
-function resolveParameter(spec: OpenApiSpec, raw: RawParameter): null | OpenApiParameter {
-  if ('$ref' in raw) {
-    const resolved = resolveParameterRef(spec, raw.$ref)
-    if (!resolved) return null
-    return {
-      description: resolved.description,
-      in: resolved.in,
-      name: resolved.name,
-      required: resolved.required ?? false,
-      schema: resolved.schema,
-    }
-  }
-
-  return {description: raw.description, in: raw.in, name: raw.name, required: raw.required ?? false, schema: raw.schema}
-}
-
-function extractBodyParams(spec: OpenApiSpec, rb: OpenApiRequestBody | undefined): Record<string, BodyParam> {
+function extractBodyParams(rb: OpenApiRequestBody | undefined): Record<string, BodyParam> {
   const bodyParams: Record<string, BodyParam> = {}
   if (!rb) return bodyParams
 
-  const rawSchema = rb.content?.['application/json']?.schema
-  if (!rawSchema) return bodyParams
-
-  const schema = '$ref' in rawSchema ? resolveSchemaRef(spec, rawSchema.$ref) : rawSchema
+  const schema = rb.content?.['application/json']?.schema
   if (!schema?.properties) return bodyParams
 
   const requiredSet = new Set(schema.required ?? [])
@@ -267,12 +240,10 @@ export function extractOperations(spec: OpenApiSpec): StoredOperation[] {
           .replaceAll(/-+/g, '-')
           .replaceAll(/^-|-$/g, '') ?? deriveOperationId(method, path)
 
-      const parameters: OpenApiParameter[] = (operation.parameters ?? [])
-        .map((raw) => resolveParameter(spec, raw))
-        .filter((p): p is OpenApiParameter => p !== null)
+      const parameters: OpenApiParameter[] = operation.parameters ?? []
 
       // Extract request body fields as named body params
-      const bodyParams = extractBodyParams(spec, operation.requestBody)
+      const bodyParams = extractBodyParams(operation.requestBody)
 
       const description = operation.summary ?? operation.description ?? `${method.toUpperCase()} ${path}`
 

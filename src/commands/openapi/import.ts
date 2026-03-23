@@ -13,15 +13,15 @@ import {
 export default class OpenApiImport extends Command {
   static args = {
     source: Args.string({
-      description: 'Path to a local OpenAPI file or a URL',
+      description: 'Path to a local OpenAPI spec or Postman collection (file or URL)',
       required: true,
     }),
   }
-  static description = 'Import an OpenAPI spec and register its endpoints as commands'
+  static description = 'Import an OpenAPI spec or Postman collection and register its endpoints as commands'
   static examples = [
-    '<%= config.bin %> openapi import ./petstore.yaml',
+    '<%= config.bin %> openapi import ./petstore.json  --name petstore',
+    '<%= config.bin %> openapi import ./postman_collection.json --name myapi',
     '<%= config.bin %> openapi import https://petstore3.swagger.io/api/v3/openapi.json',
-    '<%= config.bin %> openapi import ./api.json --name myapi --base-url https://api.example.com',
     '<%= config.bin %> openapi import ./api.yaml --auth-type bearer --token sk-...',
     '<%= config.bin %> openapi import ./api.yaml --auth-type apikey --api-key mykey --api-key-header X-API-Key',
     '<%= config.bin %> openapi import ./api.yaml --auth-type basic --username user --password pass',
@@ -63,6 +63,7 @@ export default class OpenApiImport extends Command {
     }),
   }
 
+  // eslint-disable-next-line complexity
   async run(): Promise<void> {
     const {args, flags} = await this.parse(OpenApiImport)
 
@@ -126,6 +127,12 @@ export default class OpenApiImport extends Command {
       // No default
     }
 
+    // ── Duplicate name check ───────────────────────────────────────────────────
+    const store = await readStore(this.config.configDir)
+    if (store.specs[nameSlug]) {
+      this.error(`A spec named "${nameSlug}" already exists.`)
+    }
+
     // ── Extract operations ─────────────────────────────────────────────────────
     const operations = extractOperations(spec)
     if (operations.length === 0) {
@@ -133,7 +140,6 @@ export default class OpenApiImport extends Command {
     }
 
     // ── Persist ────────────────────────────────────────────────────────────────
-    const store = await readStore(this.config.configDir)
     store.specs[nameSlug] = {auth, baseUrl, description, name: nameSlug, operations, source: args.source, title}
     await writeStore(this.config.configDir, store)
 
