@@ -68,13 +68,13 @@
       "@oclif/plugin-*"
     ],
     "jitPlugins": {
-      "@hesed/jira": "^0.2.0",
-      "@hesed/conni": "^0.2.0",
-      "@hesed/bb": "^0.2.0",
-      "@hesed/sentry": "^0.2.0",
-      "@hesed/mysql": "^0.2.0",
-      "@hesed/psql": "^0.2.0",
-      "@hesed/supabase": "^0.2.0"
+      "@hesed/jira": "latest",
+      "@hesed/conni": "latest",
+      "@hesed/bb": "latest",
+      "@hesed/sentry": "latest",
+      "@hesed/mysql": "latest",
+      "@hesed/psql": "latest",
+      "@hesed/supabase": "latest"
     },
     "topicSeparator": " ",
     "topics": {},
