@@ -185,16 +185,16 @@ describe('search', () => {
     it('returns a results array with command, description, plugin fields', async () => {
       const {cmd} = makeSearchJson(['help'])
       const result = await cmd.run()
-      expect(result).to.have.property('results').that.is.an('array')
-      expect(result.results.length).to.be.greaterThan(0)
-      const first = result.results[0]
+      expect(result).to.be.an('array')
+      expect(result.length).to.be.greaterThan(0)
+      const first = result[0]
       expect(first).to.include.keys(['command', 'description'])
     })
 
     it('returns empty results array when no commands match', async () => {
       const {cmd} = makeSearchJson(['zzzznonexistent'])
       const result = await cmd.run()
-      expect(result).to.deep.equal({results: []})
+      expect(result).to.deep.equal([])
     })
 
     it('does not log human-readable output when --json is active', async () => {
@@ -206,7 +206,7 @@ describe('search', () => {
     it('includes the correct command in results', async () => {
       const {cmd} = makeSearchJson(['update'])
       const result = await cmd.run()
-      const commands = result.results.map((r) => r.command)
+      const commands = result.map((r) => r.command)
       expect(commands.some((c) => c.startsWith('update'))).to.be.true
     })
   })
@@ -215,13 +215,13 @@ describe('search', () => {
     it('caps results to the given limit', async () => {
       const {cmd} = makeSearch(['help', '--limit', '1'])
       const result = await cmd.run()
-      expect(result.results.length).to.be.at.most(1)
+      expect(result.length).to.be.at.most(1)
     })
 
     it('defaults to 5 results', async () => {
       const {cmd} = makeSearch(['e'])
       const result = await cmd.run()
-      expect(result.results.length).to.be.at.most(5)
+      expect(result.length).to.be.at.most(5)
     })
   })
 })
