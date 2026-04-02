@@ -1,94 +1,6 @@
+import UFuzzy from '@leeoniya/ufuzzy'
 import {Args, Command, CommandHelp, Flags, toConfiguredId} from '@oclif/core'
 import {OpenAI} from 'openai'
-
-/**
- * Fuzzy match: checks if all characters of the query appear in order within the target.
- * Returns a score (lower is better) based on gap penalties, or -1 if no match.
- */
-function fuzzyScore(query: string, target: string): number {
-  const q = query.toLowerCase()
-  const t = target.toLowerCase()
-
-  // Exact substring match gets the best score
-  if (t.includes(q)) return 0
-
-  let qi = 0
-  let score = 0
-  let lastMatchIndex = -1
-
-  for (let ti = 0; ti < t.length && qi < q.length; ti++) {
-    if (t[ti] === q[qi]) {
-      // Bonus for matching at word boundaries (after space, colon, hyphen, or start)
-      const atBoundary = ti === 0 || ' :-_'.includes(t[ti - 1])
-      const gap = lastMatchIndex === -1 ? 0 : ti - lastMatchIndex - 1
-      score += gap + (atBoundary ? 0 : 1)
-      lastMatchIndex = ti
-      qi++
-    }
-  }
-
-  // All query characters must be found
-  return qi === q.length ? score : -1
-}
-
-/**
- * Multi-target token match: pools tokens from all target strings (id, summary,
- * plugin) and checks how many query tokens match. Each query token matches a
- * pool token when they share a common prefix of length
- * >= max(2, min(queryTokenLen, targetTokenLen) - 1), which handles morphological
- * variants like "authenticate" vs "authentication".
- *
- * Tolerates at most 1 unmatched query token so that a user-supplied topic word
- * (e.g. "atlassian") that doesn't literally appear in any field still allows the
- * rest of the query ("jira issue get") to surface the right command.
- */
-function tokenPoolScore(query: string, targets: string[]): number {
-  const qTokens = query.toLowerCase().split(/\s+/).filter(Boolean)
-  const tTokens = targets.flatMap((t) =>
-    t
-      .toLowerCase()
-      .split(/[\s/.-]+/)
-      .filter(Boolean),
-  )
-
-  let score = 0
-  let matchedCount = 0
-
-  for (const qt of qTokens) {
-    let best = -1
-    for (const tt of tTokens) {
-      let i = 0
-      while (i < qt.length && i < tt.length && qt[i] === tt[i]) i++
-      if (i >= Math.max(2, Math.min(qt.length, tt.length) - 1)) {
-        const s = qt.length - i
-        if (best === -1 || s < best) best = s
-      }
-    }
-
-    if (best >= 0) {
-      matchedCount++
-      score += best + 1
-    }
-  }
-
-  // Require all tokens to match, but tolerate 1 unmatched for multi-token queries
-  if (matchedCount < Math.max(1, qTokens.length - 1)) return -1
-  // Unmatched tokens are penalised heavily so they rank below full matches
-  return score + (qTokens.length - matchedCount) * qTokens.length * 10
-}
-
-function bestScore(query: string, ...targets: string[]): number {
-  let charBest = -1
-  for (const t of targets) {
-    const s = fuzzyScore(query, t)
-    if (s !== -1 && (charBest === -1 || s < charBest)) charBest = s
-  }
-
-  const tScore = tokenPoolScore(query, targets)
-  if (charBest === -1) return tScore
-  if (tScore === -1) return charBest
-  return Math.min(charBest, tScore)
-}
 
 interface CommandEntry {
   description: string
@@ -229,11 +141,10 @@ export default class Search extends Command {
 
     if (!this.jsonEnabled()) {
       if (results.length === 0) {
-        this.log(`No commands found matching "${args.query}"`)
         return results
       }
 
-      this.log(`Found ${results.length} command${results.length === 1 ? '' : 's'} matching "${args.query}":\n`)
+      this.log(`Found ${results.length} command${results.length === 1 ? '' : 's'}:\n`)
 
       for (const {cmd, result} of scored.map((s, i) => ({cmd: s.cmd, result: results[i]}))) {
         this.log(result.command)
@@ -264,15 +175,33 @@ export default class Search extends Command {
   }
 
   private _fuzzySearch(query: string, commands: Command.Loadable[]): Array<{cmd: Command.Loadable; score: number}> {
-    return commands
-      .map((c) => {
-        const {id} = c
-        const summary = c.summary ?? c.description ?? ''
-        const plugin = c.pluginName ?? ''
-        const score = bestScore(query, id, summary, plugin)
-        return {cmd: c, score}
-      })
-      .filter((entry) => entry.score >= 0)
-      .sort((a, b) => a.score - b.score || a.cmd.id.localeCompare(b.cmd.id))
+    const uf = new UFuzzy({intraIns: Infinity})
+    const haystack = commands.map((c) =>
+      [c.id, c.summary ?? c.description ?? '', c.pluginName ?? ''].filter(Boolean).join(' '),
+    )
+
+    const [idxs, , order] = uf.search(haystack, query, 0, Infinity)
+    if (idxs && idxs.length > 0) {
+      const ranked = order ?? idxs.map((_, i) => i)
+      return ranked.map((oi, rank) => ({cmd: commands[idxs[oi]], score: rank}))
+    }
+
+    // Multi-token fallback: score each command by how many individual query
+    // tokens it matches. Handles queries containing unknown alias words (e.g.
+    // "atlassian") that don't appear literally in any command field.
+    const tokens = query.trim().split(/\s+/).filter(Boolean)
+    if (tokens.length <= 1) return []
+
+    const hitCount = new Map<number, number>()
+    for (const token of tokens) {
+      const [tIdxs] = uf.search(haystack, token, 0, Infinity)
+      if (tIdxs) {
+        for (const idx of tIdxs) hitCount.set(idx, (hitCount.get(idx) ?? 0) + 1)
+      }
+    }
+
+    return [...hitCount.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0] - b[0])
+      .map(([idx, hits]) => ({cmd: commands[idx], score: tokens.length - hits}))
   }
 }
