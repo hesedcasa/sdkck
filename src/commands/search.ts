@@ -174,9 +174,7 @@ export default class Search extends Command {
   // Exposed for testing — inject a mock client to exercise the LLM search path
   _llmClient: null | SamplingClient = null
 
-  async run(): Promise<{
-    results: Array<{command: string; description: string; summary?: string}>
-  }> {
+  async run(): Promise<Array<{command: string; description: string}>> {
     const {args, flags} = await this.parse(Search)
     const allCommands = this.config.commands.filter((c) => !c.hidden && c.pluginName !== '@oclif/plugin-plugins')
     const commandEntries: CommandEntry[] = allCommands.map((c) => ({
@@ -232,7 +230,7 @@ export default class Search extends Command {
     if (!this.jsonEnabled()) {
       if (results.length === 0) {
         this.log(`No commands found matching "${args.query}"`)
-        return {results}
+        return results
       }
 
       this.log(`Found ${results.length} command${results.length === 1 ? '' : 's'} matching "${args.query}":\n`)
@@ -256,7 +254,7 @@ export default class Search extends Command {
       }
     }
 
-    return {results}
+    return results
   }
 
   private _createOpenAIClient(): null | SamplingClient {
