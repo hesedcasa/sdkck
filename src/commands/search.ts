@@ -31,15 +31,63 @@ function fuzzyScore(query: string, target: string): number {
   return qi === q.length ? score : -1
 }
 
-function bestScore(query: string, ...targets: string[]): number {
-  let best = -1
-  for (const t of targets) {
-    const s = fuzzyScore(query, t)
-    if (s === -1) continue
-    if (best === -1 || s < best) best = s
+/**
+ * Multi-target token match: pools tokens from all target strings (id, summary,
+ * plugin) and checks how many query tokens match. Each query token matches a
+ * pool token when they share a common prefix of length
+ * >= max(2, min(queryTokenLen, targetTokenLen) - 1), which handles morphological
+ * variants like "authenticate" vs "authentication".
+ *
+ * Tolerates at most 1 unmatched query token so that a user-supplied topic word
+ * (e.g. "atlassian") that doesn't literally appear in any field still allows the
+ * rest of the query ("jira issue get") to surface the right command.
+ */
+function tokenPoolScore(query: string, targets: string[]): number {
+  const qTokens = query.toLowerCase().split(/\s+/).filter(Boolean)
+  const tTokens = targets.flatMap((t) =>
+    t
+      .toLowerCase()
+      .split(/[\s/.-]+/)
+      .filter(Boolean),
+  )
+
+  let score = 0
+  let matchedCount = 0
+
+  for (const qt of qTokens) {
+    let best = -1
+    for (const tt of tTokens) {
+      let i = 0
+      while (i < qt.length && i < tt.length && qt[i] === tt[i]) i++
+      if (i >= Math.max(2, Math.min(qt.length, tt.length) - 1)) {
+        const s = qt.length - i
+        if (best === -1 || s < best) best = s
+      }
+    }
+
+    if (best >= 0) {
+      matchedCount++
+      score += best + 1
+    }
   }
 
-  return best
+  // Require all tokens to match, but tolerate 1 unmatched for multi-token queries
+  if (matchedCount < Math.max(1, qTokens.length - 1)) return -1
+  // Unmatched tokens are penalised heavily so they rank below full matches
+  return score + (qTokens.length - matchedCount) * qTokens.length * 10
+}
+
+function bestScore(query: string, ...targets: string[]): number {
+  let charBest = -1
+  for (const t of targets) {
+    const s = fuzzyScore(query, t)
+    if (s !== -1 && (charBest === -1 || s < charBest)) charBest = s
+  }
+
+  const tScore = tokenPoolScore(query, targets)
+  if (charBest === -1) return tScore
+  if (tScore === -1) return charBest
+  return Math.min(charBest, tScore)
 }
 
 interface CommandEntry {
@@ -113,6 +161,7 @@ export default class Search extends Command {
     query: Args.string({description: 'Search term to filter commands by', required: true}),
   }
   static description = 'Search for available commands'
+  static enableJsonFlag = true
   static examples = [
     '<%= config.bin %> search "create pr"',
     '<%= config.bin %> search jira -d',
@@ -120,16 +169,16 @@ export default class Search extends Command {
   ]
   static flags = {
     details: Flags.boolean({char: 'd', description: 'Show full help for each matched command', required: false}),
+    limit: Flags.integer({char: 'n', default: 5, description: 'Maximum number of results to return', required: false}),
   }
   // Exposed for testing — inject a mock client to exercise the LLM search path
   _llmClient: null | SamplingClient = null
 
-  async run(): Promise<void> {
+  async run(): Promise<{
+    results: Array<{command: string; description: string; summary?: string}>
+  }> {
     const {args, flags} = await this.parse(Search)
-    const {query} = args
-
     const allCommands = this.config.commands.filter((c) => !c.hidden && c.pluginName !== '@oclif/plugin-plugins')
-
     const commandEntries: CommandEntry[] = allCommands.map((c) => ({
       description: c.description ?? '',
       id: c.id,
@@ -142,10 +191,10 @@ export default class Search extends Command {
     let scored: ScoredEntry[]
 
     if (client === null) {
-      scored = this._fuzzySearch(query, allCommands)
+      scored = this._fuzzySearch(args.query, allCommands)
     } else {
       try {
-        const matchedIds = await samplingSearch(query, commandEntries, client)
+        const matchedIds = await samplingSearch(args.query, commandEntries, client)
         const idToCmd = new Map(allCommands.map((c) => [c.id, c]))
         scored = matchedIds
           .map((id, index) => {
@@ -155,35 +204,59 @@ export default class Search extends Command {
           .filter((entry): entry is ScoredEntry => entry !== null)
       } catch {
         // Fall back to fuzzy matching on any LLM error
-        scored = this._fuzzySearch(query, allCommands)
+        scored = this._fuzzySearch(args.query, allCommands)
       }
     }
 
-    if (scored.length === 0) {
-      this.log(`No commands found matching "${query}"`)
-      return
-    }
+    scored = scored.slice(0, flags.limit)
 
-    this.log(`Found ${scored.length} command${scored.length === 1 ? '' : 's'} matching "${query}":\n`)
+    const results = scored.map((entry) => {
+      const {cmd} = entry
+      const configuredId = toConfiguredId(cmd.id, this.config)
+      const usageOverride = cmd.usage
+      const argList = Object.values(cmd.args ?? {})
+        .filter((a) => !a.hidden)
+        .map((a) => (a.required ? `<${a.name}>` : `[${a.name}]`))
+        .join(' ')
+      const usage = usageOverride
+        ? Array.isArray(usageOverride)
+          ? usageOverride.join('\n')
+          : usageOverride
+        : [configuredId, argList].filter(Boolean).join(' ')
+      return {
+        command: usage,
+        description: cmd.summary ?? cmd.description ?? '',
+      }
+    })
 
-    for (const {cmd} of scored) {
-      const id = toConfiguredId(cmd.id, this.config)
-      this.log(id)
+    if (!this.jsonEnabled()) {
+      if (results.length === 0) {
+        this.log(`No commands found matching "${args.query}"`)
+        return {results}
+      }
 
-      if (flags.details) {
-        const help = new CommandHelp(cmd, this.config, {maxWidth: process.stdout.columns ?? 80})
-        this.log(help.generate())
-      } else {
-        const raw = cmd.summary ?? cmd.description ?? ''
-        // eslint-disable-next-line unicorn/prefer-string-replace-all
-        const description = raw.replace(/<%=\s*config\.bin\s*%>/g, this.config.bin).split('\n')[0]
-        if (description) {
-          this.log(description)
+      this.log(`Found ${results.length} command${results.length === 1 ? '' : 's'} matching "${args.query}":\n`)
+
+      for (const {cmd, result} of scored.map((s, i) => ({cmd: s.cmd, result: results[i]}))) {
+        this.log(result.command)
+
+        if (flags.details) {
+          const help = new CommandHelp(cmd, this.config, {maxWidth: process.stdout.columns ?? 80})
+          this.log(help.generate())
+        } else {
+          const raw = cmd.summary ?? cmd.description ?? ''
+          // eslint-disable-next-line unicorn/prefer-string-replace-all
+          const description = raw.replace(/<%=\s*config\.bin\s*%>/g, this.config.bin).split('\n')[0]
+          if (description) {
+            this.log(description)
+          }
         }
-      }
 
-      this.log('')
+        this.log('')
+      }
     }
+
+    return {results}
   }
 
   private _createOpenAIClient(): null | SamplingClient {

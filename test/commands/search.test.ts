@@ -16,6 +16,8 @@ const FIXTURE_COMMANDS: MockCommand[] = [
   {hidden: false, id: 'search', pluginName: 'sdkck', summary: 'Search for available commands'},
   {hidden: false, id: 'plugins install', pluginName: '@oclif/plugin-plugins', summary: 'Install a plugin.'},
   {hidden: false, id: 'plugins uninstall', pluginName: '@oclif/plugin-plugins', summary: 'Removes a plugin.'},
+  {hidden: false, id: 'jira auth add ', pluginName: '@oclif/jira', summary: 'Add Atlassian authentication'},
+  {hidden: false, id: 'jira issue get', pluginName: '@oclif/jira', summary: 'Get details of a specific issue'},
 ]
 
 function makeSearch(argv: string[]): {cmd: Search; output: () => string} {
@@ -35,6 +37,14 @@ function makeSearch(argv: string[]): {cmd: Search; output: () => string} {
   ;(cmd as unknown as {_createOpenAIClient: () => null})._createOpenAIClient = () => null
 
   return {cmd, output: () => lines.join('\n')}
+}
+
+function makeSearchJson(argv: string[]): {cmd: Search; output: () => string} {
+  const {cmd, output} = makeSearch([...argv, '--json'])
+  // jsonEnabled() checks for the flag in parsed args, but oclif sets it via a
+  // property that the base Command exposes — override it for unit tests.
+  ;(cmd as unknown as {jsonEnabled: () => boolean}).jsonEnabled = () => true
+  return {cmd, output}
 }
 
 /**
@@ -97,6 +107,24 @@ describe('search', () => {
       // so check that no command ID line lists 'plugins install' as a match
       expect(output().split('\n')).to.not.include('plugins install')
     })
+
+    it('finds atlassian commands by topic prefix', async () => {
+      const {cmd, output} = makeSearch(['atlassian authenticate'])
+      await cmd.run()
+      expect(output()).to.contain('jira auth add')
+    })
+
+    it('matches deep multi-word command by keyword', async () => {
+      const {cmd, output} = makeSearch(['atlassian jira issue get'])
+      await cmd.run()
+      expect(output()).to.contain('jira issue get')
+    })
+
+    it('matches deep multi-word command by keyword', async () => {
+      const {cmd, output} = makeSearch(['jira issue'])
+      await cmd.run()
+      expect(output()).to.contain('jira issue get')
+    })
   })
 
   describe('LLM sampling search (with mock sampling client)', () => {
@@ -150,6 +178,50 @@ describe('search', () => {
       await cmd.run()
       // Fuzzy fallback should still find 'update' for 'updt'
       expect(output()).to.contain('update')
+    })
+  })
+
+  describe('--json output', () => {
+    it('returns a results array with command, description, plugin fields', async () => {
+      const {cmd} = makeSearchJson(['help'])
+      const result = await cmd.run()
+      expect(result).to.have.property('results').that.is.an('array')
+      expect(result.results.length).to.be.greaterThan(0)
+      const first = result.results[0]
+      expect(first).to.include.keys(['command', 'description'])
+    })
+
+    it('returns empty results array when no commands match', async () => {
+      const {cmd} = makeSearchJson(['zzzznonexistent'])
+      const result = await cmd.run()
+      expect(result).to.deep.equal({results: []})
+    })
+
+    it('does not log human-readable output when --json is active', async () => {
+      const {cmd, output} = makeSearchJson(['help'])
+      await cmd.run()
+      expect(output()).to.equal('')
+    })
+
+    it('includes the correct command in results', async () => {
+      const {cmd} = makeSearchJson(['update'])
+      const result = await cmd.run()
+      const commands = result.results.map((r) => r.command)
+      expect(commands.some((c) => c.startsWith('update'))).to.be.true
+    })
+  })
+
+  describe('--limit flag', () => {
+    it('caps results to the given limit', async () => {
+      const {cmd} = makeSearch(['help', '--limit', '1'])
+      const result = await cmd.run()
+      expect(result.results.length).to.be.at.most(1)
+    })
+
+    it('defaults to 5 results', async () => {
+      const {cmd} = makeSearch(['e'])
+      const result = await cmd.run()
+      expect(result.results.length).to.be.at.most(5)
     })
   })
 })
