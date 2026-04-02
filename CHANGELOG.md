@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/hesedcasa/sdkck/compare/v0.8.0...v0.9.0) (2026-04-02)
+
+
+### 🎉 Features
+
+* **search:** add token-pool fuzzy scoring and --json output ([#54](https://github.com/hesedcasa/sdkck/issues/54)) ([6732caa](https://github.com/hesedcasa/sdkck/commit/6732caae2cab3e1a43385c4f4e94d2f0031d5372))
+
 ## [0.8.0](https://github.com/hesedcasa/sdkck/compare/v0.7.1...v0.8.0) (2026-03-23)
 
 
