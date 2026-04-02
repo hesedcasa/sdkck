@@ -1,0 +1,17 @@
+{
+  "name": "sidekick",
+  "description": "The Best Companion Tool for AI Agents",
+  "owner": {
+    "name": "Hesed",
+    "email": "support@hesed.casa"
+  },
+  "plugins": [
+    {
+      "name": "sidekick",
+      "description": "One CLI to search, connect, and command every tool in your stack",
+      "source": "./plugin",
+      "strict": false,
+      "category": "development"
+    }
+  ]
+}
