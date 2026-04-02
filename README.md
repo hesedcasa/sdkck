@@ -104,7 +104,8 @@ sdkck search "find recent errors in production"
 
 - Install as Claude Code plugin:
 ```bash
-claude plugin install hesedcasa/sdkck
+claude plugin marketplace add hesedcasa/sdkck
+claude plugin install sidekick@sidekick
 ```
 
 - Or simply add this instruction to your AGENT.md or CLAUDE.md file
