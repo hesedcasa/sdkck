@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/hesedcasa/sdkck/compare/v0.10.0...v0.11.0) (2026-04-02)
+
+
+### 🎉 Features
+
+* **openapi:** add custom auth type with multiple arbitrary headers ([#63](https://github.com/hesedcasa/sdkck/issues/63)) ([1b02719](https://github.com/hesedcasa/sdkck/commit/1b02719e3821f5b7c3d8b2d3a29e2617940e339a))
+
 ## [0.10.0](https://github.com/hesedcasa/sdkck/compare/v0.9.2...v0.10.0) (2026-04-02)
 
 
