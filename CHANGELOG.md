@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.0](https://github.com/hesedcasa/sdkck/compare/v0.9.2...v0.10.0) (2026-04-02)
+
+
+### 🎉 Features
+
+* add Claude Code plugin with sdkck MCP hook ([#53](https://github.com/hesedcasa/sdkck/issues/53)) ([a2567e8](https://github.com/hesedcasa/sdkck/commit/a2567e861e948db9b45f15d39ac5ccd79bf8624f))
+
+
+### 📄 Documentation
+
+* update Claude Code plugin install commands in README ([#62](https://github.com/hesedcasa/sdkck/issues/62)) ([cf91a2a](https://github.com/hesedcasa/sdkck/commit/cf91a2abe665005ba0fe3f21b91a8c383e2486a6))
+
 ## [0.9.2](https://github.com/hesedcasa/sdkck/compare/v0.9.1...v0.9.2) (2026-04-02)
 
 
