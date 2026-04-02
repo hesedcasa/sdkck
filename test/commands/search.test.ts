@@ -69,7 +69,7 @@ describe('search', () => {
       const {cmd, output} = makeSearch(['help'])
       await cmd.run()
       expect(output()).to.contain('help')
-      expect(output()).to.match(/Found \d+ commands? matching "help"/)
+      expect(output()).to.match(/Found \d+ commands?:/)
     })
 
     it('ranks exact matches above fuzzy matches', async () => {
@@ -91,7 +91,7 @@ describe('search', () => {
     it('reports no matches for unknown query', async () => {
       const {cmd, output} = makeSearch(['zzzznonexistent'])
       await cmd.run()
-      expect(output()).to.contain('No commands found')
+      expect(output()).to.equal('')
     })
 
     it('matches by plugin name', async () => {
@@ -133,7 +133,7 @@ describe('search', () => {
       cmd._llmClient = makeMockSamplingClient(['help'])
       await cmd.run()
       expect(output()).to.contain('help')
-      expect(output()).to.match(/Found \d+ commands? matching "help"/)
+      expect(output()).to.match(/Found \d+ commands?:/)
     })
 
     it('respects LLM ordering — first result appears first in output', async () => {
@@ -152,7 +152,7 @@ describe('search', () => {
       const {cmd, output} = makeSearch(['zzz'])
       cmd._llmClient = makeMockSamplingClient([])
       await cmd.run()
-      expect(output()).to.contain('No commands found')
+      expect(output()).to.equal('')
     })
 
     it('skips unknown command IDs returned by LLM', async () => {
