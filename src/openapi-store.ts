@@ -72,6 +72,7 @@ interface OpenApiSpec {
 
 export type AuthScheme =
   | {apiKey: string; header: string; type: 'apikey'}
+  | {headers: Record<string, string>; type: 'custom'}
   | {password: string; type: 'basic'; username: string}
   | {scheme: 'bearer'; token: string; type: 'http'}
   | {type: 'none'}
@@ -297,6 +298,10 @@ export function buildAuthHeaders(auth: AuthScheme): Record<string, string> {
     case 'basic': {
       const encoded = Buffer.from(`${auth.username}:${auth.password}`).toString('base64')
       return {Authorization: `Basic ${encoded}`}
+    }
+
+    case 'custom': {
+      return {...auth.headers}
     }
 
     case 'http': {

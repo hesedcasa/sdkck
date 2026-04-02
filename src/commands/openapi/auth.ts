@@ -1,6 +1,6 @@
 import {Args, Command, Flags} from '@oclif/core'
 
-import {type AuthScheme, readStore, writeStore} from '../../openapi-store.js'
+import {type AuthScheme, parseKV, readStore, writeStore} from '../../openapi-store.js'
 
 export default class OpenApiAuth extends Command {
   static args = {
@@ -15,6 +15,7 @@ export default class OpenApiAuth extends Command {
     '<%= config.bin %> openapi auth petstore --type apikey --api-key mykey',
     '<%= config.bin %> openapi auth petstore --type apikey --api-key mykey --api-key-header Authorization',
     '<%= config.bin %> openapi auth petstore --type basic --username user --password secret',
+    '<%= config.bin %> openapi auth petstore --type custom --header X-Tenant-ID=acme --header X-App-Key=secret',
     '<%= config.bin %> openapi auth petstore --type none',
     '<%= config.bin %> openapi auth petstore --show',
   ]
@@ -26,6 +27,11 @@ export default class OpenApiAuth extends Command {
     'api-key-header': Flags.string({
       default: 'X-API-Key',
       description: 'Header name for the API key',
+      required: false,
+    }),
+    header: Flags.string({
+      description: 'Custom header in Key=Value format (used with --type custom, repeatable)',
+      multiple: true,
       required: false,
     }),
     password: Flags.string({
@@ -42,7 +48,7 @@ export default class OpenApiAuth extends Command {
     }),
     type: Flags.string({
       description: 'Authentication type to configure',
-      options: ['none', 'bearer', 'apikey', 'basic'],
+      options: ['none', 'bearer', 'apikey', 'basic', 'custom'],
       required: false,
     }),
     username: Flags.string({
@@ -100,6 +106,13 @@ export default class OpenApiAuth extends Command {
         break
       }
 
+      case 'custom': {
+        if (!flags.header || flags.header.length === 0) this.error('--header is required when --type is custom')
+        auth = {headers: parseKV(flags.header), type: 'custom'}
+
+        break
+      }
+
       default: {
         auth = {type: 'none'}
       }
@@ -126,6 +139,13 @@ function formatAuth(auth: AuthScheme): string {
 
     case 'basic': {
       return `  type     : basic\n  username : ${auth.username}\n  password : ${redact(auth.password)}`
+    }
+
+    case 'custom': {
+      const headerLines = Object.entries(auth.headers)
+        .map(([k, v]) => `  ${k} : ${redact(v)}`)
+        .join('\n')
+      return `  type: custom\n${headerLines}`
     }
 
     case 'http': {
