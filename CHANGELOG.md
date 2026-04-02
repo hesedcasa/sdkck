@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2](https://github.com/hesedcasa/sdkck/compare/v0.9.1...v0.9.2) (2026-04-02)
+
+
+### 🛠️ Fixes
+
+* **search:** update tests to match new output format after UFuzzy refactor ([#59](https://github.com/hesedcasa/sdkck/issues/59)) ([055a4a8](https://github.com/hesedcasa/sdkck/commit/055a4a8cfe587287aba66be51a6e1d78be0c5d13))
+
 ## [0.9.1](https://github.com/hesedcasa/sdkck/compare/v0.9.0...v0.9.1) (2026-04-02)
 
 
