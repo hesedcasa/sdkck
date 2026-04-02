@@ -169,6 +169,7 @@ export default class Search extends Command {
   ]
   static flags = {
     details: Flags.boolean({char: 'd', description: 'Show full help for each matched command', required: false}),
+    limit: Flags.integer({char: 'n', default: 5, description: 'Maximum number of results to return', required: false}),
   }
   // Exposed for testing — inject a mock client to exercise the LLM search path
   _llmClient: null | SamplingClient = null
@@ -177,10 +178,7 @@ export default class Search extends Command {
     results: Array<{command: string; description: string; summary?: string}>
   }> {
     const {args, flags} = await this.parse(Search)
-    const {query} = args
-
     const allCommands = this.config.commands.filter((c) => !c.hidden && c.pluginName !== '@oclif/plugin-plugins')
-
     const commandEntries: CommandEntry[] = allCommands.map((c) => ({
       description: c.description ?? '',
       id: c.id,
@@ -193,10 +191,10 @@ export default class Search extends Command {
     let scored: ScoredEntry[]
 
     if (client === null) {
-      scored = this._fuzzySearch(query, allCommands)
+      scored = this._fuzzySearch(args.query, allCommands)
     } else {
       try {
-        const matchedIds = await samplingSearch(query, commandEntries, client)
+        const matchedIds = await samplingSearch(args.query, commandEntries, client)
         const idToCmd = new Map(allCommands.map((c) => [c.id, c]))
         scored = matchedIds
           .map((id, index) => {
@@ -206,9 +204,11 @@ export default class Search extends Command {
           .filter((entry): entry is ScoredEntry => entry !== null)
       } catch {
         // Fall back to fuzzy matching on any LLM error
-        scored = this._fuzzySearch(query, allCommands)
+        scored = this._fuzzySearch(args.query, allCommands)
       }
     }
+
+    scored = scored.slice(0, flags.limit)
 
     const results = scored.map((entry) => {
       const {cmd} = entry
@@ -225,18 +225,17 @@ export default class Search extends Command {
         : [configuredId, argList].filter(Boolean).join(' ')
       return {
         command: usage,
-        description: cmd.description ?? '',
-        ...(cmd.summary ? {summary: cmd.summary} : {}),
+        description: cmd.summary ?? cmd.description ?? '',
       }
     })
 
     if (!this.jsonEnabled()) {
       if (results.length === 0) {
-        this.log(`No commands found matching "${query}"`)
+        this.log(`No commands found matching "${args.query}"`)
         return {results}
       }
 
-      this.log(`Found ${results.length} command${results.length === 1 ? '' : 's'} matching "${query}":\n`)
+      this.log(`Found ${results.length} command${results.length === 1 ? '' : 's'} matching "${args.query}":\n`)
 
       for (const {cmd, result} of scored.map((s, i) => ({cmd: s.cmd, result: results[i]}))) {
         this.log(result.command)

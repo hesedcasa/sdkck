@@ -210,4 +210,18 @@ describe('search', () => {
       expect(commands.some((c) => c.startsWith('update'))).to.be.true
     })
   })
+
+  describe('--limit flag', () => {
+    it('caps results to the given limit', async () => {
+      const {cmd} = makeSearch(['help', '--limit', '1'])
+      const result = await cmd.run()
+      expect(result.results.length).to.be.at.most(1)
+    })
+
+    it('defaults to 5 results', async () => {
+      const {cmd} = makeSearch(['e'])
+      const result = await cmd.run()
+      expect(result.results.length).to.be.at.most(5)
+    })
+  })
 })
