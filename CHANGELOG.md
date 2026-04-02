@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/hesedcasa/sdkck/compare/v0.9.0...v0.9.1) (2026-04-02)
+
+
+### 🛠️ Fixes
+
+* **search:** unwrap run() return value from results envelope ([#56](https://github.com/hesedcasa/sdkck/issues/56)) ([9eb5619](https://github.com/hesedcasa/sdkck/commit/9eb5619961827bc5da6993fd62824243363785fd))
+
 ## [0.9.0](https://github.com/hesedcasa/sdkck/compare/v0.8.0...v0.9.0) (2026-04-02)
 
 
