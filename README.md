@@ -102,7 +102,12 @@ sdkck search "find recent errors in production"
 
 ## How AI Agents Use Sidekick
 
-- Simply add this instruction to your AGENT.md or CLAUDE.md file
+- Install as Claude Code plugin:
+```bash
+claude plugin install hesedcasa/sdkck
+```
+
+- Or simply add this instruction to your AGENT.md or CLAUDE.md file
 ```
 Before any tool call run `sdkck commands | grep <keywords>` to find the available tools in sdkck, e.g.: `sdkck commands | grep -i "\|atlassian\|issue"`
 ```
