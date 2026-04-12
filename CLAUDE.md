@@ -37,7 +37,12 @@ Other subcommands: `openapi auth`, `openapi call`, `openapi list`, `openapi conf
 
 ### Permission Allowlist (`permission` topic)
 
-`permission allow/disallow <pattern>` manages a JSON rule list at `<configDir>/permission.json`. The `prerun` hook (`src/hooks/prerun/check-permission.ts`) enforces rules before every command runs — first matching rule wins; unmatched commands are allowed. Rules use glob-style patterns against the space-separated command ID.
+`permission allow/disallow <pattern>` manages a JSON rule list at `<configDir>/permission.json`. Two hooks enforce rules:
+
+- **Init hook** (`src/hooks/init/apply-permission.ts`): runs at startup, hides disallowed commands from `sdkck help`/`sdkck commands`, and blocks `--help` on disallowed commands via early exit.
+- **Prerun hook** (`src/hooks/prerun/check-permission.ts`): safety net that blocks execution of any disallowed command that reaches the run stage.
+
+First matching rule wins; unmatched commands are allowed. Rules use glob-style patterns against the space-separated command ID.
 
 Key file: `src/permission-config.ts`.
 
@@ -50,9 +55,8 @@ Subcommands: `permission allow`, `permission disallow`, `permission list`, `perm
 Key file: `src/mcp-server.ts`. Exports:
 
 - `startMcpServer(config)` — entry point called by `McpStart`
-- `createMcpServer(config)` — returns a configured `Server` instance (useful in tests)
+- `createMcpServer(config)` — returns a configured `McpServer` instance (useful in tests)
 - `buildArgv(cmd, toolArgs)` — maps MCP tool arguments → oclif argv array
-- `createSamplingAdapter(server)` — wraps `server.createMessage` in the OpenAI-compatible `_llmClient` interface so the `search` command can rank results via the connected client's LLM instead of calling OpenAI directly
 
 Two tools are exposed: `search` (delegates to the `search` command with sampling) and `run_command` (accepts command ID + args object, builds argv, runs the command).
 

@@ -115,13 +115,26 @@ Before any tool call run `sdkck commands | grep <keywords>` to find the availabl
 
 - Sidekick is purpose-built for AI agent workflows. Here's what it looks like when Claude Code uses Sidekick:
 
-  ```
-  Agent: I need to check recent Sentry errors and create a Jira ticket.
+```
+Agent: I need to check recent Sentry errors and create a Jira ticket.
 
-  > sdkck search "sentry errors"          # Discovers the right command
-  > sdkck sentry issues list --recent     # Gets the data
-  > sdkck jira issue create ...           # Acts on it
-  ```
+> sdkck search "sentry errors"          # Discovers the right command
+> sdkck sentry issues list --recent     # Gets the data
+> sdkck jira issue create ...           # Acts on it
+```
+
+3. Add Sidekick as MCP server:
+
+```json
+{
+  "mcpServers": {
+    "sidekick": {
+      "command": "sdkck",
+      "args": ["mcp", "start"]
+    }
+  }
+}
+```
 
 ## Permissions for Safe Agent Usage
 
