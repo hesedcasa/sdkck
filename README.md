@@ -123,7 +123,7 @@ Agent: I need to check recent Sentry errors and create a Jira ticket.
 > sdkck jira issue create ...           # Acts on it
 ```
 
-3. Add Sidekick as MCP server:
+- Add Sidekick as MCP server:
 
 ```json
 {
