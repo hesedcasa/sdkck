@@ -37,11 +37,36 @@ Other subcommands: `openapi auth`, `openapi call`, `openapi list`, `openapi conf
 
 ### Permission Allowlist (`permission` topic)
 
-`permission allow/disallow <pattern>` manages a JSON rule list at `<configDir>/permission.json`. The `prerun` hook (`src/hooks/prerun/check-permission.ts`) enforces rules before every command runs — first matching rule wins; unmatched commands are allowed. Rules use glob-style patterns against the space-separated command ID.
+`permission allow/disallow <pattern>` manages a JSON rule list at `<configDir>/permission.json`. Two hooks enforce rules:
+
+- **Init hook** (`src/hooks/init/apply-permission.ts`): runs at startup, hides disallowed commands from `sdkck help`/`sdkck commands`, and blocks `--help` on disallowed commands via early exit.
+- **Prerun hook** (`src/hooks/prerun/check-permission.ts`): safety net that blocks execution of any disallowed command that reaches the run stage.
+
+First matching rule wins; unmatched commands are allowed. Rules use glob-style patterns against the space-separated command ID.
 
 Key file: `src/permission-config.ts`.
 
 Subcommands: `permission allow`, `permission disallow`, `permission list`, `permission export`, `permission import`, `permission reset`.
+
+### MCP Server (`mcp` topic)
+
+`mcp start` launches a stdio MCP server that exposes every sdkck CLI command as an MCP tool to any connected client (e.g. Claude Code, Cursor).
+
+Key file: `src/mcp-server.ts`. Exports:
+
+- `startMcpServer(config)` — entry point called by `McpStart`
+- `createMcpServer(config)` — returns a configured `McpServer` instance (useful in tests)
+- `buildArgv(cmd, toolArgs)` — maps MCP tool arguments → oclif argv array
+
+Two tools are exposed: `search` (delegates to the `search` command with sampling) and `run_command` (accepts command ID + args object, builds argv, runs the command).
+
+To wire it up in Claude Code, add to `.mcp.json`:
+
+```json
+{"mcpServers": {"sdkck": {"command": "./bin/run.js", "args": ["mcp", "start"]}}}
+```
+
+Dep: `@modelcontextprotocol/sdk` (^1.29.0). No extra peer dep installs needed.
 
 ## JIT Plugins
 
@@ -63,6 +88,7 @@ Commands that depend on external clients (e.g., `Search._llmClient`) use public 
 - **`@scalar/openapi-parser` peer dep:** Installing this package also requires `npm install @scalar/types` explicitly — npm does not auto-install it.
 - **`@scalar/postman-to-openapi` peer dep:** Same pattern — also requires `npm install @scalar/types` explicitly.
 - **`extractOperations` expects a dereferenced spec:** Call `loadSpec` (which runs `dereference` internally) before passing a spec to `extractOperations`. Tests that call `extractOperations` directly should use inline specs without `$ref`s.
+- **`run_command` accepts both separators:** the MCP tool accepts command IDs with either spaces (`"openapi import"`) or colons (`"openapi:import"`) — both resolve to the same command.
 
 ## Conventions
 

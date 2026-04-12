@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "sidekick": {
+      "command": "sdkck",
+      "args": ["mcp", "start"]
+    }
+  }
+}

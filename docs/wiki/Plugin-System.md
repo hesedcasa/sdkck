@@ -16,15 +16,15 @@ JIT (Just-In-Time) plugins are the core innovation of Sidekick. Instead of requi
 
 ### Built-in JIT Plugins
 
-| Plugin | Version | Integration |
-|---|---|---|
-| `@hesed/jira` | ^0.2.0 | Atlassian Jira issue tracking |
-| `@hesed/conni` | ^0.2.0 | Atlassian Confluence wiki |
-| `@hesed/bb` | ^0.2.0 | Bitbucket repositories and PRs |
-| `@hesed/sentry` | ^0.2.0 | Sentry error tracking |
-| `@hesed/mysql` | ^0.2.0 | MySQL database operations |
-| `@hesed/psql` | ^0.2.0 | PostgreSQL database operations |
-| `@hesed/supabase` | ^0.2.0 | Supabase project management |
+| Plugin            | Version | Integration                    |
+| ----------------- | ------- | ------------------------------ |
+| `@hesed/jira`     | ^0.2.0  | Atlassian Jira issue tracking  |
+| `@hesed/conni`    | ^0.2.0  | Atlassian Confluence wiki      |
+| `@hesed/bb`       | ^0.2.0  | Bitbucket repositories and PRs |
+| `@hesed/sentry`   | ^0.2.0  | Sentry error tracking          |
+| `@hesed/mysql`    | ^0.2.0  | MySQL database operations      |
+| `@hesed/psql`     | ^0.2.0  | PostgreSQL database operations |
+| `@hesed/supabase` | ^0.2.0  | Supabase project management    |
 
 ## Installing Additional Plugins
 
@@ -88,6 +88,7 @@ This dual-mode search is what makes Sidekick so efficient for AI agents — they
 Each Sidekick plugin is an oclif plugin — an npm package that exports command classes. The oclif framework handles discovery, loading, and lifecycle management.
 
 Key points:
+
 - Commands are auto-discovered from the plugin's `commands/` directory
 - The space-based topic separator means commands read naturally: `sdkck jira issue create`
 - Plugins can define their own hooks for lifecycle events

@@ -6,13 +6,13 @@ Sidekick is an agentic CLI that gives AI coding agents (like Claude Code, Cursor
 
 ## Quick Navigation
 
-| Page | Description |
-|---|---|
-| [Installation Guide](Installation-Guide) | Setup instructions for all platforms |
-| [Plugin System](Plugin-System) | How JIT plugins and the plugin ecosystem work |
-| [Permission System](Permission-System) | Fine-grained access control for agent safety |
+| Page                                         | Description                                      |
+| -------------------------------------------- | ------------------------------------------------ |
+| [Installation Guide](Installation-Guide)     | Setup instructions for all platforms             |
+| [Plugin System](Plugin-System)               | How JIT plugins and the plugin ecosystem work    |
+| [Permission System](Permission-System)       | Fine-grained access control for agent safety     |
 | [AI Agent Integration](AI-Agent-Integration) | Best practices for using Sidekick with AI agents |
-| [Creating Plugins](Creating-Plugins) | Build your own Sidekick plugins |
+| [Creating Plugins](Creating-Plugins)         | Build your own Sidekick plugins                  |
 
 ## What Makes Sidekick Different?
 
