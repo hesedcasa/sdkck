@@ -15,6 +15,7 @@ Permissions are stored in `$XDG_CONFIG_HOME/sdkck/permission.json` (typically `~
 ### Permission Enforcement Points
 
 Permissions are enforced at two stages:
+
 - **Init hook**: Hides disallowed commands from `help` and `commands` output, blocking even `--help` flags on disallowed commands
 - **Prerun hook**: Safety net that blocks execution of disallowed commands that somehow bypass the init stage
 
@@ -22,12 +23,12 @@ Permissions are enforced at two stages:
 
 Sidekick supports four types of permission patterns:
 
-| Pattern | Matches | Example |
-|---|---|---|
-| `"*"` | All commands | Everything in the CLI |
-| `"jira"` | Exact command + all subtopics | `jira`, `jira issue list`, `jira issue create` |
-| `"jira *"` | Explicit wildcard | Same as above but using wildcard syntax |
-| `"jira issue create"` | Exact command ID | Only `jira issue create` |
+| Pattern               | Matches                       | Example                                        |
+| --------------------- | ----------------------------- | ---------------------------------------------- |
+| `"*"`                 | All commands                  | Everything in the CLI                          |
+| `"jira"`              | Exact command + all subtopics | `jira`, `jira issue list`, `jira issue create` |
+| `"jira *"`            | Explicit wildcard             | Same as above but using wildcard syntax        |
+| `"jira issue create"` | Exact command ID              | Only `jira issue create`                       |
 
 ## Commands
 
@@ -55,6 +56,7 @@ sdkck permission list
 ```
 
 Displays all rules with indicators:
+
 - `✓` — Allowed
 - `✗` — Disallowed
 

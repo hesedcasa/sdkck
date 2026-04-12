@@ -43,6 +43,27 @@ Key file: `src/permission-config.ts`.
 
 Subcommands: `permission allow`, `permission disallow`, `permission list`, `permission export`, `permission import`, `permission reset`.
 
+### MCP Server (`mcp` topic)
+
+`mcp start` launches a stdio MCP server that exposes every sdkck CLI command as an MCP tool to any connected client (e.g. Claude Code, Cursor).
+
+Key file: `src/mcp-server.ts`. Exports:
+
+- `startMcpServer(config)` — entry point called by `McpStart`
+- `createMcpServer(config)` — returns a configured `Server` instance (useful in tests)
+- `buildArgv(cmd, toolArgs)` — maps MCP tool arguments → oclif argv array
+- `createSamplingAdapter(server)` — wraps `server.createMessage` in the OpenAI-compatible `_llmClient` interface so the `search` command can rank results via the connected client's LLM instead of calling OpenAI directly
+
+Two tools are exposed: `search` (delegates to the `search` command with sampling) and `run_command` (accepts command ID + args object, builds argv, runs the command).
+
+To wire it up in Claude Code, add to `.mcp.json`:
+
+```json
+{"mcpServers": {"sdkck": {"command": "./bin/run.js", "args": ["mcp", "start"]}}}
+```
+
+Dep: `@modelcontextprotocol/sdk` (^1.29.0). No extra peer dep installs needed.
+
 ## JIT Plugins
 
 The `oclif.jitPlugins` field in `package.json` declares plugins that are auto-installed on first use (e.g., `@hesed/jira`, `@hesed/conni`, `@hesed/bb`, `@hesed/sentry`, `@hesed/mysql`, `@hesed/psql`, `@hesed/supabase`). When a JIT plugin's command is invoked, the `jit_plugin_not_installed` hook (`src/hooks/jit_plugin_not_installed/jit-install.ts`) runs `plugins:install <pluginName>@<pluginVersion>` automatically.
@@ -63,6 +84,7 @@ Commands that depend on external clients (e.g., `Search._llmClient`) use public 
 - **`@scalar/openapi-parser` peer dep:** Installing this package also requires `npm install @scalar/types` explicitly — npm does not auto-install it.
 - **`@scalar/postman-to-openapi` peer dep:** Same pattern — also requires `npm install @scalar/types` explicitly.
 - **`extractOperations` expects a dereferenced spec:** Call `loadSpec` (which runs `dereference` internally) before passing a spec to `extractOperations`. Tests that call `extractOperations` directly should use inline specs without `$ref`s.
+- **`run_command` accepts both separators:** the MCP tool accepts command IDs with either spaces (`"openapi import"`) or colons (`"openapi:import"`) — both resolve to the same command.
 
 ## Conventions
 

@@ -67,11 +67,11 @@ Unix pipes and command substitution — no protocol overhead.
 
 ## Context Efficiency Comparison
 
-| Approach | Tokens for Tool Discovery | Tokens for Execution | Total |
-|---|---|---|---|
-| MCP (load all schemas) | ~4,000+ | ~200 | ~4,200+ |
-| MCP (filtered schemas) | ~1,500 | ~200 | ~1,700 |
-| Sidekick CLI | ~200 | ~200 | ~400 |
+| Approach               | Tokens for Tool Discovery | Tokens for Execution | Total   |
+| ---------------------- | ------------------------- | -------------------- | ------- |
+| MCP (load all schemas) | ~4,000+                   | ~200                 | ~4,200+ |
+| MCP (filtered schemas) | ~1,500                    | ~200                 | ~1,700  |
+| Sidekick CLI           | ~200                      | ~200                 | ~400    |
 
 **Sidekick uses up to 10x fewer tokens** for the same operations.
 

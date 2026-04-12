@@ -18,6 +18,7 @@ cd my-sdkck-plugin
 ```
 
 This creates a fully structured plugin with:
+
 - `src/commands/` — Your command implementations
 - `test/` — Test scaffolding
 - `package.json` — With oclif configuration
@@ -94,6 +95,7 @@ export default class MyTopicList extends Command {
 ### Topic Separator
 
 Sidekick uses **space-based** topic separation (`topicSeparator: " "`). This means:
+
 - `sdkck my-topic list` (not `sdkck my-topic:list`)
 - File path `src/commands/my-topic/list.ts` maps to command `my-topic list`
 
@@ -179,12 +181,14 @@ sdkck plugins unlink my-sdkck-plugin
 ## Publishing
 
 1. Build and test:
+
    ```bash
    npm run build
    npm test
    ```
 
 2. Publish to npm:
+
    ```bash
    npm publish
    ```

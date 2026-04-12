@@ -1,7 +1,7 @@
 import type {Config} from '@oclif/core/interfaces'
 
 // eslint-disable-next-line import/no-unresolved
-import {Server} from '@modelcontextprotocol/sdk/server/index.js'
+import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js'
 // eslint-disable-next-line import/no-unresolved
 import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js'
 // eslint-disable-next-line import/no-unresolved
@@ -10,6 +10,7 @@ import {Command, toConfiguredId} from '@oclif/core'
 
 // ─── Argv builder ────────────────────────────────────────────────────────────
 
+// ts-prune-ignore-next
 export function buildArgv(cmd: Command.Loadable, toolArgs: Record<string, unknown>): string[] {
   const argv: string[] = []
 
@@ -61,7 +62,7 @@ interface SamplingClient {
   }
 }
 
-export function createSamplingAdapter(server: Server): SamplingClient {
+function createSamplingAdapter(server: McpServer): SamplingClient {
   return {
     chat: {
       completions: {
@@ -80,7 +81,7 @@ export function createSamplingAdapter(server: Server): SamplingClient {
             }
           }
 
-          const result = await server.createMessage({
+          const result = await server.server.createMessage({
             maxTokens: params.max_tokens ?? 1024,
             messages: mcpMessages,
             ...(systemPrompt ? {systemPrompt} : {}),
@@ -112,6 +113,12 @@ async function runCommand(
       lines.push(String(msg))
     }
 
+    // logJson writes to process.stdout by default; capture it the same way
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(instance as any).logJson = (json: unknown) => {
+      lines.push(JSON.stringify(json, null, 2))
+    }
+
     instance.warn = (msg: Error | string) => {
       lines.push(`Warning: ${String(msg)}`)
       return String(msg)
@@ -131,8 +138,9 @@ async function runCommand(
 
 // ─── Server factory ──────────────────────────────────────────────────────────
 
-export async function createMcpServer(config: Config): Promise<Server> {
-  const server = new Server({name: 'sdkck', version: config.version ?? '0.0.0'}, {capabilities: {tools: {}}})
+// ts-prune-ignore-next
+export async function createMcpServer(config: Config): Promise<McpServer> {
+  const mcpServer = new McpServer({name: 'sdkck', version: config.version ?? '0.0.0'}, {capabilities: {tools: {}}})
 
   // Build command lookup for run_command
   const commandById = new Map(config.commands.map((c) => [c.id, c]))
@@ -144,7 +152,7 @@ export async function createMcpServer(config: Config): Promise<Server> {
 
   const searchCmd = config.commands.find((c) => c.id === 'search')
 
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  mcpServer.server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: [
       {
         description:
@@ -188,7 +196,7 @@ export async function createMcpServer(config: Config): Promise<Server> {
     ],
   }))
 
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  mcpServer.server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const {arguments: toolArgs, name} = request.params
 
     if (name === 'search') {
@@ -201,7 +209,7 @@ export async function createMcpServer(config: Config): Promise<Server> {
       const argv = [query]
       if (limit !== undefined) argv.push('--limit', String(limit))
 
-      const samplingClient = createSamplingAdapter(server)
+      const samplingClient = createSamplingAdapter(mcpServer)
       const {error, output} = await runCommand(searchCmd, argv, config, samplingClient)
       if (error) {
         return {content: [{text: error, type: 'text' as const}], isError: true}
@@ -216,7 +224,12 @@ export async function createMcpServer(config: Config): Promise<Server> {
       const cmd = commandById.get(commandId) ?? commandById.get(commandId.replaceAll(' ', ':'))
       if (!cmd) {
         return {
-          content: [{text: `Unknown command: "${commandId}". Use the "search" tool to find available commands.`, type: 'text' as const}],
+          content: [
+            {
+              text: `Unknown command: "${commandId}". Use the "search" tool to find available commands.`,
+              type: 'text' as const,
+            },
+          ],
           isError: true,
         }
       }
@@ -234,7 +247,7 @@ export async function createMcpServer(config: Config): Promise<Server> {
     return {content: [{text: `Unknown tool: ${name}`, type: 'text' as const}], isError: true}
   })
 
-  return server
+  return mcpServer
 }
 
 export async function startMcpServer(config: Config): Promise<void> {

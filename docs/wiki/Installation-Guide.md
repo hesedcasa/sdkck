@@ -44,8 +44,8 @@ The first time you run a command from a JIT plugin (like `@hesed/jira`), Sidekic
 
 ## Environment Variables
 
-| Variable | Purpose | Required |
-|---|---|---|
+| Variable         | Purpose                                       | Required                                |
+| ---------------- | --------------------------------------------- | --------------------------------------- |
 | `OPENAI_API_KEY` | Enables AI-powered semantic search via GPT-4o | Optional (falls back to fuzzy matching) |
 
 ### Plugin-Specific Variables
