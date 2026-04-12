@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/hesedcasa/sdkck/compare/v0.11.0...v0.12.0) (2026-04-12)
+
+
+### 🎉 Features
+
+* add MCP server with search tool and sampling support ([#69](https://github.com/hesedcasa/sdkck/issues/69)) ([5ab797d](https://github.com/hesedcasa/sdkck/commit/5ab797dba1188e15b89fe63a9e7fc982d1fdbcb6))
+
 ## [0.11.0](https://github.com/hesedcasa/sdkck/compare/v0.10.0...v0.11.0) (2026-04-02)
 
 
