@@ -1,34 +1,36 @@
-import type { Metadata } from "next";
-import { Inter, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Header } from "@/components/header";
-import { DocsSidebar } from "@/components/docs-sidebar";
-import { DocsMobileNav } from "@/components/docs-mobile-nav";
+import type {Metadata} from 'next'
+
+import {Geist_Mono, Inter} from 'next/font/google'
+
+import './globals.css'
+import {DocsMobileNav} from '@/components/docs-mobile-nav'
+import {DocsSidebar} from '@/components/docs-sidebar'
+import {Header} from '@/components/header'
+import {ThemeProvider} from '@/components/theme-provider'
 
 const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
+  subsets: ['latin'],
+  variable: '--font-inter',
+})
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+  subsets: ['latin'],
+  variable: '--font-geist-mono',
+})
 
 export const metadata: Metadata = {
-  title: {
-    default: "Sidekick | The Best Companion Tool for AI Agents",
-    template: "%s | Sidekick",
-  },
   description:
-    "One CLI to search, connect, and command every tool in your stack. Zero context window bloat. Maximum productivity.",
-};
+    'One CLI to search, connect, and command every tool in your stack. Zero context window bloat. Maximum productivity.',
+  title: {
+    default: 'Sidekick | The Best Companion Tool for AI Agents',
+    template: '%s | Sidekick',
+  },
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -49,5 +51,5 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
     </html>
-  );
+  )
 }

@@ -4,49 +4,49 @@ Sidekick provides built-in commands and dynamically registers commands from impo
 
 ## Built-in commands
 
-| Command | Description |
-|---------|-------------|
-| `sdkck commands` | List all available commands |
-| `sdkck help [COMMAND]` | Display help for a command |
-| `sdkck search QUERY` | Search for commands |
-| `sdkck version` | Show version info |
-| `sdkck update [CHANNEL]` | Update the CLI |
+| Command                  | Description                 |
+| ------------------------ | --------------------------- |
+| `sdkck commands`         | List all available commands |
+| `sdkck help [COMMAND]`   | Display help for a command  |
+| `sdkck search QUERY`     | Search for commands         |
+| `sdkck version`          | Show version info           |
+| `sdkck update [CHANNEL]` | Update the CLI              |
 
 ## OpenAPI commands
 
-| Command | Description |
-|---------|-------------|
-| `sdkck openapi import SOURCE` | Import an OpenAPI spec or Postman collection |
-| `sdkck openapi list [NAME]` | List imported specs and operations |
-| `sdkck openapi call NAME OPERATIONID` | Call an imported operation |
-| `sdkck openapi auth NAME` | Configure authentication for a spec |
-| `sdkck openapi config NAME` | Update spec configuration |
-| `sdkck openapi remove NAME` | Remove an imported spec |
+| Command                               | Description                                  |
+| ------------------------------------- | -------------------------------------------- |
+| `sdkck openapi import SOURCE`         | Import an OpenAPI spec or Postman collection |
+| `sdkck openapi list [NAME]`           | List imported specs and operations           |
+| `sdkck openapi call NAME OPERATIONID` | Call an imported operation                   |
+| `sdkck openapi auth NAME`             | Configure authentication for a spec          |
+| `sdkck openapi config NAME`           | Update spec configuration                    |
+| `sdkck openapi remove NAME`           | Remove an imported spec                      |
 
 ## Permission commands
 
-| Command | Description |
-|---------|-------------|
-| `sdkck permission allow PATTERN` | Allow a command pattern |
+| Command                             | Description                |
+| ----------------------------------- | -------------------------- |
+| `sdkck permission allow PATTERN`    | Allow a command pattern    |
 | `sdkck permission disallow PATTERN` | Disallow a command pattern |
-| `sdkck permission list` | List all permission rules |
-| `sdkck permission export FILE` | Export rules to JSON |
-| `sdkck permission import FILE` | Import rules from JSON |
-| `sdkck permission reset` | Reset all rules |
+| `sdkck permission list`             | List all permission rules  |
+| `sdkck permission export FILE`      | Export rules to JSON       |
+| `sdkck permission import FILE`      | Import rules from JSON     |
+| `sdkck permission reset`            | Reset all rules            |
 
 ## Plugin commands
 
-| Command | Description |
-|---------|-------------|
-| `sdkck plugins` | List installed plugins |
-| `sdkck plugins install PLUGIN` | Install a plugin |
-| `sdkck plugins remove [PLUGIN]` | Remove a plugin |
-| `sdkck plugins link PATH` | Link a plugin for development |
+| Command                         | Description                   |
+| ------------------------------- | ----------------------------- |
+| `sdkck plugins`                 | List installed plugins        |
+| `sdkck plugins install PLUGIN`  | Install a plugin              |
+| `sdkck plugins remove [PLUGIN]` | Remove a plugin               |
+| `sdkck plugins link PATH`       | Link a plugin for development |
 
 ## MCP commands
 
-| Command | Description |
-|---------|-------------|
+| Command           | Description          |
+| ----------------- | -------------------- |
 | `sdkck mcp start` | Start the MCP server |
 
 ## Dynamic commands

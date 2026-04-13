@@ -18,18 +18,18 @@ my-plugin/
 ## Create a command
 
 ```typescript
-import { Command } from "@oclif/core";
+import {Command} from '@oclif/core'
 
 export default class Hello extends Command {
-  static description = "Say hello";
+  static description = 'Say hello'
 
   static args = {
-    name: Args.string({ description: "Person to greet" }),
-  };
+    name: Args.string({description: 'Person to greet'}),
+  }
 
   async run(): Promise<void> {
-    const { args } = await this.parse(Hello);
-    this.log(`Hello, ${args.name}!`);
+    const {args} = await this.parse(Hello)
+    this.log(`Hello, ${args.name}!`)
   }
 }
 ```
@@ -77,8 +77,8 @@ Test your plugin commands by directly instantiating the command class with a moc
 
 ```typescript
 const config = {
-  runHook: async () => ({ failures: [], successes: [] }),
-};
+  runHook: async () => ({failures: [], successes: []}),
+}
 ```
 
 For commands that depend on external clients, use public properties for dependency injection.

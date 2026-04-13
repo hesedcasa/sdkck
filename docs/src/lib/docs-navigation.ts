@@ -1,50 +1,48 @@
 export type NavItem = {
-  name: string;
-  href: string;
-};
+  href: string
+  name: string
+}
 
 export type NavSection = {
-  title: string | null;
-  items: NavItem[];
-};
+  items: NavItem[]
+  title: null | string
+}
 
 export const navigation: NavSection[] = [
   {
+    items: [
+      {href: '/', name: 'Introduction'},
+      {href: '/installation', name: 'Installation'},
+      {href: '/quick-start', name: 'Quick Start'},
+      {href: '/ai-agents', name: 'AI Agents'},
+    ],
     title: null,
+  },
+  {
     items: [
-      { name: "Introduction", href: "/" },
-      { name: "Installation", href: "/installation" },
-      { name: "Quick Start", href: "/quick-start" },
-      { name: "AI Agents", href: "/ai-agents" },
+      {href: '/commands', name: 'Commands'},
+      {href: '/search', name: 'Search'},
+      {href: '/plugins', name: 'Plugins'},
+      {href: '/permissions', name: 'Permissions'},
     ],
+    title: 'Core Features',
   },
   {
-    title: "Core Features",
     items: [
-      { name: "Commands", href: "/commands" },
-      { name: "Search", href: "/search" },
-      { name: "Plugins", href: "/plugins" },
-      { name: "Permissions", href: "/permissions" },
+      {href: '/openapi', name: 'OpenAPI & Postman'},
+      {href: '/mcp', name: 'MCP Server'},
+      {href: '/claude-code', name: 'Claude Code'},
     ],
+    title: 'Integrations',
   },
   {
-    title: "Integrations",
-    items: [
-      { name: "OpenAPI & Postman", href: "/openapi" },
-      { name: "MCP Server", href: "/mcp" },
-      { name: "Claude Code", href: "/claude-code" },
-    ],
+    items: [{href: '/creating-plugins', name: 'Creating Plugins'}],
+    title: 'Extend',
   },
   {
-    title: "Extend",
-    items: [{ name: "Creating Plugins", href: "/creating-plugins" }],
-  },
-  {
+    items: [{href: '/changelog', name: 'Changelog'}],
     title: null,
-    items: [{ name: "Changelog", href: "/changelog" }],
   },
-];
+]
 
-export const allDocsPages: NavItem[] = navigation.flatMap(
-  (section) => section.items,
-);
+export const allDocsPages: NavItem[] = navigation.flatMap((section) => section.items)

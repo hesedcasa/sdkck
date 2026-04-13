@@ -18,3 +18,4 @@ pnpm-lock.yaml
 .eslintcache
 *.tsbuildinfo
 coverage/
+.next/

@@ -1,12 +1,13 @@
-"use client";
+'use client'
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { navigation } from "@/lib/docs-navigation";
+import Link from 'next/link'
+import {usePathname} from 'next/navigation'
+
+import {navigation} from '@/lib/docs-navigation'
+import {cn} from '@/lib/utils'
 
 export function DocsSidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname()
 
   return (
     <nav className="space-y-6 pb-8">
@@ -19,26 +20,24 @@ export function DocsSidebar() {
           )}
           <ul className="space-y-1">
             {section.items.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href
               return (
                 <li key={item.href}>
                   <Link
-                    href={item.href}
                     className={cn(
-                      "text-sm transition-colors block py-1",
-                      isActive
-                        ? "text-primary font-medium"
-                        : "text-muted-foreground hover:text-foreground",
+                      'text-sm transition-colors block py-1',
+                      isActive ? 'text-primary font-medium' : 'text-muted-foreground hover:text-foreground',
                     )}
+                    href={item.href}
                   >
                     {item.name}
                   </Link>
                 </li>
-              );
+              )
             })}
           </ul>
         </div>
       ))}
     </nav>
-  );
+  )
 }
