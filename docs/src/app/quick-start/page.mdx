@@ -1,0 +1,58 @@
+# Quick Start
+
+Get Sidekick up and running in under a minute.
+
+## 1. Install
+
+```bash
+npm install -g sdkck
+```
+
+## 2. Import an OpenAPI spec
+
+```bash
+# From a URL
+sdkck openapi import https://petstore3.swagger.io/api/v3/openapi.json --name petstore
+
+# From a local file
+sdkck openapi import ./api.yaml --name myapi
+
+# From a Postman collection
+sdkck openapi import ./postman_collection.json --name myapi
+```
+
+## 3. Run commands
+
+Every operation from the spec is now a first-class CLI command:
+
+```bash
+sdkck petstore listPets
+sdkck petstore getPetById --param petId=42
+sdkck petstore createPet --body name=Fido --body tag=dog
+```
+
+## 4. Search for commands
+
+```bash
+# Fuzzy search (no API key needed)
+sdkck search "list pets"
+
+# AI-powered semantic search (requires OPENAI_API_KEY)
+export OPENAI_API_KEY=sk-...
+sdkck search "find recent errors in production"
+```
+
+## 5. Use a plugin
+
+Official plugins auto-install on first use:
+
+```bash
+# Create a Jira issue — plugin installs automatically
+sdkck jira issue create --project MYPROJ --summary "Fix login bug"
+```
+
+## What's next?
+
+- [AI agent integration](/ai-agents) — Connect Sidekick to your AI agent
+- [OpenAPI & Postman](/openapi) — Deep dive into importing specs
+- [Permissions](/permissions) — Control what your agent can do

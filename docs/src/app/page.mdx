@@ -1,0 +1,49 @@
+# Sidekick
+
+The best companion tool for AI agents. One CLI to search, connect, and command every tool in your stack. Zero context window bloat. Maximum productivity.
+
+```bash
+npm install -g sdkck
+
+# Turn any OpenAPI spec into CLI commands instantly
+sdkck openapi import https://petstore3.swagger.io/api/v3/openapi.json --name petstore
+sdkck petstore listPets
+
+# Search for commands
+sdkck search "create issue"
+```
+
+## Features
+
+- **Instant commands from OpenAPI/Postman** — Point Sidekick at any spec and every endpoint becomes a CLI command
+- **Semantic search** — Find the right command with fuzzy or AI-powered matching
+- **Plugin system** — Official plugins auto-install on first use
+- **Permission system** — Fine-grained control over which commands agents can execute
+- **MCP server** — Expose the entire plugin ecosystem as an MCP server
+- **Claude Code integration** — First-class support as a Claude Code plugin
+
+## How it works
+
+Sidekick is built on [oclif](https://oclif.io) and uses a plugin architecture. Import an OpenAPI spec or Postman collection and every operation becomes a first-class CLI command that appears in `sdkck help` and `sdkck commands`.
+
+```bash
+# Import a spec
+sdkck openapi import ./api.yaml --name myapi
+
+# Every operation is now a command
+sdkck myapi listUsers
+sdkck myapi createUser --body name=Alice
+
+# Search across all commands
+sdkck search "list users"
+```
+
+## Works with
+
+Claude Code, Cursor, GitHub Copilot, OpenAI Codex, Google Gemini, opencode, and any agent that can run shell commands.
+
+## Next steps
+
+- [Install Sidekick](/installation)
+- [Quick start guide](/quick-start)
+- [AI agent integration](/ai-agents)

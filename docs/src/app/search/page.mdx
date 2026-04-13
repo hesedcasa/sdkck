@@ -1,0 +1,56 @@
+# Search
+
+Find the right command instantly with fuzzy matching or AI-powered semantic search.
+
+## Basic usage
+
+```bash
+sdkck search "create issue"
+sdkck search jira
+sdkck search "list pets"
+```
+
+## Flags
+
+| Flag            | Default | Description                             |
+| --------------- | ------- | --------------------------------------- |
+| `-d, --details` | off     | Show full help for each matched command |
+| `-n, --limit`   | 5       | Maximum number of results               |
+| `--json`        | off     | Format output as JSON                   |
+
+## Fuzzy search (default)
+
+No API key required. Uses fuzzy matching to find relevant commands:
+
+```bash
+sdkck search "create pr"
+sdkck search jira -d
+sdkck search "update jira" --details
+```
+
+## Semantic search (AI-powered)
+
+Set the `OPENAI_API_KEY` environment variable to enable semantic matching powered by `gpt-4o`:
+
+```bash
+export OPENAI_API_KEY=sk-...
+sdkck search "find recent errors in production"
+```
+
+When `OPENAI_API_KEY` is unset, search automatically falls back to fuzzy matching.
+
+## Examples
+
+```bash
+# Find Jira-related commands
+sdkck search jira
+
+# Find database commands with full details
+sdkck search "database query" -d
+
+# Get JSON output for scripting
+sdkck search "create issue" --json
+
+# Limit results
+sdkck search "list" -n 10
+```

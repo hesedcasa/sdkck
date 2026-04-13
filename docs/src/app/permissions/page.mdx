@@ -1,0 +1,65 @@
+# Permissions
+
+Fine-grained control over which commands can be executed. Perfect for enterprise environments and shared agent setups.
+
+## How it works
+
+Permissions are stored in a JSON rule list at `<configDir>/permission.json`. Two hooks enforce rules:
+
+- **Init hook** — Runs at startup, hides disallowed commands from `sdkck help` and `sdkck commands`, blocks `--help` on disallowed commands
+- **Prerun hook** — Safety net that blocks execution of any disallowed command that reaches the run stage
+
+## Rule matching
+
+First matching rule wins. Unmatched commands are **allowed** by default. Rules use glob-style patterns against the space-separated command ID.
+
+## Allow and disallow
+
+```bash
+# Allow specific commands
+sdkck permission allow "jira issue list"
+sdkck permission allow "jira issue view"
+
+# Disallow a topic and everything under it
+sdkck permission disallow "jira *"
+
+# Allow everything
+sdkck permission allow "*"
+```
+
+## Pattern syntax
+
+| Pattern             | Matches                             |
+| ------------------- | ----------------------------------- |
+| `jira`              | Exact command ID "jira"             |
+| `jira issue create` | Exact command ID                    |
+| `jira *`            | All commands under the "jira" topic |
+| `*`                 | Everything                          |
+
+## List rules
+
+```bash
+sdkck permission list
+```
+
+## Export and import
+
+Share permission configs across your team:
+
+```bash
+# Export current rules
+sdkck permission export permissions.json
+
+# Import rules on another machine
+sdkck permission import permissions.json
+```
+
+## Reset
+
+```bash
+# Reset all rules (prompts for confirmation)
+sdkck permission reset
+
+# Skip confirmation
+sdkck permission reset --confirm
+```

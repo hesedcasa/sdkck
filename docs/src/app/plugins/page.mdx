@@ -1,0 +1,59 @@
+# Plugins
+
+Sidekick uses oclif's plugin architecture. Official plugins auto-install on first use — no upfront configuration needed.
+
+## Official plugins
+
+| Plugin            | What it does                                  |
+| ----------------- | --------------------------------------------- |
+| `@hesed/jira`     | Create, search, and manage Jira issues        |
+| `@hesed/bb`       | Bitbucket pull requests, repos, and pipelines |
+| `@hesed/sentry`   | Error tracking and issue management           |
+| `@hesed/mysql`    | Query and manage MySQL databases              |
+| `@hesed/psql`     | Query and manage PostgreSQL databases         |
+| `@hesed/supabase` | Supabase project and database operations      |
+| `@hesed/conni`    | Confluence page management                    |
+
+## Auto-install (JIT plugins)
+
+Official plugins are declared as JIT plugins in `package.json`. When you invoke a command from an uninstalled plugin, Sidekick automatically runs `plugins:install` for you:
+
+```bash
+# This auto-installs @hesed/jira on first run
+sdkck jira issue create --project MYPROJ --summary "Fix login bug"
+```
+
+## Manual install
+
+Install any oclif-compatible plugin:
+
+```bash
+# From npm
+sdkck plugins install my-custom-plugin
+
+# From GitHub
+sdkck plugins install myorg/my-custom-plugin
+
+# From a URL
+sdkck plugins install https://github.com/someuser/someplugin
+```
+
+## Plugin management
+
+```bash
+# List installed plugins
+sdkck plugins
+
+# Remove a plugin
+sdkck plugins remove myplugin
+
+# Update all plugins
+sdkck plugins update
+
+# Link a local plugin for development
+sdkck plugins link ./my-plugin
+```
+
+## Creating plugins
+
+Sidekick is built on oclif, so any oclif plugin works as a Sidekick plugin. See [Creating Plugins](/creating-plugins) for a guide.
