@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.13.0](https://github.com/hesedcasa/sdkck/compare/v0.12.0...v0.13.0) (2026-04-13)
+
+
+### 🎉 Features
+
+* add comprehensive Sidekick user guide website ([#71](https://github.com/hesedcasa/sdkck/issues/71)) ([a6c44f4](https://github.com/hesedcasa/sdkck/commit/a6c44f4213323d69ad5fbd3ee9cd14115bf6d6d7))
+* **docs:** configure static export and add GitHub Pages deployment ([#73](https://github.com/hesedcasa/sdkck/issues/73)) ([411657c](https://github.com/hesedcasa/sdkck/commit/411657c4bc40a8ab5b234297432037e81d9d0279))
+
+
+### 🛠️ Fixes
+
+* **docs:** add basePath for GitHub Pages subpath deployment ([1df36ea](https://github.com/hesedcasa/sdkck/commit/1df36ea5ca31b9a2a941714f4f58c50f342d6276))
+
 ## [0.12.0](https://github.com/hesedcasa/sdkck/compare/v0.11.0...v0.12.0) (2026-04-12)
 
 
