@@ -1,0 +1,110 @@
+# OpenAPI & Postman
+
+Import any OpenAPI spec or Postman collection and every operation becomes a first-class CLI command.
+
+## Import a spec
+
+```bash
+# From a URL
+sdkck openapi import https://petstore3.swagger.io/api/v3/openapi.json
+
+# From a local file
+sdkck openapi import ./api.yaml --name myapi
+
+# From a Postman collection
+sdkck openapi import ./postman_collection.json --name myapi
+
+# With authentication
+sdkck openapi import ./api.yaml --auth-type bearer --token sk-...
+```
+
+The `--name` flag overrides the default name (which is derived from the spec title). Imported specs are stored in `~/.local/share/sdkck/openapi/<name>/`.
+
+## List imported specs
+
+```bash
+# List all imported APIs
+sdkck openapi list
+
+# List operations for a specific API
+sdkck openapi list petstore
+```
+
+## Call operations
+
+```bash
+# Simple call
+sdkck openapi call petstore listPets
+
+# With path/query parameters
+sdkck openapi call petstore getPetById --param petId=42
+
+# With request body
+sdkck openapi call petstore createPet --body name=Fido --body tag=dog
+
+# With extra headers
+sdkck openapi call petstore listPets --header X-Trace=abc
+
+# Raw response (no JSON formatting)
+sdkck openapi call petstore listPets --raw
+```
+
+## Dynamic commands
+
+Imported operations also appear as first-class commands:
+
+```bash
+# These work identically
+sdkck openapi call petstore listPets
+sdkck petstore listPets
+```
+
+Dynamic commands are registered at startup by the `init` hook and appear in `sdkck help` and `sdkck commands`.
+
+## Authentication
+
+Configure auth per spec:
+
+```bash
+# Bearer token
+sdkck openapi auth petstore --type bearer --token sk-...
+
+# API key
+sdkck openapi auth petstore --type apikey --api-key mykey
+sdkck openapi auth petstore --type apikey --api-key mykey --api-key-header X-API-Key
+
+# Basic auth
+sdkck openapi auth petstore --type basic --username user --password secret
+
+# Custom headers
+sdkck openapi auth petstore --type custom --header X-Tenant-ID=acme --header X-App-Key=secret
+
+# Remove auth
+sdkck openapi auth petstore --type none
+
+# View current settings
+sdkck openapi auth petstore --show
+```
+
+## Configuration
+
+Update spec metadata:
+
+```bash
+sdkck openapi config petstore --base-url https://api.example.com
+sdkck openapi config petstore --rename mystore
+sdkck openapi config petstore --title "My Petstore" --description "A pet store API"
+```
+
+## Remove a spec
+
+```bash
+sdkck openapi remove petstore
+```
+
+## Key files
+
+- `src/openapi-store.ts` — CRUD for stored specs and operations
+- `src/openapi-dynamic-commands.ts` — Command factory for dynamic commands
+- `src/hooks/init/register-openapi-commands.ts` — Init hook that registers commands
+- `src/postman-converter.ts` — Postman to OpenAPI conversion

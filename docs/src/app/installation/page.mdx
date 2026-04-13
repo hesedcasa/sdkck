@@ -1,0 +1,47 @@
+# Installation
+
+Install Sidekick globally with npm:
+
+```bash
+npm install -g sdkck
+```
+
+## Requirements
+
+- **Node.js** v22 or later (see `.nvmrc`)
+- **npm** (yarn and pnpm lockfiles are gitignored)
+
+## Verify installation
+
+```bash
+sdkck version
+# sdkck/0.12.0 linux-x64 node-v22.x.x
+
+sdkck --help
+# USAGE
+#   $ sdkck COMMAND
+```
+
+## Optional dependencies
+
+### OpenAI API key (for semantic search)
+
+Set the `OPENAI_API_KEY` environment variable to enable AI-powered semantic search. When unset, search falls back to fuzzy matching.
+
+```bash
+export OPENAI_API_KEY=sk-...
+sdkck search "find recent errors in production"
+```
+
+## Updating
+
+Sidekick manages its own updates:
+
+```bash
+sdkck update          # Update to latest stable
+sdkck update --available  # See available versions
+```
+
+## Next steps
+
+- [Quick start guide](/quick-start) — Import your first API and run commands

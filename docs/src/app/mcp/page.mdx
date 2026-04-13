@@ -1,0 +1,68 @@
+# MCP Server
+
+Run Sidekick as an MCP (Model Context Protocol) server to expose every CLI command as a tool to connected clients.
+
+## Start the server
+
+```bash
+sdkck mcp start
+```
+
+The server runs over stdio and exposes all CLI commands as MCP tools.
+
+## Configure in Claude Code
+
+Add to `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "sdkck": {
+      "command": "sdkck",
+      "args": ["mcp", "start"]
+    }
+  }
+}
+```
+
+Or with a local development build:
+
+```json
+{
+  "mcpServers": {
+    "sdkck": {
+      "command": "./bin/run.js",
+      "args": ["mcp", "start"]
+    }
+  }
+}
+```
+
+## Exposed tools
+
+The MCP server exposes two tools:
+
+### `search`
+
+Delegates to the `search` command with sampling support. Use it to discover available commands.
+
+### `run_command`
+
+Accepts a command ID and arguments object, builds the argv array, and runs the command.
+
+Command IDs accept both separators:
+- `"openapi import"` (space-separated)
+- `"openapi:import"` (colon-separated)
+
+Both resolve to the same command.
+
+## Key files
+
+- `src/mcp-server.ts` — `startMcpServer(config)` entry point and `createMcpServer(config)` factory
+- `buildArgv(cmd, toolArgs)` — Maps MCP tool arguments to oclif argv arrays
+
+## Dependencies
+
+- `@modelcontextprotocol/sdk` ^1.29.0
+
+No extra peer dependency installs needed.

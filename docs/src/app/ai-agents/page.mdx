@@ -1,0 +1,62 @@
+# AI Agent Integration
+
+Sidekick is purpose-built for AI agent workflows. Here's how to connect it to your agent.
+
+## Claude Code plugin
+
+Install Sidekick as a Claude Code plugin:
+
+```bash
+claude plugin marketplace add hesedcasa/sdkck
+claude plugin install sidekick@sidekick
+```
+
+## MCP server
+
+Run Sidekick as an MCP server to expose every CLI command as a tool:
+
+```bash
+sdkck mcp start
+```
+
+Add to your `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "sdkck": {
+      "command": "sdkck",
+      "args": ["mcp", "start"]
+    }
+  }
+}
+```
+
+The MCP server exposes two tools:
+- **`search`** — Delegates to the `search` command with sampling
+- **`run_command`** — Accepts a command ID and args object, builds argv, runs the command
+
+Command IDs accept both separators: `"openapi import"` or `"openapi:import"`.
+
+## AGENT.md instructions
+
+Add this to your `AGENT.md` or `CLAUDE.md` so your agent knows to use Sidekick:
+
+```
+Before any tool call run `sdkck commands | grep <keywords>` to find the available tools in sdkck,
+e.g.: `sdkck commands | grep -i "jira|issue"`
+```
+
+## Example agent workflow
+
+```
+Agent: I need to check recent Sentry errors and create a Jira ticket.
+
+> sdkck search "sentry errors"          # Discovers the right command
+> sdkck sentry issues list --recent     # Gets the data
+> sdkck jira issue create ...           # Acts on it
+```
+
+## Works with
+
+Claude Code, Cursor, GitHub Copilot, OpenAI Codex, Google Gemini, opencode, and any agent that can run shell commands.

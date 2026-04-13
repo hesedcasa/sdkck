@@ -1,0 +1,84 @@
+# Creating Plugins
+
+Sidekick is built on [oclif](https://oclif.io), so any oclif plugin works as a Sidekick plugin.
+
+## Plugin structure
+
+A Sidekick plugin is an npm package that exports oclif commands. The minimal structure:
+
+```
+my-plugin/
+├── package.json
+├── src/
+│   └── commands/
+│       └── hello.ts
+└── tsconfig.json
+```
+
+## Create a command
+
+```typescript
+import { Command } from "@oclif/core";
+
+export default class Hello extends Command {
+  static description = "Say hello";
+
+  static args = {
+    name: Args.string({ description: "Person to greet" }),
+  };
+
+  async run(): Promise<void> {
+    const { args } = await this.parse(Hello);
+    this.log(`Hello, ${args.name}!`);
+  }
+}
+```
+
+## Install your plugin
+
+```bash
+# From npm
+sdkck plugins install my-custom-plugin
+
+# From GitHub
+sdkck plugins install myorg/my-custom-plugin
+
+# From a local directory (for development)
+sdkck plugins link ./my-plugin
+```
+
+## Plugin conventions
+
+- Commands are auto-discovered from `src/commands/` (compiled to `dist/commands/`)
+- Each file exports a class extending `Command`
+- Use ESM modules (`"type": "module"` in package.json)
+- Target ES2022 with TypeScript strict mode
+- Space-based topic separator (`"myplugin subcommand"`)
+
+## JIT plugin declaration
+
+To make your plugin auto-install on first use, add it to `oclif.jitPlugins` in Sidekick's `package.json`:
+
+```json
+{
+  "oclif": {
+    "jitPlugins": {
+      "@myorg/my-plugin": "^1.0.0"
+    }
+  }
+}
+```
+
+When a user invokes a command from your plugin for the first time, Sidekick automatically installs it.
+
+## Testing
+
+Test your plugin commands by directly instantiating the command class with a mock config. The config must include:
+
+```typescript
+const config = {
+  runHook: async () => ({ failures: [], successes: [] }),
+};
+```
+
+For commands that depend on external clients, use public properties for dependency injection.
