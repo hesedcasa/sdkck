@@ -18,6 +18,8 @@ sdkck openapi import ./postman_collection.json --name myapi
 sdkck openapi import ./api.yaml --auth-type bearer --token sk-...
 ```
 
+![OpenAPI import spec](/openapi-01.webp)
+
 The `--name` flag overrides the default name (which is derived from the spec title).
 
 ## List imported specs
@@ -67,6 +69,8 @@ sdkck openapi call petstore createPet --body name=Fido --body tag=dog
 
 Dynamic commands are registered at startup and appear in `sdkck help` and `sdkck commands` alongside built-in commands — use tab completion and `--help` just like any other command:
 
+![OpenAPI dynamic commands](/openapi-02.webp)
+
 ```bash
 # Discover available operations
 sdkck help petstore
@@ -100,6 +104,8 @@ sdkck openapi auth petstore --type none
 sdkck openapi auth petstore --show
 ```
 
+![OpenAPI authentication](/openapi-03.webp)
+
 ## Configuration
 
 Update spec metadata:
@@ -109,6 +115,8 @@ sdkck openapi config petstore --base-url https://api.example.com
 sdkck openapi config petstore --rename mystore
 sdkck openapi config petstore --title "My Petstore" --description "A pet store API"
 ```
+
+![OpenAPI update config](/openapi-04.webp)
 
 ## Remove a spec
 
