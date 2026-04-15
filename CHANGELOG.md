@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/hesedcasa/sdkck/compare/v0.13.0...v0.13.1) (2026-04-15)
+
+
+### 🛠️ Fixes
+
+* **docs:** add remark-gfm to parse markdown tables in MDX ([#74](https://github.com/hesedcasa/sdkck/issues/74)) ([2b7591f](https://github.com/hesedcasa/sdkck/commit/2b7591fa267f745f32e8a818bd046130e940e7db))
+
 ## [0.13.0](https://github.com/hesedcasa/sdkck/compare/v0.12.0...v0.13.0) (2026-04-13)
 
 
