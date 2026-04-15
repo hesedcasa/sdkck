@@ -4,6 +4,21 @@ import Link from 'next/link'
 
 import {CodeBlock} from '@/components/code-block'
 
+const BASE_PATH = '/sdkck'
+
+function withBasePath(path?: string): string | undefined {
+  if (!path) return path
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+    return path
+  }
+
+  if (path.startsWith(BASE_PATH) || !path.startsWith('/')) {
+    return path
+  }
+
+  return `${BASE_PATH}${path}`
+}
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -30,6 +45,11 @@ function extractText(children: React.ReactNode): string {
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
     ...components,
+    img({alt, src, ...props}: React.ComponentPropsWithoutRef<'img'>) {
+      const resolvedSrc = typeof src === 'string' ? withBasePath(src) : src
+
+      return <img {...props} alt={alt || ''} src={resolvedSrc} />
+    },
     table({children, ...props}: React.ComponentPropsWithoutRef<'table'>) {
       return (
         <div className="table-wrapper">

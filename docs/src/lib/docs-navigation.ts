@@ -35,6 +35,18 @@ export const navigation: NavSection[] = [
     title: 'Integrations',
   },
   {
+    items: [
+      {href: '/official-plugins/jira', name: 'Jira'},
+      {href: '/official-plugins/bitbucket', name: 'Bitbucket'},
+      {href: '/official-plugins/sentry', name: 'Sentry'},
+      {href: '/official-plugins/mysql', name: 'MySQL'},
+      {href: '/official-plugins/postgresql', name: 'PostgreSQL'},
+      {href: '/official-plugins/supabase', name: 'Supabase'},
+      {href: '/official-plugins/confluence', name: 'Confluence'},
+    ],
+    title: 'Official Plugins',
+  },
+  {
     items: [{href: '/creating-plugins', name: 'Creating Plugins'}],
     title: 'Extend',
   },
