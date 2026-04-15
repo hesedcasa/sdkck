@@ -3,44 +3,62 @@
 The best companion tool for AI agents. One CLI to search, connect, and command every tool in your stack. Zero context window bloat. Maximum productivity.
 
 ```bash
+# Install Sidekick globally
 npm install -g sdkck
 
-# Turn any OpenAPI spec into CLI commands instantly
-sdkck openapi import https://petstore3.swagger.io/api/v3/openapi.json --name petstore
-sdkck petstore listPets
+# Update Sidekick
+npm update -g sdkck
+
+# Update all plugins
+sdkck plugins update
 
 # Search for commands
-sdkck search "create issue"
+sdkck search "create Jira issue"
 ```
 
 ## Features
 
-- **Instant commands from OpenAPI/Postman** — Point Sidekick at any spec and every endpoint becomes a CLI command
+- **API to commands** — Import any OpenAPI spec or Postman Collection and every endpoint becomes a CLI command
 - **Semantic search** — Find the right command with fuzzy or AI-powered matching
 - **Plugin system** — Official plugins auto-install on first use
 - **Permission system** — Fine-grained control over which commands agents can execute
 - **MCP server** — Expose the entire plugin ecosystem as an MCP server
-- **Claude Code integration** — First-class support as a Claude Code plugin
-
-## How it works
-
-Sidekick is built on [oclif](https://oclif.io) and uses a plugin architecture. Import an OpenAPI spec or Postman collection and every operation becomes a first-class CLI command that appears in `sdkck help` and `sdkck commands`.
-
-```bash
-# Import a spec
-sdkck openapi import ./api.yaml --name myapi
-
-# Every operation is now a command
-sdkck myapi listUsers
-sdkck myapi createUser --body name=Alice
-
-# Search across all commands
-sdkck search "list users"
-```
 
 ## Works with
 
 Claude Code, Cursor, GitHub Copilot, OpenAI Codex, Google Gemini, opencode, and any agent that can run shell commands.
+
+## Example
+
+```bash
+# Show all available commands
+sdkck commands
+
+# Show help for specific topic
+sdkck help jira
+
+# Show help for specific command
+sdkck help jira issue create
+
+# Import an OpenAPI spec
+sdkck openapi import https://petstore3.swagger.io/api/v3/openapi.json --name petstore
+sdkck petstore listPets # execute command directly
+
+# Show output in TOON format for token saving
+sdkck jira issue get PROJ-123 --toon
+```
+
+## Architecture
+
+Node.js CLI built on [oclif](https://oclif.io) with a plugin architecture:
+
+3. **Plugin system** — Official plugins (`@hesed/*`) are declared as JIT plugins and auto-install on first use.
+4. **MCP server** — Built on the [Model Context Protocol SDK](https://modelcontextprotocol.io/docs/sdk), exposing all commands over stdio for seamless integration.
+5. **Permission system** — A glob-based allowlist at controls which commands are visible and executable.
+
+## Platforms
+
+Published as an npm package. Runs on macOS, Linux, and Windows wherever **Node.js v18+** is installed.
 
 ## Next steps
 

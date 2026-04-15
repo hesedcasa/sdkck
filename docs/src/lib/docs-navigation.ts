@@ -29,9 +29,8 @@ export const navigation: NavSection[] = [
   },
   {
     items: [
-      {href: '/openapi', name: 'OpenAPI & Postman'},
+      {href: '/openapi', name: 'API to Commands'},
       {href: '/mcp', name: 'MCP Server'},
-      {href: '/claude-code', name: 'Claude Code'},
     ],
     title: 'Integrations',
   },
