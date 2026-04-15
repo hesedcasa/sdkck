@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "prebuild": "node scripts/generate-changelog.mjs",
+    "predev": "node scripts/generate-changelog.mjs",
     "start": "next start",
     "lint": "eslint"
   },

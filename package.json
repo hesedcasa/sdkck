@@ -51,13 +51,24 @@
     "./dist",
     "./oclif.manifest.json"
   ],
-  "homepage": "https://github.com/hesedcasa/sdkck",
+  "homepage": "https://hesedcasa.github.io/sdkck/",
   "keywords": [
     "sidekick",
     "cli",
     "ai",
     "agent",
-    "llm"
+    "mcp",
+    "jira",
+    "confluence",
+    "bitbucket",
+    "sentry",
+    "mysql",
+    "postgresql",
+    "supabase",
+    "openapi",
+    "postman",
+    "plugin",
+    "api"
   ],
   "license": "Apache-2.0",
   "main": "dist/index.js",

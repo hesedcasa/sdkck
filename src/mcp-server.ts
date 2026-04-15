@@ -152,13 +152,92 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
 
   const searchCmd = config.commands.find((c) => c.id === 'search')
 
+  // Build a deduplicated keyword list from each command's ID parts (topics,
+  // subcommands) and its summary/description so the search_tools tool
+  // advertises both the namespace and what each command actually does.
+  const stopwords = new Set([
+    'a',
+    'all',
+    'an',
+    'and',
+    'any',
+    'are',
+    'as',
+    'at',
+    'be',
+    'belong',
+    'bin',
+    'by',
+    'can',
+    'current',
+    'different',
+    'display',
+    'displays',
+    'for',
+    'from',
+    'get',
+    'has',
+    'have',
+    'hello',
+    'in',
+    'into',
+    'is',
+    'it',
+    'its',
+    'level',
+    'new',
+    'of',
+    'on',
+    'or',
+    'over',
+    'performed',
+    'performs',
+    'run',
+    'set',
+    'show',
+    'specific',
+    'that',
+    'the',
+    'their',
+    'this',
+    'to',
+    'use',
+    'used',
+    'useful',
+    'uses',
+    'using',
+    'will',
+    'with',
+    'work',
+    'you',
+  ])
+
+  const keywords = new Set<string>()
+
+  const addWord = (raw: string) => {
+    const word = raw.toLowerCase().replaceAll(/^-+|-+$/g, '')
+    if (word.length >= 2 && !stopwords.has(word)) keywords.add(word)
+  }
+
+  for (const c of config.commands) {
+    for (const part of c.id.split(':')) addWord(part)
+    const text = `${c.summary ?? ''} ${c.description ?? ''}`
+    for (const raw of text.split(/[^a-zA-Z0-9-]+/)) addWord(raw)
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const jitPlugins = (config.pjson?.oclif as any)?.jitPlugins as Record<string, string> | undefined
+  for (const name of Object.keys(jitPlugins ?? {})) {
+    const short = name.split('/').pop()
+    if (short) addWord(short)
+  }
+
+  const searchToolsDescription = `Search Sidekick tools. Keywords: ${[...keywords].sort().join(' ')}`
+
   mcpServer.server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: [
       {
-        description:
-          'Search for available sdkck CLI commands. ' +
-          'Returns command names and descriptions ranked by relevance. ' +
-          'Use this to discover commands before running them.',
+        description: searchToolsDescription,
         inputSchema: {
           properties: {
             limit: {description: 'Maximum number of results (default 5)', type: 'number'},
@@ -167,13 +246,10 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
           required: ['query'],
           type: 'object',
         },
-        name: 'search',
+        name: 'search_tools',
       },
       {
-        description:
-          'Run a sdkck CLI command. Use the "search" tool first to discover ' +
-          'available commands and their arguments. Pass the command ID and any ' +
-          'required arguments.',
+        description: 'Run a Sidekick command. Use "search_tools" first to discover commands and their arguments.',
         inputSchema: {
           properties: {
             args: {
@@ -199,7 +275,7 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
   mcpServer.server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const {arguments: toolArgs, name} = request.params
 
-    if (name === 'search') {
+    if (name === 'search_tools') {
       if (!searchCmd) {
         return {content: [{text: 'Search command not available', type: 'text' as const}], isError: true}
       }

@@ -29,3 +29,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated from root CHANGELOG.md by scripts/generate-changelog.mjs
+/src/app/changelog/page.mdx

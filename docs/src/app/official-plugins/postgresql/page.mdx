@@ -11,13 +11,13 @@ The `@hesed/psql` plugin lets you query and manage PostgreSQL databases from the
 
 You'll need the following from your database administrator or cloud provider:
 
-| Field | Example |
-| --- | --- |
-| Host | `db.yourcompany.com` or `localhost` |
-| Port | `5432` (default) |
-| Database | `production_db` |
-| Username | `sdkck_user` |
-| Password | your database password |
+| Field    | Example                             |
+| -------- | ----------------------------------- |
+| Host     | `db.yourcompany.com` or `localhost` |
+| Port     | `5432` (default)                    |
+| Database | `production_db`                     |
+| Username | `sdkck_user`                        |
+| Password | your database password              |
 
 > **Security tip:** For production environments, use a read-only database user to limit exposure if credentials are ever compromised.
 
@@ -59,15 +59,18 @@ sdkck help psql
 ## Troubleshooting
 
 **Connection refused**
+
 - Verify the host allows connections from your IP
 - Confirm the port is correct (default is `5432`)
 - For managed databases (e.g., Supabase, Neon, AWS RDS), check that your IP is allowlisted
 
 **Authentication failed**
+
 - Double-check the username and password
 - Ensure the user has `CONNECT` and `SELECT` privileges on the target database
 
 **SSL required**
+
 - Many cloud PostgreSQL providers require SSL. If you see `SSL connection is required`, your provider may offer a connection string with `?sslmode=require` — check the Sidekick `psql` help for SSL options:
   ```bash
   sdkck psql auth add --help
