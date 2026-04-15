@@ -55,39 +55,15 @@ html {
   }
 }
 
-/* Article tables */
-article table {
-  width: 100%;
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-  border-collapse: collapse;
+/* Table scroll wrapper */
+.table-wrapper {
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  -webkit-overflow-scrolling: touch;
 }
 
-article th {
-  border-bottom: 1px solid #e5e5e5;
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #737373;
-}
-
-article td {
-  border-bottom: 1px solid #f5f5f5;
-  padding: 0.5rem 0.75rem;
-  color: #525252;
-}
-
-:is(.dark) article th {
-  border-bottom-color: #262626;
-  color: #a3a3a3;
-}
-
-:is(.dark) article td {
-  border-bottom-color: rgba(38, 38, 38, 0.5);
-  color: #a3a3a3;
+.table-wrapper > table {
+  margin: 0;
 }
 
 button {

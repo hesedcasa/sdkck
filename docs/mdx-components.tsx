@@ -30,6 +30,13 @@ function extractText(children: React.ReactNode): string {
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
     ...components,
+    table({children, ...props}: React.ComponentPropsWithoutRef<'table'>) {
+      return (
+        <div className="table-wrapper">
+          <table {...props}>{children}</table>
+        </div>
+      )
+    },
     a({children, href}: {children?: React.ReactNode; href?: string}) {
       if (href?.startsWith('/')) {
         return <Link href={href}>{children}</Link>
