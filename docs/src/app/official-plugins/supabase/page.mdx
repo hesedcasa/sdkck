@@ -1,0 +1,67 @@
+# Supabase (`@hesed/supabase`)
+
+The `@hesed/supabase` plugin lets you interact with your Supabase project — querying data, managing tables, and more — directly from the terminal. It is preinstalled with Sidekick.
+
+## Prerequisites
+
+- A Supabase account with at least one project
+- A Supabase service role key or personal access token (see below)
+
+## Step 1: Get your Supabase credentials
+
+### Project URL and API key
+
+1. Log in to [https://supabase.com/dashboard](https://supabase.com/dashboard)
+2. Select your project
+3. Go to **Settings → API**
+4. Copy the **Project URL** (e.g., `https://xyzcompany.supabase.co`)
+5. Under **Project API keys**, copy the **service_role** key
+
+> **Warning:** The `service_role` key bypasses Row Level Security. Keep it secret and never commit it to version control. For read-only use cases, use the `anon` key instead.
+
+## Step 2: Configure auth in Sidekick
+
+```bash
+sdkck supabase auth add
+```
+
+You will be prompted for:
+
+- **Project URL** — your Supabase project URL
+- **API key** — the service role or anon key from step 1
+
+## Step 3: Verify the connection
+
+```bash
+sdkck supabase auth test
+```
+
+## Example commands
+
+```bash
+# List tables in your Supabase project
+sdkck supabase tables
+
+# Query a table
+sdkck supabase query users first_name,last_name,email --filters "created_at=gt.2017-01-01"
+
+# Describe a table schema
+sdkck supabase table-columns
+```
+
+## Discover all commands
+
+```bash
+sdkck help supabase
+```
+
+## Troubleshooting
+
+**Invalid API key**
+- Ensure you are using the correct key (service_role or anon) from the right project
+
+**Network error / CORS**
+- Verify your project URL is correct and the project is active (not paused — Supabase pauses inactive free tier projects)
+
+**Permission denied**
+- If using the `anon` key, Row Level Security policies may restrict access. Switch to the `service_role` key for full access, or adjust your RLS policies

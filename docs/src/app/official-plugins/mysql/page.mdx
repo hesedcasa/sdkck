@@ -1,0 +1,68 @@
+# MySQL (`@hesed/mysql`)
+
+The `@hesed/mysql` plugin lets you query and manage MySQL databases from the terminal. It is preinstalled with Sidekick.
+
+## Prerequisites
+
+- A MySQL server (local or remote)
+- Database credentials with appropriate permissions
+
+## Step 1: Gather your database credentials
+
+You'll need the following from your database administrator or cloud provider:
+
+| Field | Example |
+| --- | --- |
+| Host | `db.yourcompany.com` or `localhost` |
+| Port | `3306` (default) |
+| Database | `production_db` |
+| Username | `sdkck_user` |
+| Password | your database password |
+
+> **Security tip:** For production environments, use a read-only database user to limit exposure if credentials are ever compromised.
+
+## Step 2: Configure auth in Sidekick
+
+```bash
+sdkck mysql auth add
+```
+
+You will be prompted for the host, port, database name, username, and password.
+
+## Step 3: Verify the connection
+
+```bash
+sdkck mysql auth test
+```
+
+## Example commands
+
+```bash
+# Run a query
+sdkck mysql query "SELECT COUNT(*) FROM users WHERE created_at > NOW() - INTERVAL 7 DAY"
+
+# List tables in the connected database
+sdkck mysql tables
+
+# Describe a table schema
+sdkck mysql describe-table users
+```
+
+## Discover all commands
+
+```bash
+sdkck help mysql
+```
+
+## Troubleshooting
+
+**Connection refused**
+- Verify the host allows connections from your IP (check firewall or security group rules)
+- Confirm the port is correct (default is `3306`)
+
+**Access denied**
+- Double-check the username and password
+- Ensure the user has the `SELECT` privilege on the target database
+
+**SSL/TLS errors**
+- Some managed database providers (e.g., AWS RDS, PlanetScale) require SSL — check your provider's documentation for connection string options

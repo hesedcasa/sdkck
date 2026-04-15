@@ -1,0 +1,75 @@
+# Bitbucket (`@hesed/bb`)
+
+The `@hesed/bb` plugin lets you manage Bitbucket pull requests, repositories, and pipelines from the terminal. It is preinstalled with Sidekick.
+
+## Prerequisites
+
+- A Bitbucket account
+- An App password (see below)
+
+## Step 1: Get your Bitbucket App password
+
+Bitbucket uses App passwords for API access — not your account password.
+
+1. Log in to [https://bitbucket.org](https://bitbucket.org)
+2. Click your avatar in the bottom-left corner
+3. Go to **Personal settings**
+4. Select **App passwords** under **Access management**
+5. Click **Create app password**
+6. Give it a label (e.g., `sdkck-cli`)
+7. Select the required permissions:
+   - **Repositories:** Read, Write
+   - **Pull requests:** Read, Write
+   - **Pipelines:** Read
+8. Click **Create**
+
+![Bitbucket create API token screen](/jira-01.webp)
+
+9. Copy the generated password — it won't be shown again
+
+![Bitbucket copy API token screen](/jira-02.webp)
+
+## Step 2: Configure auth in Sidekick
+
+```bash
+sdkck bb auth add
+```
+
+You will be prompted for:
+
+- **Workspace** — your Bitbucket workspace slug (visible in your Bitbucket URL)
+- **Username** — your Bitbucket username
+- **App password** — the password you copied in step 1
+
+## Step 3: Verify the connection
+
+```bash
+sdkck bb auth test
+```
+
+## Example commands
+
+```bash
+# List open pull requests in a repo
+sdkck bb pr list my-workspace my-repo
+
+# Create a pull request
+sdkck bb pr create my-workspace my-repo --title "My PR" --source feature-branch --destination main
+
+# List repositories in your workspace
+sdkck bb pr list my-workspace my-repo
+```
+
+## Discover all commands
+
+```bash
+sdkck help bb
+```
+
+## Troubleshooting
+
+**403 Forbidden**
+- Verify the App password has the correct permissions (Repositories and Pull requests)
+
+**Workspace not found**
+- Use the workspace slug, not the display name. The slug appears in Bitbucket URLs: `bitbucket.org/<workspace-slug>/`

@@ -1,4 +1,4 @@
-# OpenAPI & Postman
+# API to Commands
 
 Import any OpenAPI spec or Postman collection and every operation becomes a first-class CLI command.
 
@@ -18,7 +18,7 @@ sdkck openapi import ./postman_collection.json --name myapi
 sdkck openapi import ./api.yaml --auth-type bearer --token sk-...
 ```
 
-The `--name` flag overrides the default name (which is derived from the spec title). Imported specs are stored in `~/.local/share/sdkck/openapi/<name>/`.
+The `--name` flag overrides the default name (which is derived from the spec title).
 
 ## List imported specs
 
@@ -51,15 +51,29 @@ sdkck openapi call petstore listPets --raw
 
 ## Dynamic commands
 
-Imported operations also appear as first-class commands:
+Once imported, every operation is available as a first-class command — no `openapi call` wrapper needed. This is the recommended way to use imported APIs.
 
 ```bash
-# These work identically
-sdkck openapi call petstore listPets
+# Preferred: use the dynamic command directly
 sdkck petstore listPets
+sdkck petstore getPetById --param petId=42
+sdkck petstore createPet --body name=Fido --body tag=dog
+
+# Equivalent, but more verbose
+sdkck openapi call petstore listPets
+sdkck openapi call petstore getPetById --param petId=42
+sdkck openapi call petstore createPet --body name=Fido --body tag=dog
 ```
 
-Dynamic commands are registered at startup by the `init` hook and appear in `sdkck help` and `sdkck commands`.
+Dynamic commands are registered at startup and appear in `sdkck help` and `sdkck commands` alongside built-in commands — use tab completion and `--help` just like any other command:
+
+```bash
+# Discover available operations
+sdkck help petstore
+
+# Get help for a specific operation
+sdkck petstore getPetById --help
+```
 
 ## Authentication
 
@@ -101,10 +115,3 @@ sdkck openapi config petstore --title "My Petstore" --description "A pet store A
 ```bash
 sdkck openapi remove petstore
 ```
-
-## Key files
-
-- `src/openapi-store.ts` — CRUD for stored specs and operations
-- `src/openapi-dynamic-commands.ts` — Command factory for dynamic commands
-- `src/hooks/init/register-openapi-commands.ts` — Init hook that registers commands
-- `src/postman-converter.ts` — Postman to OpenAPI conversion

@@ -20,7 +20,7 @@ Official plugins are declared as JIT plugins in `package.json`. When you invoke 
 
 ```bash
 # This auto-installs @hesed/jira on first run
-sdkck jira issue create --project MYPROJ --summary "Fix login bug"
+sdkck jira issue create --fields project='{"key":"PROJ"}' summary="New summary" description="New description"
 ```
 
 ## Manual install

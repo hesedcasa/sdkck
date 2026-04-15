@@ -8,7 +8,7 @@ Get Sidekick up and running in under a minute.
 npm install -g sdkck
 ```
 
-## 2. Import an OpenAPI spec
+## 2. Import API spec
 
 ```bash
 # From a URL
@@ -35,11 +35,11 @@ sdkck petstore createPet --body name=Fido --body tag=dog
 
 ```bash
 # Fuzzy search (no API key needed)
-sdkck search "list pets"
+sdkck search "create Jira issue"
 
 # AI-powered semantic search (requires OPENAI_API_KEY)
 export OPENAI_API_KEY=sk-...
-sdkck search "find recent errors in production"
+sdkck search "create Jira issue"
 ```
 
 ## 5. Use a plugin
@@ -48,11 +48,61 @@ Official plugins auto-install on first use:
 
 ```bash
 # Create a Jira issue — plugin installs automatically
-sdkck jira issue create --project MYPROJ --summary "Fix login bug"
+sdkck jira issue create --fields project='{"key":"PROJ"}' summary="New summary" description="New description"
+
+# Show all official (JIT) plugins
+sdkck plugins
+# @hesed/bb latest
+# @hesed/conni latest
+# @hesed/jira latest
+# @hesed/mysql latest
+# @hesed/psql latest
+# @hesed/sentry latest
+# @hesed/supabase latest
+```
+
+## 6. Output format
+
+Most commands output **JSON by default** — structured, consistent, and optimized for agent parsing. Use --toon to further reduce token usage.
+
+```bash
+# Default: full JSON output
+sdkck jira issue get PROJ-123
+# {"id":"10001","key":"PROJ-123","fields":{"summary":"Fix login bug",…}}
+
+# --toon: condensed output, fewer tokens
+sdkck jira issue get PROJ-123 --toon
+```
+
+## 7. Get help
+
+Sidekick has built-in help at every level.
+
+```bash
+# Top-level help — lists all topics and commands
+sdkck help
+
+# Help for a topic
+sdkck help openapi
+# Lists all openapi subcommands
+
+sdkck help permission
+# Lists all permission subcommands
+
+# Help for a specific command
+sdkck help openapi import
+# Shows flags, arguments, and examples
+
+sdkck help search
+# USAGE
+#   $ sdkck search [QUERY] [--json] [--no-truncate]
+
+# List every available command
+sdkck commands
 ```
 
 ## What's next?
 
 - [AI agent integration](/ai-agents) — Connect Sidekick to your AI agent
-- [OpenAPI & Postman](/openapi) — Deep dive into importing specs
+- [API to Commands](/openapi) — Deep dive into importing specs
 - [Permissions](/permissions) — Control what your agent can do

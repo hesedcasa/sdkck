@@ -8,18 +8,13 @@ npm install -g sdkck
 
 ## Requirements
 
-- **Node.js** v22 or later (see `.nvmrc`)
-- **npm** (yarn and pnpm lockfiles are gitignored)
+- **Node.js** v18 or later
 
 ## Verify installation
 
 ```bash
 sdkck version
 # sdkck/0.12.0 linux-x64 node-v22.x.x
-
-sdkck --help
-# USAGE
-#   $ sdkck COMMAND
 ```
 
 ## Optional dependencies
@@ -30,16 +25,25 @@ Set the `OPENAI_API_KEY` environment variable to enable AI-powered semantic sear
 
 ```bash
 export OPENAI_API_KEY=sk-...
-sdkck search "find recent errors in production"
+sdkck search "create Jira issue"
 ```
 
 ## Updating
 
-Sidekick manages its own updates:
+```bash
+npm update -g sdkck
+
+# Update all plugins
+sdkck plugins update
+```
+
+## Install plugin
 
 ```bash
-sdkck update          # Update to latest stable
-sdkck update --available  # See available versions
+sdkck plugin install @hesed/gchat
+
+# Install from GitHub url
+sdkck plugins install https://github.com/someuser/someplugin
 ```
 
 ## Next steps

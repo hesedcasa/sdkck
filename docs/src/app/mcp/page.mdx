@@ -25,19 +25,6 @@ Add to `.mcp.json`:
 }
 ```
 
-Or with a local development build:
-
-```json
-{
-  "mcpServers": {
-    "sdkck": {
-      "command": "./bin/run.js",
-      "args": ["mcp", "start"]
-    }
-  }
-}
-```
-
 ## Exposed tools
 
 The MCP server exposes two tools:
@@ -56,11 +43,6 @@ Command IDs accept both separators:
 - `"openapi:import"` (colon-separated)
 
 Both resolve to the same command.
-
-## Key files
-
-- `src/mcp-server.ts` — `startMcpServer(config)` entry point and `createMcpServer(config)` factory
-- `buildArgv(cmd, toolArgs)` — Maps MCP tool arguments to oclif argv arrays
 
 ## Dependencies
 

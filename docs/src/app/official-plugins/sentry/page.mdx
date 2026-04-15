@@ -1,0 +1,72 @@
+# Sentry (`@hesed/sentry`)
+
+The `@hesed/sentry` plugin lets you triage errors, list issues, and manage Sentry projects from the terminal. It is preinstalled with Sidekick.
+
+## Prerequisites
+
+- A Sentry account (cloud or self-hosted)
+- A Sentry Auth Token (see below)
+
+## Step 1: Get your Sentry Auth Token
+
+1. Log in to [https://sentry.io](https://sentry.io) or self-hosted URL
+2. Click your username or avatar in the bottom-left sidebar
+3. Select **User Auth Tokens** (or go to **Settings → Account → API → Auth Tokens**)
+4. Click **Create New Token**
+5. Give it a name (e.g., `sdkck-cli`)
+6. Select the required scopes — at minimum:
+   - `project:read`
+   - `event:read`
+   - `org:read`
+7. Click **Create Token**
+8. Copy the token immediately — it won't be shown again
+
+![Sentry copy API token screen](/sentry-01.webp)
+
+## Step 2: Configure auth in Sidekick
+
+```bash
+sdkck sentry auth add
+```
+
+![Sentry add authentication](/sentry-02.webp)
+
+You will be prompted for:
+
+- **Host** — `https://sentry.io` for Sentry cloud, or your self-hosted URL
+- **Auth token** — the token you copied in step 1
+- **Organization slug** — your Sentry org slug (visible in your Sentry URL)
+
+## Step 3: Verify the connection
+
+```bash
+sdkck sentry auth test
+```
+
+## Example commands
+
+```bash
+# Get details about a specific issue
+sdkck sentry issue get 123456789
+
+# List projects in your organization
+sdkck sentry project issues my-project --query "is:unresolved"
+```
+
+## Discover all commands
+
+```bash
+sdkck help sentry
+```
+
+## Troubleshooting
+
+**401 Unauthorized / permission denied**
+- Re-check that the token scopes include `project:read` and `event:read`
+- Ensure the token has not been revoked
+
+**Organization not found**
+- Confirm the `--org` slug matches exactly what appears in your Sentry URL: `sentry.io/organizations/<org-slug>/`
+
+**Self-hosted Sentry**
+- Use your full self-hosted URL as the host (e.g., `https://sentry.yourcompany.com`)
