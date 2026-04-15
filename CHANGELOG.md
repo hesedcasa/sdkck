@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/hesedcasa/sdkck/compare/v0.13.2...v0.14.0) (2026-04-15)
+
+
+### 🎉 Features
+
+* **mcp:** rename search tool to search_tools with keyword-indexed description ([#78](https://github.com/hesedcasa/sdkck/issues/78)) ([016f2d4](https://github.com/hesedcasa/sdkck/commit/016f2d43889224c1369a97222c377786c10c27d9))
+
 ## [0.13.2](https://github.com/hesedcasa/sdkck/compare/v0.13.1...v0.13.2) (2026-04-15)
 
 
