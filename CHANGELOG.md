@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.2](https://github.com/hesedcasa/sdkck/compare/v0.13.1...v0.13.2) (2026-04-15)
+
+
+### 🛠️ Fixes
+
+* **docs:** add screenshots to OpenAPI documentation ([#76](https://github.com/hesedcasa/sdkck/issues/76)) ([dfe5135](https://github.com/hesedcasa/sdkck/commit/dfe5135929ad155a0fbb7b9dfd3824de2cb2bff1))
+
 ## [0.13.1](https://github.com/hesedcasa/sdkck/compare/v0.13.0...v0.13.1) (2026-04-15)
 
 
