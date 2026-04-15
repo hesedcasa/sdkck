@@ -162,7 +162,7 @@ pre:not(.shiki) {
   position: relative;
 }
 
-.prose .heading-anchor > a {
+.prose .heading-anchor > a[aria-label='Link to this section'] {
   opacity: 0;
   margin-left: 0.375rem;
   color: var(--muted-foreground);
@@ -171,11 +171,11 @@ pre:not(.shiki) {
   transition: opacity 0.15s ease;
 }
 
-.prose .heading-anchor:hover > a {
+.prose .heading-anchor:hover > a[aria-label='Link to this section'] {
   opacity: 1;
 }
 
-.prose .heading-anchor > a:hover {
+.prose .heading-anchor > a[aria-label='Link to this section']:hover {
   color: var(--foreground);
 }
 

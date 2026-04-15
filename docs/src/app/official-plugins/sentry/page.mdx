@@ -62,11 +62,14 @@ sdkck help sentry
 ## Troubleshooting
 
 **401 Unauthorized / permission denied**
+
 - Re-check that the token scopes include `project:read` and `event:read`
 - Ensure the token has not been revoked
 
 **Organization not found**
+
 - Confirm the `--org` slug matches exactly what appears in your Sentry URL: `sentry.io/organizations/<org-slug>/`
 
 **Self-hosted Sentry**
+
 - Use your full self-hosted URL as the host (e.g., `https://sentry.yourcompany.com`)

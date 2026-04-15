@@ -58,10 +58,13 @@ sdkck help supabase
 ## Troubleshooting
 
 **Invalid API key**
+
 - Ensure you are using the correct key (service_role or anon) from the right project
 
 **Network error / CORS**
+
 - Verify your project URL is correct and the project is active (not paused — Supabase pauses inactive free tier projects)
 
 **Permission denied**
+
 - If using the `anon` key, Row Level Security policies may restrict access. Switch to the `service_role` key for full access, or adjust your RLS policies

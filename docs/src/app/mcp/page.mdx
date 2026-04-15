@@ -27,15 +27,17 @@ Add to `.mcp.json`:
 
 ## Exposed tools
 
-The MCP server exposes two tools:
+The MCP server exposes two tools: `search_tools` and `run_command`.
 
-### `search`
+### `search_tools`
 
-Delegates to the `search` command with sampling support. Use it to discover available commands.
+A deliberate design choice: Sidekick exposes a single semantic-search entry point rather than registering every underlying command as an individual MCP tool. Loading hundreds of tool definitions upfront consumes significant context and degrades model tool-selection accuracy, so Sidekick follows the progressive tool-discovery pattern described in Anthropic's [Advanced Tool Use](https://www.anthropic.com/engineering/advanced-tool-use) guidance — returning only the small set of commands relevant to the current query, which the agent then invokes via `run_command`.
+
+The tool delegates to the `search` command with MCP sampling support, so ranking is performed by the connected client's LLM rather than a hard-coded model. It accepts a `query` (required) and an optional `limit` (default 5). Its advertised description includes a deduplicated keyword index built from every command's ID, summary, and description so clients can route queries accurately without enumerating the full tool surface.
 
 ### `run_command`
 
-Accepts a command ID and arguments object, builds the argv array, and runs the command.
+Accepts a command ID and arguments object, builds the argv array, and runs the command. Use `search_tools` first to discover commands and their arguments.
 
 Command IDs accept both separators:
 
@@ -43,6 +45,65 @@ Command IDs accept both separators:
 - `"openapi:import"` (colon-separated)
 
 Both resolve to the same command.
+
+## Example:
+
+A typical interaction walks through the two tools in sequence. Suppose the user asks:
+
+> please get this confluence page 1453068888
+
+**Step 1 — discover the right command with `search_tools`:**
+
+```json
+{
+  "query": "confluence page get",
+  "limit": 5
+}
+```
+
+The server returns a shortlist of candidate commands, ranked by the client's LLM via MCP sampling:
+
+```json
+[
+  {
+    "command": "conni content get <pageId>",
+    "description": "Get details of a Confluence content"
+  },
+  {
+    "command": "conni content search <cql>",
+    "description": "Search for Confluence contents using CQL"
+  },
+  ...
+]
+```
+
+**Step 2 — invoke the chosen command with `run_command`:**
+
+```json
+{
+  "commandId": "conni content get",
+  "args": {
+    "pageId": "1453068888"
+  }
+}
+```
+
+The server runs the command and returns its output:
+
+```json
+{
+  "data": {
+    "id": "1453068888",
+    "type": "page",
+    "ari": "ari:cloud:confluence:4952d4330-8888-5566-a07c-6bdc3f2aff5c:page/1453068888",
+    "status": "current",
+    "title": "Company MCP Servers",
+    ...
+  }
+}
+```
+
+Only the two commands actually used for this task are ever materialised in the client's context window — the rest of Sidekick's command surface stays out of the way until the next query reaches for it.
 
 ## Dependencies
 

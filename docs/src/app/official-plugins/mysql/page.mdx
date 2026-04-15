@@ -11,13 +11,13 @@ The `@hesed/mysql` plugin lets you query and manage MySQL databases from the ter
 
 You'll need the following from your database administrator or cloud provider:
 
-| Field | Example |
-| --- | --- |
-| Host | `db.yourcompany.com` or `localhost` |
-| Port | `3306` (default) |
-| Database | `production_db` |
-| Username | `sdkck_user` |
-| Password | your database password |
+| Field    | Example                             |
+| -------- | ----------------------------------- |
+| Host     | `db.yourcompany.com` or `localhost` |
+| Port     | `3306` (default)                    |
+| Database | `production_db`                     |
+| Username | `sdkck_user`                        |
+| Password | your database password              |
 
 > **Security tip:** For production environments, use a read-only database user to limit exposure if credentials are ever compromised.
 
@@ -57,12 +57,15 @@ sdkck help mysql
 ## Troubleshooting
 
 **Connection refused**
+
 - Verify the host allows connections from your IP (check firewall or security group rules)
 - Confirm the port is correct (default is `3306`)
 
 **Access denied**
+
 - Double-check the username and password
 - Ensure the user has the `SELECT` privilege on the target database
 
 **SSL/TLS errors**
+
 - Some managed database providers (e.g., AWS RDS, PlanetScale) require SSL — check your provider's documentation for connection string options
