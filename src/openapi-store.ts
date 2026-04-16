@@ -2,6 +2,8 @@ import {dereference} from '@scalar/openapi-parser'
 import {load as yamlLoad} from 'js-yaml'
 import {existsSync} from 'node:fs'
 import {mkdir, readdir, readFile, unlink, writeFile} from 'node:fs/promises'
+import http from 'node:http'
+import https from 'node:https'
 import {join} from 'node:path'
 
 import type {PostmanCollection} from './postman-converter.js'
@@ -35,8 +37,13 @@ interface OpenApiSchema {
 }
 
 interface OpenApiSchemaProperty {
+  allOf?: OpenApiSchemaProperty[]
+  anyOf?: OpenApiSchemaProperty[]
   description?: string
   enum?: string[]
+  items?: OpenApiSchemaProperty
+  oneOf?: OpenApiSchemaProperty[]
+  properties?: Record<string, OpenApiSchemaProperty>
   type?: string
 }
 
@@ -90,12 +97,14 @@ export interface StoredOperation {
   operationId: string
   parameters: OpenApiParameter[]
   path: string
+  rawBodyContentType?: string
 }
 
 interface StoredSpec {
   auth: AuthScheme
   baseUrl: string
   description: string
+  insecure?: boolean
   name: string
   operations: StoredOperation[]
   source: string
@@ -209,6 +218,20 @@ function deriveOperationId(method: string, path: string): string {
 
 // ─── Spec extraction ──────────────────────────────────────────────────────────
 
+function inferPropertyType(prop: OpenApiSchemaProperty): string {
+  if (prop.type) return prop.type
+  if (prop.properties) return 'object'
+  if (prop.items) return 'array'
+
+  const variants = prop.anyOf ?? prop.oneOf ?? prop.allOf
+  if (variants) {
+    if (variants.some((v) => v.type === 'object' || v.properties)) return 'object'
+    if (variants.some((v) => v.type === 'array' || v.items)) return 'array'
+  }
+
+  return 'string'
+}
+
 function extractBodyParams(rb: OpenApiRequestBody | undefined): Record<string, BodyParam> {
   const bodyParams: Record<string, BodyParam> = {}
   if (!rb) return bodyParams
@@ -218,10 +241,35 @@ function extractBodyParams(rb: OpenApiRequestBody | undefined): Record<string, B
 
   const requiredSet = new Set(schema.required ?? [])
   for (const [name, prop] of Object.entries(schema.properties)) {
-    bodyParams[name] = {description: prop.description, required: requiredSet.has(name), type: prop.type ?? 'string'}
+    bodyParams[name] = {description: prop.description, required: requiredSet.has(name), type: inferPropertyType(prop)}
   }
 
   return bodyParams
+}
+
+/**
+ * Returns the content type for a raw (non-JSON-object) request body, or
+ * undefined when the body is handled as named JSON bodyParams.
+ * Prefers specific MIME types over the wildcard `*\/*`.
+ */
+function extractRawBodyContentType(rb: OpenApiRequestBody | undefined): string | undefined {
+  if (!rb?.content) return undefined
+
+  // If application/json has named properties it's a structured JSON body → handled via bodyParams
+  if (rb.content['application/json']?.schema?.properties) return undefined
+
+  // Prefer the most specific non-wildcard, non-JSON content type
+  for (const ct of Object.keys(rb.content)) {
+    if (ct !== 'application/json' && ct !== '*/*') return ct
+  }
+
+  // Fall back to wildcard if nothing more specific exists
+  if (rb.content['*/*']) return '*/*'
+
+  // application/json present but no named properties (e.g. schema type: string) → raw JSON string
+  if (rb.content['application/json']) return 'application/json'
+
+  return undefined
 }
 
 const HTTP_METHODS = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'] as const
@@ -245,10 +293,11 @@ export function extractOperations(spec: OpenApiSpec): StoredOperation[] {
 
       // Extract request body fields as named body params
       const bodyParams = extractBodyParams(operation.requestBody)
+      const rawBodyContentType = extractRawBodyContentType(operation.requestBody)
 
       const description = operation.summary ?? operation.description ?? `${method.toUpperCase()} ${path}`
 
-      ops.push({bodyParams, description, method, operationId, parameters, path})
+      ops.push({bodyParams, description, method, operationId, parameters, path, rawBodyContentType})
     }
   }
 
@@ -312,6 +361,51 @@ export function buildAuthHeaders(auth: AuthScheme): Record<string, string> {
       return {}
     }
   }
+}
+
+// ─── Insecure fetch (skips TLS verification) ──────────────────────────────────
+
+/**
+ * Returns a fetch-compatible function that skips TLS certificate verification.
+ * Use for APIs that serve self-signed certificates (e.g. Obsidian Local REST API).
+ */
+export function buildInsecureFetch(): (
+  url: string,
+  init?: {body?: null | string; headers?: Record<string, string>; method?: string},
+) => Promise<{ok: boolean; status: number; statusText: string; text: () => Promise<string>}> {
+  return (url, init = {}) =>
+    new Promise((resolve, reject) => {
+      const u = new URL(url)
+      const isHttps = u.protocol === 'https:'
+      const mod = isHttps ? https : http
+      const req = mod.request(
+        {
+          headers: init.headers,
+          hostname: u.hostname,
+          method: init.method ?? 'GET',
+          path: u.pathname + u.search,
+          port: u.port ? Number(u.port) : isHttps ? 443 : 80,
+          rejectUnauthorized: false,
+        },
+        (res) => {
+          const chunks: Buffer[] = []
+          res.on('data', (chunk: Buffer) => chunks.push(chunk))
+          res.on('end', () => {
+            const text = Buffer.concat(chunks).toString('utf8')
+            resolve({
+              ok: (res.statusCode ?? 0) >= 200 && (res.statusCode ?? 0) < 300,
+              status: res.statusCode ?? 0,
+              statusText: res.statusMessage ?? '',
+              text: async () => text,
+            })
+          })
+          res.on('error', reject)
+        },
+      )
+      req.on('error', reject)
+      if (init.body) req.write(init.body)
+      req.end()
+    })
 }
 
 // ─── URL building ─────────────────────────────────────────────────────────────

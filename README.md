@@ -79,6 +79,14 @@ One CLI to search, connect, and command every tool in your stack. Zero context w
 
 - Fine-grained control over which commands plugins can execute. Allow, disallow, import, and export permission rules. Perfect for enterprise environments and shared agent setups.
 
+## Why Sidekick?
+
+AI agents waste most of their context window loading tool schemas they'll never use.
+
+Sidekick flips this. **Zero tools loaded upfront.** Your agent searches for what it needs 
+on demand, gets back only the relevant commands, and executes them. The context window 
+stays clean for actual reasoning.
+
 ## Quick Start
 
 ```bash
@@ -156,10 +164,6 @@ Agent: I need to check recent Sentry errors and create a Jira ticket.
 ## Roadmap
 
 - Subjected to changes overtime
-
-### Built-in MCP Server
-
-- Expose Sidekick's entire plugin ecosystem as an MCP server with intelligent tool search. Instead of loading hundreds of tool schemas into context, agents query the MCP server with natural language and get back only the relevant tools.
 
 ### Agent Workflow Recipes
 

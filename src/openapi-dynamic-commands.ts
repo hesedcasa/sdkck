@@ -2,7 +2,24 @@ import type {Config} from '@oclif/core/interfaces'
 
 import {Args, Command, Flags} from '@oclif/core'
 
-import {buildAuthHeaders, buildUrl, parseKV, readStore, type StoredOperation} from './openapi-store.js'
+import {
+  buildAuthHeaders,
+  buildInsecureFetch,
+  buildUrl,
+  parseKV,
+  readStore,
+  type StoredOperation,
+} from './openapi-store.js'
+
+async function readStdin(): Promise<string> {
+  const parts: string[] = []
+  process.stdin.setEncoding('utf8')
+  for await (const chunk of process.stdin) {
+    parts.push(chunk as string)
+  }
+
+  return parts.join('')
+}
 
 // ─── Fetch abstraction (mirrors call.ts, exposed for testing) ─────────────────
 
@@ -11,6 +28,92 @@ interface FetchLike {
     url: string,
     init?: {body?: null | string; headers?: Record<string, string>; method?: string},
   ): Promise<{ok: boolean; status: number; statusText: string; text: () => Promise<string>}>
+}
+
+// ─── run() helpers ───────────────────────────────────────────────────────────
+
+function routeUrlParams(
+  parameters: StoredOperation['parameters'],
+  args: Record<string, string>,
+  flags: Record<string, string | undefined>,
+): {headerParams: Record<string, string>; pathParams: Record<string, string>; queryParams: Record<string, string>} {
+  const pathParams: Record<string, string> = {}
+  const queryParams: Record<string, string> = {}
+  const headerParams: Record<string, string> = {}
+
+  for (const param of parameters) {
+    const value = param.required ? args[param.name] : flags[param.name]
+    if (value === undefined) continue
+
+    switch (param.in) {
+      case 'header': {
+        headerParams[param.name] = value
+        break
+      }
+
+      case 'path': {
+        pathParams[param.name] = value
+        break
+      }
+
+      case 'query': {
+        queryParams[param.name] = value
+        break
+      }
+      // No default — cookie params are ignored
+    }
+  }
+
+  return {headerParams, pathParams, queryParams}
+}
+
+function coerceBodyValue(bodyParams: StoredOperation['bodyParams'], name: string, raw: string): unknown {
+  const paramType = bodyParams[name]?.type
+  if (paramType === 'object' || paramType === 'array') {
+    try {
+      return JSON.parse(raw)
+    } catch {
+      // fall through — return as string so the server can report the error
+    }
+  }
+
+  return raw
+}
+
+async function buildRequestBody(
+  op: StoredOperation,
+  bodyParamNames: {argNames: Record<string, string>; flagNames: Record<string, string>},
+  args: Record<string, string>,
+  flags: Record<string, string | undefined>,
+): Promise<{inferredContentType: string | undefined; requestBody: string | undefined}> {
+  if (op.rawBodyContentType) {
+    let requestBody: string | undefined
+    if (flags.body !== undefined) {
+      requestBody = flags.body
+    } else if (!process.stdin.isTTY) {
+      requestBody = await readStdin()
+    }
+
+    const inferredContentType =
+      requestBody !== undefined && op.rawBodyContentType !== '*/*' ? op.rawBodyContentType : undefined
+    return {inferredContentType, requestBody}
+  }
+
+  // Structured JSON body assembled from named body params
+  const body: Record<string, unknown> = {}
+
+  for (const [name, argName] of Object.entries(bodyParamNames.argNames)) {
+    body[name] = coerceBodyValue(op.bodyParams, name, args[argName])
+  }
+
+  for (const [name, flagName] of Object.entries(bodyParamNames.flagNames)) {
+    const value = flags[flagName]
+    if (value !== undefined) body[name] = coerceBodyValue(op.bodyParams, name, value)
+  }
+
+  if (Object.keys(body).length === 0) return {inferredContentType: undefined, requestBody: undefined}
+
+  return {inferredContentType: 'application/json', requestBody: JSON.stringify(body)}
 }
 
 // ─── Dynamic command factory ──────────────────────────────────────────────────
@@ -44,6 +147,15 @@ function createOperationCommand(
       multiple: true,
       required: false,
     }),
+  }
+
+  // For operations with a raw (non-JSON) request body, expose a --body flag.
+  // stdin is the fallback when --body is omitted and stdin is not a TTY.
+  if (op.rawBodyContentType) {
+    dynamicFlags.body = Flags.string({
+      description: `Raw request body (${op.rawBodyContentType}). Reads from stdin if omitted.`,
+      required: false,
+    })
   }
 
   // URL parameters: required → arg, optional → flag
@@ -117,48 +229,19 @@ function createOperationCommand(
       }
 
       // ── Route URL params ────────────────────────────────────────────────────
-      const pathParams: Record<string, string> = {}
-      const queryParams: Record<string, string> = {}
-      const headerParams: Record<string, string> = {}
-
-      for (const param of capturedOp.parameters) {
-        // Required params are positional args; optional params are flags
-        const value = param.required ? (a[param.name] as string) : (f[param.name] as string | undefined)
-        if (value === undefined) continue
-
-        switch (param.in) {
-          case 'header': {
-            headerParams[param.name] = value
-            break
-          }
-
-          case 'path': {
-            pathParams[param.name] = value
-            break
-          }
-
-          case 'query': {
-            queryParams[param.name] = value
-            break
-          }
-          // No default — cookie params are ignored
-        }
-      }
+      const {headerParams, pathParams, queryParams} = routeUrlParams(
+        capturedOp.parameters,
+        a as Record<string, string>,
+        f as Record<string, string | undefined>,
+      )
 
       // ── Build body ──────────────────────────────────────────────────────────
-      const body: Record<string, string> = {}
-
-      // Required body params come from positional args
-      for (const [name, argName] of Object.entries(capturedBodyParamArgNames)) {
-        const value = a[argName] as string
-        body[name] = value
-      }
-
-      // Optional body params come from flags
-      for (const [name, flagName] of Object.entries(capturedBodyParamFlagNames)) {
-        const value = f[flagName] as string | undefined
-        if (value !== undefined) body[name] = value
-      }
+      const {inferredContentType, requestBody} = await buildRequestBody(
+        capturedOp,
+        {argNames: capturedBodyParamArgNames, flagNames: capturedBodyParamFlagNames},
+        a as Record<string, string>,
+        f as Record<string, string | undefined>,
+      )
 
       // ── Parse extra headers ─────────────────────────────────────────────────
       const extraHeaders = parseKV((f.header as string[] | undefined) ?? [])
@@ -170,21 +253,24 @@ function createOperationCommand(
       }
 
       // ── Build headers ───────────────────────────────────────────────────────
+      // extraHeaders (from --header) take priority — they can override the inferred Content-Type.
       const headers: Record<string, string> = {
         ...buildAuthHeaders(spec.auth),
         ...headerParams,
-        ...extraHeaders,
+      }
+      if (inferredContentType && !extraHeaders['Content-Type']) {
+        headers['Content-Type'] = inferredContentType
       }
 
-      const hasBody = Object.keys(body).length > 0
-      if (hasBody) headers['Content-Type'] = 'application/json'
+      Object.assign(headers, extraHeaders)
 
       // ── Execute ─────────────────────────────────────────────────────────────
       const method = capturedOp.method.toUpperCase()
       this.log(`${method} ${url.toString()}`)
 
-      const res = await this._fetch(url.toString(), {
-        body: hasBody ? JSON.stringify(body) : undefined,
+      const fetchFn = spec.insecure ? buildInsecureFetch() : this._fetch
+      const res = await fetchFn(url.toString(), {
+        body: requestBody,
         headers,
         method,
       }).catch((error: Error) => {

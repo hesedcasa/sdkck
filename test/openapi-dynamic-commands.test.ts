@@ -63,6 +63,15 @@ const FIXTURE_STORE: OpenApiStore = {
           parameters: [{in: 'path', name: 'petId', required: true, schema: {type: 'string'}}],
           path: '/pets/{petId}',
         },
+        {
+          bodyParams: {},
+          description: 'Upload a file',
+          method: 'put',
+          operationId: 'uploadFile',
+          parameters: [{in: 'path', name: 'filename', required: true, schema: {type: 'string'}}],
+          path: '/files/{filename}',
+          rawBodyContentType: 'text/markdown',
+        },
       ],
       source: './petstore.json',
       title: 'Petstore',
@@ -329,6 +338,39 @@ describe('openapi-dynamic-commands', () => {
       expect(calls[0].url).to.equal('https://petstore.example.com/pets/42')
       const body = JSON.parse(calls[0].body!)
       expect(body.petId).to.equal('newid')
+    })
+
+    it('sends raw body with correct Content-Type via --body flag', async () => {
+      const {calls, mockFetch} = makeMockFetch(204, '')
+      const {cmd} = await makeCmd('petstore:uploadFile', ['notes.md', '--body', '# Hello'])
+      cmd._fetch = mockFetch
+      await cmd.run()
+      expect(calls[0].method).to.equal('PUT')
+      expect(calls[0].url).to.equal('https://petstore.example.com/files/notes.md')
+      expect(calls[0].body).to.equal('# Hello')
+      expect(calls[0].headers['Content-Type']).to.equal('text/markdown')
+    })
+
+    it('allows --header to override the inferred Content-Type for raw body ops', async () => {
+      const {calls, mockFetch} = makeMockFetch(204, '')
+      const {cmd} = await makeCmd('petstore:uploadFile', [
+        'notes.md',
+        '--body',
+        '# Hello',
+        '--header',
+        'Content-Type=text/plain',
+      ])
+      cmd._fetch = mockFetch
+      await cmd.run()
+      expect(calls[0].headers['Content-Type']).to.equal('text/plain')
+    })
+
+    it('does not override user Content-Type for JSON body ops', async () => {
+      const {calls, mockFetch} = makeMockFetch(201, '{"id":1}')
+      const {cmd} = await makeCmd('petstore:createPet', ['Fido', '--header', 'Content-Type=application/vnd.api+json'])
+      cmd._fetch = mockFetch
+      await cmd.run()
+      expect(calls[0].headers['Content-Type']).to.equal('application/vnd.api+json')
     })
 
     it('pretty-prints a valid JSON response', async () => {
