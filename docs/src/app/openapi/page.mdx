@@ -123,3 +123,21 @@ sdkck openapi config petstore --title "My Petstore" --description "A pet store A
 ```bash
 sdkck openapi remove petstore
 ```
+
+## Ready-to-import specs
+
+Try importing these real APIs directly:
+
+```bash
+# Notion API
+sdkck openapi import https://hesedcasa.github.io/sdkck/openapi-notion.json --name notion
+
+# Obsidian Local REST API (self-signed cert — use --insecure)
+sdkck openapi import https://hesedcasa.github.io/sdkck/openapi-obsidian.json --name obsidian --insecure
+
+# Stripe API
+sdkck openapi import https://raw.githubusercontent.com/stripe/openapi/refs/heads/master/latest/openapi.spec3.json --name stripe
+
+# Vercel API
+sdkck openapi import https://openapi.vercel.sh/ --name vercel
+```
