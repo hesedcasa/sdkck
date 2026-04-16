@@ -24,6 +24,11 @@ export default class OpenApiConfig extends Command {
       description: 'New description for the spec',
       required: false,
     }),
+    insecure: Flags.boolean({
+      allowNo: true,
+      description: 'Skip TLS certificate verification (--no-insecure to disable)',
+      required: false,
+    }),
     rename: Flags.string({
       description: 'New short identifier for this API',
       required: false,
@@ -37,8 +42,8 @@ export default class OpenApiConfig extends Command {
   async run(): Promise<void> {
     const {args, flags} = await this.parse(OpenApiConfig)
 
-    if (!flags['base-url'] && !flags.rename && !flags.title && !flags.description) {
-      this.error('Provide at least one flag to update: --base-url, --rename, --title, --description')
+    if (!flags['base-url'] && !flags.rename && !flags.title && !flags.description && flags.insecure === undefined) {
+      this.error('Provide at least one flag to update: --base-url, --rename, --title, --description, --insecure')
     }
 
     const store = await readStore(this.config.configDir)
@@ -50,6 +55,7 @@ export default class OpenApiConfig extends Command {
     if (flags['base-url'] !== undefined) spec.baseUrl = flags['base-url']
     if (flags.title !== undefined) spec.title = flags.title
     if (flags.description !== undefined) spec.description = flags.description
+    if (flags.insecure !== undefined) spec.insecure = flags.insecure
 
     if (flags.rename !== undefined && flags.rename !== args.name) {
       const newName = flags.rename

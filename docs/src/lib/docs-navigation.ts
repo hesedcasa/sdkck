@@ -20,6 +20,13 @@ export const navigation: NavSection[] = [
   },
   {
     items: [
+      {href: '/skills/sidekick', name: 'sidekick'},
+      {href: '/skills/extract-api', name: 'extract-api'},
+    ],
+    title: 'Skills',
+  },
+  {
+    items: [
       {href: '/commands', name: 'Commands'},
       {href: '/search', name: 'Search'},
       {href: '/plugins', name: 'Plugins'},

@@ -1,0 +1,95 @@
+# `extract-api` Skill
+
+The `extract-api` skill reads API documentation from any source and imports every operation as a first-class `sdkck` command.
+
+## Installation
+
+### Claude Code
+
+```bash
+claude plugin marketplace add hesedcasa/sdkck
+claude plugin install sidekick@api
+```
+
+### Other coding tools
+
+Install with the [skills CLI](https://github.com/vercel-labs/skills) to use with Cursor, Codex, OpenCode, and [40+ other agents](https://github.com/vercel-labs/skills#supported-agents):
+
+```bash
+npx skills add hesedcasa/sdkck --skill extract-api
+```
+
+Install globally (available across all projects):
+
+```bash
+npx skills add hesedcasa/sdkck --skill extract-api -g
+```
+
+Target a specific agent:
+
+```bash
+npx skills add hesedcasa/sdkck --skill extract-api -a cursor
+npx skills add hesedcasa/sdkck --skill extract-api -a codex
+npx skills add hesedcasa/sdkck --skill extract-api -a opencode
+```
+
+## Usage
+
+```bash
+/extract-api {source} [--name {name}]
+```
+
+| Argument   | Description                                          |
+| ---------- | ---------------------------------------------------- |
+| `<source>` | GitHub URL, HTTP/HTTPS docs URL, or local file path  |
+| `--name`   | Override the API name (default: derived from source) |
+
+## Examples
+
+```bash
+# From a hosted OpenAPI spec
+/extract-api https://petstore3.swagger.io/api/v3/openapi.json --name petstore
+
+# From a GitHub repo (auto-detects spec or crawls README/docs)
+/extract-api https://github.com/stripe/openapi --name stripe
+
+# From an online docs site (crawls linked reference pages)
+/extract-api https://developers.notion.com/reference/intro
+
+# From a Postman collection file
+/extract-api ./my-workspace.postman_collection.json --name myapi
+
+# From local markdown docs
+/extract-api ./my-project/api-docs.md --name myapi
+```
+
+## What happens
+
+1. **Fast path** — if the source is already an OpenAPI spec or Postman collection, it is imported directly.
+2. **Crawl path** — if the source is a GitHub repo or docs site, the skill probes for spec files, follows reference links, and generates an OpenAPI 3.0 document from the discovered content.
+3. **Import** — runs `sdkck openapi import` and registers every operation as `sdkck <name> <operationId>`.
+4. **Auth setup** — detects the auth scheme from the spec and shows the exact `sdkck openapi auth` command to configure credentials.
+
+## After import
+
+```bash
+# Browse all imported commands
+sdkck help petstore
+
+# Search across them
+sdkck search "petstore list pets"
+
+# Call one
+sdkck petstore listPets --limit 10
+```
+
+## Supported sources
+
+| Source                         | Notes                                                            |
+| ------------------------------ | ---------------------------------------------------------------- |
+| OpenAPI 3.0 / 3.1 JSON or YAML | Used directly — no extraction needed                             |
+| Swagger 2.0 JSON or YAML       | Used directly                                                    |
+| Postman Collection v2.1        | Converted to OpenAPI internally via `@scalar/postman-to-openapi` |
+| GitHub repository URL          | Probes for spec files; falls back to README + `docs/` crawl      |
+| HTTP/HTTPS docs URL            | Probes well-known spec paths; crawls reference pages if needed   |
+| Local `.md`, `.html`, `.txt`   | Extracts endpoints from prose and generates OpenAPI 3.0          |

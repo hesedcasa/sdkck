@@ -24,6 +24,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Plugin system:** Uses oclif's built-in plugin architecture (`@oclif/plugin-plugins`, `@oclif/plugin-update`, etc.). Third-party plugins are loaded via `@oclif/plugin-*` glob in package.json `oclif.plugins`.
 - **Topic separator:** Space-based (`topicSeparator: " "`), so commands use `sdkck topic command` not `sdkck topic:command`.
 - **Module system:** ESM (`"type": "module"` in package.json, `"module": "Node16"` in tsconfig)
+- **Claude Code plugins:** `plugins/` contains Claude Code plugin definitions (`api`, `cli`, `mcp`) — agents, skills, and hooks that extend Claude Code using sdkck itself. Not part of the TypeScript build.
 
 ## Built-in Features
 
@@ -34,6 +35,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Key files: `src/openapi-store.ts` (CRUD for stored specs/ops), `src/openapi-dynamic-commands.ts` (command factory), `src/hooks/init/register-openapi-commands.ts`, `src/postman-converter.ts` (Postman→OpenAPI via `@scalar/postman-to-openapi`).
 
 Other subcommands: `openapi auth`, `openapi call`, `openapi list`, `openapi config`, `openapi remove`.
+
+`openapi import --insecure` and `openapi config --insecure` skip TLS certificate verification — useful for self-signed certs. `--no-insecure` disables it on an already-imported spec.
 
 ### Permission Allowlist (`permission` topic)
 
@@ -58,7 +61,7 @@ Key file: `src/mcp-server.ts`. Exports:
 - `createMcpServer(config)` — returns a configured `McpServer` instance (useful in tests)
 - `buildArgv(cmd, toolArgs)` — maps MCP tool arguments → oclif argv array
 
-Two tools are exposed: `search` (delegates to the `search` command with sampling) and `run_command` (accepts command ID + args object, builds argv, runs the command).
+Two tools are exposed: `search_tools` (keyword-indexed search over all available commands with sampling) and `run_command` (accepts command ID + args object, builds argv, runs the command).
 
 To wire it up in Claude Code, add to `.mcp.json`:
 

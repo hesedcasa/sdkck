@@ -232,7 +232,7 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
     if (short) addWord(short)
   }
 
-  const searchToolsDescription = `Search Sidekick tools. Keywords: ${[...keywords].sort().join(' ')}`
+  const searchToolsDescription = `Search for MCP tools with keywords: ${[...keywords].sort().join(' ')}`
 
   mcpServer.server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: [

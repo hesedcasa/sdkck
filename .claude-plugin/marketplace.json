@@ -7,11 +7,25 @@
   },
   "plugins": [
     {
-      "name": "sidekick",
-      "description": "One CLI to search, connect, and command every tool in your stack",
-      "source": "./plugin",
+      "name": "mcp",
+      "description": "Wires up Sidekick as an MCP server with two tools — search_tools for progressive command discovery and run_command for execution",
+      "source": "./plugins/mcp",
       "strict": false,
       "category": "development"
+    },
+    {
+      "name": "cli",
+      "description": "One CLI to search, connect, and command every tool in your stack",
+      "source": "./plugins/cli",
+      "strict": false,
+      "category": "development"
+    },
+    {
+      "name": "api",
+      "description": "Extract API endpoints from GitHub repos, online docs, or local files and import them as sdkck CLI commands",
+      "source": "./plugins/api",
+      "strict": false,
+      "category": "productivity"
     }
   ]
 }

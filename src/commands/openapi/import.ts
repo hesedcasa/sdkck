@@ -45,6 +45,11 @@ export default class OpenApiImport extends Command {
       description: 'Override the base URL for API calls (e.g. https://api.example.com)',
       required: false,
     }),
+    insecure: Flags.boolean({
+      default: false,
+      description: 'Skip TLS certificate verification (useful for self-signed certs)',
+      required: false,
+    }),
     name: Flags.string({
       description: 'Short identifier for this API (defaults to the spec title slug)',
       required: false,
@@ -138,7 +143,16 @@ export default class OpenApiImport extends Command {
     }
 
     // ── Persist ────────────────────────────────────────────────────────────────
-    store.specs[nameSlug] = {auth, baseUrl, description, name: nameSlug, operations, source: args.source, title}
+    store.specs[nameSlug] = {
+      auth,
+      baseUrl,
+      description,
+      insecure: flags.insecure,
+      name: nameSlug,
+      operations,
+      source: args.source,
+      title,
+    }
     await writeStore(this.config.configDir, store)
 
     this.log(`\nImported "${title}" as "${nameSlug}"`)

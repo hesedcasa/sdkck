@@ -1,0 +1,83 @@
+# `sidekick` Skill
+
+The `sidekick` skill instructs Claude to run `sdkck search` before reaching for any MCP server, shell command, or external API. It is auto-triggered — you do not invoke it manually.
+
+## MCP server vs. skill
+
+Both the [MCP server](/mcp) and this skill connect your agent to Sidekick — pick one, not both.
+
+|         | MCP server                                                 | `sidekick` skill                               |
+| ------- | ---------------------------------------------------------- | ---------------------------------------------- |
+| **How** | Exposes sdkck as MCP tools (`search_tools`, `run_command`) | Instructs the agent to run sdkck CLI via shell |
+
+## Installation
+
+### Claude Code
+
+```bash
+claude plugin marketplace add hesedcasa/sdkck
+claude plugin install sidekick@cli
+```
+
+### Other coding tools
+
+Install with the [skills CLI](https://github.com/vercel-labs/skills) to use with Cursor, Codex, OpenCode, and [40+ other agents](https://github.com/vercel-labs/skills#supported-agents):
+
+```bash
+npx skills add hesedcasa/sdkck --skill sidekick
+```
+
+Install globally (available across all projects):
+
+```bash
+npx skills add hesedcasa/sdkck --skill sidekick -g
+```
+
+Target a specific agent:
+
+```bash
+npx skills add hesedcasa/sdkck --skill sidekick -a cursor
+npx skills add hesedcasa/sdkck --skill sidekick -a codex
+npx skills add hesedcasa/sdkck --skill sidekick -a opencode
+```
+
+## What it does
+
+Whenever Claude is about to call a tool that touches an external system, the skill kicks in and runs a discovery step first:
+
+```bash
+sdkck search "jira issue create"
+```
+
+If Sidekick has a matching command, Claude uses it instead. Only when the search returns no relevant match does Claude fall back to other tools.
+
+## Covered systems
+
+| User mentions…                          | Sidekick searches for…                      |
+| --------------------------------------- | ------------------------------------------- |
+| Jira, ticket, issue, epic, sprint       | `sdkck search "jira <keyword>"`             |
+| Sentry, error, event, exception         | `sdkck search "sentry <keyword>"`           |
+| SQL, DB, query, table, schema           | `sdkck search "mysql"` / `"postgres"`       |
+| Supabase, auth user, row-level          | `sdkck search "supabase <keyword>"`         |
+| Confluence, wiki, page, space           | `sdkck search "confluence <keyword>"`       |
+| Bitbucket, PR, repo, branch             | `sdkck search "bitbucket <keyword>"`        |
+| Any imported API / Postman collection   | `sdkck search "<api name or operation>"`    |
+| Anything else touching external systems | Search anyway — empty results mean fallback |
+
+## Core workflow
+
+```bash
+sdkck search "create jira issue"   # 1. Discover
+sdkck jira issue create --help     # 2. Inspect
+sdkck jira issue create ...        # 3. Run
+```
+
+## Example
+
+```
+Agent: I need to check recent Sentry errors and create a Jira ticket.
+
+> sdkck search "sentry errors"          # Discovers the right command
+> sdkck sentry issues list --recent     # Gets the data
+> sdkck jira issue create ...           # Acts on it
+```

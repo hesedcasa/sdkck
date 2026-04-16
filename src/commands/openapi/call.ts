@@ -1,6 +1,13 @@
 import {Args, Command, Flags} from '@oclif/core'
 
-import {buildAuthHeaders, buildUrl, parseKV, readStore, type StoredOperation} from '../../openapi-store.js'
+import {
+  buildAuthHeaders,
+  buildInsecureFetch,
+  buildUrl,
+  parseKV,
+  readStore,
+  type StoredOperation,
+} from '../../openapi-store.js'
 
 /**
  * Minimal interface for the fetch-like function used to make HTTP requests.
@@ -101,16 +108,17 @@ export default class OpenApiCall extends Command {
     }
 
     // ── Build headers ──────────────────────────────────────────────────────────
+    // parsedHeaders (from --header) take priority — they can override the inferred Content-Type.
+    const hasBody = Object.keys(parsedBody).length > 0
     const headers: Record<string, string> = {
       ...buildAuthHeaders(spec.auth),
       ...headerParams,
-      ...parsedHeaders,
     }
-
-    const hasBody = Object.keys(parsedBody).length > 0
-    if (hasBody) {
+    if (hasBody && !parsedHeaders['Content-Type']) {
       headers['Content-Type'] = 'application/json'
     }
+
+    Object.assign(headers, parsedHeaders)
 
     // ── Execute ────────────────────────────────────────────────────────────────
     const method = operation.method.toUpperCase()
@@ -118,7 +126,8 @@ export default class OpenApiCall extends Command {
 
     this.log(`${method} ${url.toString()}`)
 
-    const res = await this._fetch(url.toString(), reqInit).catch((error: Error) => {
+    const fetchFn = spec.insecure ? buildInsecureFetch() : this._fetch
+    const res = await fetchFn(url.toString(), reqInit).catch((error: Error) => {
       this.error(`Request failed: ${error.message}`)
     })
 

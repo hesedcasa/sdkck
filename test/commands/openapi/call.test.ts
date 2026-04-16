@@ -187,6 +187,17 @@ describe('openapi call', () => {
     expect(calls[0].url).to.include('other.example.com')
   })
 
+  it('does not override user Content-Type header for JSON body operations', async () => {
+    const {calls, mockFetch} = makeMockFetch(201, '{"id":1,"name":"Fido"}')
+    const {cmd} = makeCall(
+      ['petstore', 'createPet', '--body', 'name=Fido', '--header', 'Content-Type=application/vnd.api+json'],
+      configDir,
+    )
+    cmd._fetch = mockFetch
+    await cmd.run()
+    expect(calls[0].headers['Content-Type']).to.equal('application/vnd.api+json')
+  })
+
   it('errors when a required path parameter is missing', async () => {
     const {cmd} = makeCall(['petstore', 'showPetById'], configDir)
     cmd._fetch = makeMockFetch(200, '{}').mockFetch

@@ -2,17 +2,20 @@
 
 Run Sidekick as an MCP (Model Context Protocol) server to expose every CLI command as a tool to connected clients.
 
-## Start the server
+## Installation
+
+### Claude Code plugin (recommended)
 
 ```bash
-sdkck mcp start
+claude plugin marketplace add hesedcasa/sdkck
+claude plugin install sidekick@mcp
 ```
 
-The server runs over stdio and exposes all CLI commands as MCP tools.
+This automatically wires up the MCP server — no manual `.mcp.json` configuration needed.
 
-## Configure in Claude Code
+### Configure in Claude Code
 
-Add to `.mcp.json`:
+For manual setup, add to `.mcp.json`:
 
 ```json
 {
