@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.0](https://github.com/hesedcasa/sdkck/compare/v0.14.0...v0.15.0) (2026-04-16)
+
+
+### 🎉 Features
+
+* split plugin into mcp/cli/api plugins and add extract-api skill ([#84](https://github.com/hesedcasa/sdkck/issues/84)) ([98d175e](https://github.com/hesedcasa/sdkck/commit/98d175ed692247a91ce097ea258a1dcbeed53bd7))
+
 ## [0.14.0](https://github.com/hesedcasa/sdkck/compare/v0.13.2...v0.14.0) (2026-04-15)
 
 
