@@ -13,13 +13,7 @@ claude plugin install sidekick@sidekick
 
 ## MCP server
 
-Run Sidekick as an MCP server to expose every CLI command as a tool:
-
-```bash
-sdkck mcp start
-```
-
-Add to your `.mcp.json`:
+Run Sidekick as an MCP server to expose every CLI command as a tool. Add to your `.mcp.json`:
 
 ```json
 {
@@ -32,12 +26,12 @@ Add to your `.mcp.json`:
 }
 ```
 
-The MCP server exposes two tools:
+Two tools are exposed:
 
-- **`search_tools`** — Keyword-indexed search over all available commands with MCP sampling
-- **`run_command`** — Accepts a command ID and args object, builds argv, runs the command
+- **`search_tools`** — Keyword search over all available commands; returns matching command IDs and descriptions
+- **`run_command`** — Execute any command by ID with a JSON args object
 
-Command IDs accept both separators: `"openapi import"` or `"openapi:import"`.
+Command IDs accept both `"openapi import"` and `"openapi:import"` — both resolve to the same command.
 
 ## AGENT.md instructions
 
