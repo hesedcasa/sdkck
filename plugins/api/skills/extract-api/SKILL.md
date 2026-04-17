@@ -18,7 +18,7 @@ This skill reads API documentation from three source types:
 - **HTTP/HTTPS documentation URLs**: fetches single or multi-page doc sites; probes for spec/collection files
 - **Local files**: reads OpenAPI JSON/YAML, Postman collections, markdown, HTML, or plain text
 
-When an existing OpenAPI spec or Postman collection is found it is used directly — no extraction needed. Otherwise, API endpoints are extracted from the documentation and an OpenAPI 3.0 JSON document is generated. Either way, the result is imported via `sdkck openapi import`.
+When an existing OpenAPI spec or Postman collection is found it is used directly — no extraction needed. Otherwise, API endpoints are extracted from the documentation and an OpenAPI 3.0 JSON document is generated. Either way, the result is imported via `sdkck api import`.
 
 ## Usage
 
@@ -59,7 +59,7 @@ Sanitize `NAME`: lowercase letters and hyphens only — replace spaces and speci
 
 ### Step 2 — Look for an existing spec or Postman collection (fast path)
 
-Before extracting anything, check whether the source already provides a ready-made OpenAPI/Swagger document or a Postman collection. Either can be passed directly to `sdkck openapi import` without any extraction.
+Before extracting anything, check whether the source already provides a ready-made OpenAPI/Swagger document or a Postman collection. Either can be passed directly to `sdkck api import` without any extraction.
 
 **Identifying file types:**
 
@@ -164,10 +164,10 @@ Run the appropriate command based on which file was produced:
 
 ```bash
 # OpenAPI spec (generated or found)
-sdkck openapi import /tmp/openapi-{NAME}.json --name {NAME}
+sdkck api import /tmp/openapi-{NAME}.json --name {NAME}
 
 # Postman collection (found directly)
-sdkck openapi import /tmp/postman-{NAME}.json --name {NAME}
+sdkck api import /tmp/postman-{NAME}.json --name {NAME}
 ```
 
 Report the result. On success, show:
@@ -193,23 +193,23 @@ After a successful import, check the spec for authentication requirements and gu
 
 ```bash
 # Bearer token (most REST APIs, Stripe, GitHub, etc.)
-sdkck openapi auth {NAME} --type bearer --token {your-token}
+sdkck api auth {NAME} --type bearer --token {your-token}
 
 # API key in a header
-sdkck openapi auth {NAME} --type apikey --api-key {your-key}
-sdkck openapi auth {NAME} --type apikey --api-key {your-key} --api-key-header X-API-Key
+sdkck api auth {NAME} --type apikey --api-key {your-key}
+sdkck api auth {NAME} --type apikey --api-key {your-key} --api-key-header X-API-Key
 
 # Basic auth
-sdkck openapi auth {NAME} --type basic --username {user} --password {password}
+sdkck api auth {NAME} --type basic --username {user} --password {password}
 
 # Custom headers (OAuth2, multi-header, or non-standard schemes)
-sdkck openapi auth {NAME} --type custom --header Authorization="Bearer {token}" --header X-Tenant-ID={tenant}
+sdkck api auth {NAME} --type custom --header Authorization="Bearer {token}" --header X-Tenant-ID={tenant}
 
 # View current auth settings
-sdkck openapi auth {NAME} --show
+sdkck api auth {NAME} --show
 
 # Remove auth
-sdkck openapi auth {NAME} --type none
+sdkck api auth {NAME} --type none
 ```
 
 Show the user the exact command for their API — pre-fill the `--api-key-header` name if it is specified in the spec's `securitySchemes`. If the token value is not known, use a placeholder like `{your-token}` and tell the user where to obtain it (e.g. the API's developer portal or dashboard).

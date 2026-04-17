@@ -3,10 +3,10 @@ import {mkdtemp, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
-import OpenApiCall, {type FetchLike} from '../../../src/commands/openapi/call.js'
-import {type OpenApiStore, writeStore} from '../../../src/openapi-store.js'
+import {type ApiStore, writeStore} from '../../../src/api-store.js'
+import ApiCall, {type FetchLike} from '../../../src/commands/api/call.js'
 
-const FIXTURE_STORE: OpenApiStore = {
+const FIXTURE_STORE: ApiStore = {
   specs: {
     petstore: {
       auth: {type: 'none'},
@@ -86,10 +86,7 @@ function makeMockFetch(status: number, responseBody: string): {calls: FetchCall[
   return {calls, mockFetch}
 }
 
-function makeCall(
-  argv: string[],
-  configDir: string,
-): {cmd: OpenApiCall; output: () => string; warnings: () => string[]} {
+function makeCall(argv: string[], configDir: string): {cmd: ApiCall; output: () => string; warnings: () => string[]} {
   const lines: string[] = []
   const warnLines: string[] = []
   const config = {
@@ -98,7 +95,7 @@ function makeCall(
     runHook: async () => ({failures: [], successes: []}),
   } as never
 
-  const cmd = new OpenApiCall(argv, config)
+  const cmd = new ApiCall(argv, config)
   cmd.log = (message = '') => {
     lines.push(String(message))
   }
@@ -111,7 +108,7 @@ function makeCall(
   return {cmd, output: () => lines.join('\n'), warnings: () => warnLines}
 }
 
-describe('openapi call', () => {
+describe('api call', () => {
   let tmpDir: string
   let configDir: string
 

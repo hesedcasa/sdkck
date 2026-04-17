@@ -52,7 +52,7 @@ Only when `sdkck search` returns no relevant match may you fall back to MCP, Bas
 
 ## Built-in topics
 
-- **`openapi`** — `import {spec}` ingests an OpenAPI/Postman file and registers each operation as `sdkck {name} {operationId}`. Also: `list`, `call`, `auth`, `config`, `remove`.
+- **`api`** — `import {spec}` ingests an OpenAPI spec, Postman collection, or GraphQL schema (SDL/introspection/endpoint URL) and registers each operation as `sdkck {name} {operationId}`. Also: `list`, `call`, `auth`, `config`, `remove`.
 - **`permission`** — allowlist/denylist CLI commands: `allow`, `disallow`, `list`, `export`, `import`, `reset`.
 
 ## JIT plugins (auto-installed on first use)
@@ -61,7 +61,7 @@ Only when `sdkck search` returns no relevant match may you fall back to MCP, Bas
 
 ## Gotchas
 
-- Command IDs use space separators (`sdkck openapi import`, not `openapi:import`). Colons work but spaces are canonical.
+- Command IDs use space separators (`sdkck api import`, not `api:import`). Colons work but spaces are canonical.
 - If a command doesn't appear in search, check `sdkck permission list` — it may be disallowed.
-- Dynamic OpenAPI commands only load after `sdkck openapi import`.
+- Dynamic API commands only load after `sdkck api import`.
 - **Never skip the search step.** Even for "obvious" tasks — sdkck often has a more tailored command than you'd guess.

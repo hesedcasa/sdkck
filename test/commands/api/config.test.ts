@@ -3,10 +3,10 @@ import {mkdtemp, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
-import OpenApiConfig from '../../../src/commands/openapi/config.js'
-import {type OpenApiStore, readStore, writeStore} from '../../../src/openapi-store.js'
+import {type ApiStore, readStore, writeStore} from '../../../src/api-store.js'
+import ApiConfig from '../../../src/commands/api/config.js'
 
-const FIXTURE_STORE: OpenApiStore = {
+const FIXTURE_STORE: ApiStore = {
   specs: {
     petstore: {
       auth: {type: 'none'},
@@ -20,7 +20,7 @@ const FIXTURE_STORE: OpenApiStore = {
   },
 }
 
-function makeConfig(argv: string[], configDir: string): {cmd: OpenApiConfig; output: () => string} {
+function makeConfig(argv: string[], configDir: string): {cmd: ApiConfig; output: () => string} {
   const lines: string[] = []
   const config = {
     bin: 'sdkck',
@@ -28,7 +28,7 @@ function makeConfig(argv: string[], configDir: string): {cmd: OpenApiConfig; out
     runHook: async () => ({failures: [], successes: []}),
   } as never
 
-  const cmd = new OpenApiConfig(argv, config)
+  const cmd = new ApiConfig(argv, config)
   cmd.log = (message = '') => {
     lines.push(String(message))
   }
@@ -36,7 +36,7 @@ function makeConfig(argv: string[], configDir: string): {cmd: OpenApiConfig; out
   return {cmd, output: () => lines.join('\n')}
 }
 
-async function runExpectingError(cmd: OpenApiConfig): Promise<string> {
+async function runExpectingError(cmd: ApiConfig): Promise<string> {
   let errorMsg = ''
   cmd.error = (msg: Error | string) => {
     errorMsg = String(msg)
@@ -52,7 +52,7 @@ async function runExpectingError(cmd: OpenApiConfig): Promise<string> {
   return errorMsg
 }
 
-describe('openapi config', () => {
+describe('api config', () => {
   let tmpDir: string
 
   before(async () => {

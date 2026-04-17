@@ -1,19 +1,19 @@
 import {Args, Command} from '@oclif/core'
 
-import {deleteSpec, readStore} from '../../openapi-store.js'
+import {deleteSpec, readStore} from '../../api-store.js'
 
-export default class OpenApiRemove extends Command {
+export default class ApiRemove extends Command {
   static args = {
     name: Args.string({
       description: 'API name to remove',
       required: true,
     }),
   }
-  static description = 'Remove an imported OpenAPI spec'
-  static examples = ['<%= config.bin %> openapi remove petstore']
+  static description = 'Remove an imported API spec'
+  static examples = ['<%= config.bin %> api remove petstore']
 
   async run(): Promise<void> {
-    const {args} = await this.parse(OpenApiRemove)
+    const {args} = await this.parse(ApiRemove)
 
     const store = await readStore(this.config.configDir)
     if (!store.specs[args.name]) {

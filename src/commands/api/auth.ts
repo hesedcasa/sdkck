@@ -1,23 +1,23 @@
 import {Args, Command, Flags} from '@oclif/core'
 
-import {type AuthScheme, parseKV, readStore, writeStore} from '../../openapi-store.js'
+import {type AuthScheme, parseKV, readStore, writeStore} from '../../api-store.js'
 
-export default class OpenApiAuth extends Command {
+export default class ApiAuth extends Command {
   static args = {
     name: Args.string({
       description: 'API name to update authentication for',
       required: true,
     }),
   }
-  static description = 'Update the authentication settings for an imported OpenAPI spec'
+  static description = 'Update the authentication settings for an imported API spec'
   static examples = [
-    '<%= config.bin %> openapi auth petstore --type bearer --token sk-...',
-    '<%= config.bin %> openapi auth petstore --type apikey --api-key mykey',
-    '<%= config.bin %> openapi auth petstore --type apikey --api-key mykey --api-key-header Authorization',
-    '<%= config.bin %> openapi auth petstore --type basic --username user --password secret',
-    '<%= config.bin %> openapi auth petstore --type custom --header X-Tenant-ID=acme --header X-App-Key=secret',
-    '<%= config.bin %> openapi auth petstore --type none',
-    '<%= config.bin %> openapi auth petstore --show',
+    '<%= config.bin %> api auth petstore --type bearer --token sk-...',
+    '<%= config.bin %> api auth petstore --type apikey --api-key mykey',
+    '<%= config.bin %> api auth petstore --type apikey --api-key mykey --api-key-header Authorization',
+    '<%= config.bin %> api auth petstore --type basic --username user --password secret',
+    '<%= config.bin %> api auth petstore --type custom --header X-Tenant-ID=acme --header X-App-Key=secret',
+    '<%= config.bin %> api auth petstore --type none',
+    '<%= config.bin %> api auth petstore --show',
   ]
   static flags = {
     'api-key': Flags.string({
@@ -58,12 +58,12 @@ export default class OpenApiAuth extends Command {
   }
 
   async run(): Promise<void> {
-    const {args, flags} = await this.parse(OpenApiAuth)
+    const {args, flags} = await this.parse(ApiAuth)
 
     const store = await readStore(this.config.configDir)
     const spec = store.specs[args.name]
     if (!spec) {
-      this.error(`No spec found with name "${args.name}". Run \`openapi list\` to see available specs.`)
+      this.error(`No spec found with name "${args.name}". Run \`api list\` to see available specs.`)
     }
 
     // ── Show mode ──────────────────────────────────────────────────────────────

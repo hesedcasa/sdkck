@@ -3,10 +3,10 @@ import {mkdtemp, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
-import OpenApiList from '../../../src/commands/openapi/list.js'
-import {type OpenApiStore, writeStore} from '../../../src/openapi-store.js'
+import {type ApiStore, writeStore} from '../../../src/api-store.js'
+import ApiList from '../../../src/commands/api/list.js'
 
-const FIXTURE_STORE: OpenApiStore = {
+const FIXTURE_STORE: ApiStore = {
   specs: {
     petstore: {
       auth: {type: 'none'},
@@ -37,7 +37,7 @@ const FIXTURE_STORE: OpenApiStore = {
   },
 }
 
-function makeList(argv: string[], configDir: string): {cmd: OpenApiList; output: () => string} {
+function makeList(argv: string[], configDir: string): {cmd: ApiList; output: () => string} {
   const lines: string[] = []
   const config = {
     bin: 'sdkck',
@@ -45,7 +45,7 @@ function makeList(argv: string[], configDir: string): {cmd: OpenApiList; output:
     runHook: async () => ({failures: [], successes: []}),
   } as never
 
-  const cmd = new OpenApiList(argv, config)
+  const cmd = new ApiList(argv, config)
   cmd.log = (message = '') => {
     lines.push(String(message))
   }
@@ -53,7 +53,7 @@ function makeList(argv: string[], configDir: string): {cmd: OpenApiList; output:
   return {cmd, output: () => lines.join('\n')}
 }
 
-describe('openapi list', () => {
+describe('api list', () => {
   let tmpDir: string
 
   before(async () => {
@@ -68,7 +68,7 @@ describe('openapi list', () => {
     const configDir = join(tmpDir, 'config-list-empty')
     const {cmd, output} = makeList([], configDir)
     await cmd.run()
-    expect(output()).to.include('No OpenAPI specs imported')
+    expect(output()).to.include('No API specs imported')
   })
 
   it('lists imported specs when no name argument is given', async () => {

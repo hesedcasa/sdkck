@@ -6,8 +6,8 @@ import {mkdtemp, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
-import {registerOpenApiCommands} from '../src/openapi-dynamic-commands.js'
-import {deleteSpec, type OpenApiStore, writeStore} from '../src/openapi-store.js'
+import {registerApiCommands} from '../src/api-dynamic-commands.js'
+import {type ApiStore, deleteSpec, writeStore} from '../src/api-store.js'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -20,7 +20,7 @@ type FetchCall = {body?: string; headers: Record<string, string>; method: string
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
-const FIXTURE_STORE: OpenApiStore = {
+const FIXTURE_STORE: ApiStore = {
   specs: {
     petstore: {
       auth: {type: 'none'},
@@ -142,10 +142,28 @@ function makeInternalConfig(configDir: string): InternalConfig {
   }
 }
 
-describe('openapi-dynamic-commands', () => {
-  // ─── registerOpenApiCommands ──────────────────────────────────────────────────
+async function makeGraphQLCmd(
+  gqlDir: string,
+  commandId: string,
+  argv: string[],
+): Promise<{cmd: Command & {_fetch: FetchLike}}> {
+  const ic = makeInternalConfig(gqlDir)
+  await registerApiCommands(ic as unknown as Config)
+  const entry = ic._commands.get(commandId)
+  if (!entry) throw new Error(`Command "${commandId}" not found`)
+  const CmdClass = await entry.load()
+  const cmdConfig = {bin: 'sdkck', configDir: gqlDir, runHook: async () => ({failures: [], successes: []})} as never
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cmd = new (CmdClass as any)(argv, cmdConfig) as Command & {_fetch: FetchLike}
+  cmd.log = () => {}
+  cmd.warn = (msg: Error | string) => msg as string
+  return {cmd}
+}
 
-  describe('registerOpenApiCommands', () => {
+describe('api-dynamic-commands', () => {
+  // ─── registerApiCommands ──────────────────────────────────────────────────
+
+  describe('registerApiCommands', () => {
     let tmpDir: string
     let configDir: string
     let ic: InternalConfig
@@ -155,7 +173,7 @@ describe('openapi-dynamic-commands', () => {
       configDir = join(tmpDir, 'config')
       await writeStore(configDir, FIXTURE_STORE)
       ic = makeInternalConfig(configDir)
-      await registerOpenApiCommands(ic as unknown as Config)
+      await registerApiCommands(ic as unknown as Config)
     })
 
     after(async () => {
@@ -194,7 +212,7 @@ describe('openapi-dynamic-commands', () => {
       const ic2 = makeInternalConfig(configDir)
       const sentinel = {id: 'petstore:listPets', load: async () => Command}
       ic2._commands.set('petstore:listPets', sentinel as never)
-      await registerOpenApiCommands(ic2 as unknown as Config)
+      await registerApiCommands(ic2 as unknown as Config)
       expect(ic2._commands.get('petstore:listPets')).to.equal(sentinel)
     })
 
@@ -202,14 +220,14 @@ describe('openapi-dynamic-commands', () => {
       const ic2 = makeInternalConfig(configDir)
       const sentinel = {description: 'custom', hidden: true, name: 'petstore'}
       ic2._topics.set('petstore', sentinel)
-      await registerOpenApiCommands(ic2 as unknown as Config)
+      await registerApiCommands(ic2 as unknown as Config)
       expect(ic2._topics.get('petstore')).to.equal(sentinel)
     })
 
     it('registers nothing for an empty store', async () => {
       const emptyDir = join(tmpDir, 'config-empty')
       const ic2 = makeInternalConfig(emptyDir)
-      await registerOpenApiCommands(ic2 as unknown as Config)
+      await registerApiCommands(ic2 as unknown as Config)
       expect(ic2._commands.size).to.equal(0)
       expect(ic2._topics.size).to.equal(0)
     })
@@ -227,7 +245,7 @@ describe('openapi-dynamic-commands', () => {
       configDir = join(tmpDir, 'config')
       await writeStore(configDir, FIXTURE_STORE)
       const ic = makeInternalConfig(configDir)
-      await registerOpenApiCommands(ic as unknown as Config)
+      await registerApiCommands(ic as unknown as Config)
       commandMap = ic._commands
     })
 
@@ -400,7 +418,7 @@ describe('openapi-dynamic-commands', () => {
 
     it('errors when the spec has been removed after registration', async () => {
       const altDir = join(tmpDir, 'config-deleted')
-      const deletedStore: OpenApiStore = {
+      const deletedStore: ApiStore = {
         specs: {
           tmpspec: {
             auth: {type: 'none'},
@@ -417,7 +435,7 @@ describe('openapi-dynamic-commands', () => {
       }
       await writeStore(altDir, deletedStore)
       const ic = makeInternalConfig(altDir)
-      await registerOpenApiCommands(ic as unknown as Config)
+      await registerApiCommands(ic as unknown as Config)
 
       await deleteSpec(altDir, 'tmpspec')
 
@@ -439,7 +457,7 @@ describe('openapi-dynamic-commands', () => {
 
     it('errors when no base URL is configured on the spec', async () => {
       const altDir = join(tmpDir, 'config-nobaseurl')
-      const noUrlStore: OpenApiStore = {
+      const noUrlStore: ApiStore = {
         specs: {
           nourl: {
             auth: {type: 'none'},
@@ -456,7 +474,7 @@ describe('openapi-dynamic-commands', () => {
       }
       await writeStore(altDir, noUrlStore)
       const ic = makeInternalConfig(altDir)
-      await registerOpenApiCommands(ic as unknown as Config)
+      await registerApiCommands(ic as unknown as Config)
 
       const entry = ic._commands.get('nourl:ping')!
       const CmdClass = await entry.load()
@@ -472,5 +490,96 @@ describe('openapi-dynamic-commands', () => {
       await cmd.run().catch(() => {})
       expect(errorMsg).to.include('base URL')
     })
+
+    it('POSTs {query, variables} for a GraphQL operation', async () => {
+      const gqlDir = join(tmpDir, 'config-graphql')
+      const gqlStore: ApiStore = {
+        specs: {
+          petgql: {
+            auth: {type: 'none'},
+            baseUrl: 'https://graphql.example.com/query',
+            description: '',
+            kind: 'graphql',
+            name: 'petgql',
+            operations: [
+              {
+                bodyParams: {id: {required: true, type: 'string'}},
+                description: 'query pet',
+                graphql: {
+                  fieldName: 'pet',
+                  operationType: 'query',
+                  query: 'query queryPet($id: ID!) {\n  pet(id: $id) {\n    id\n    name\n  }\n}',
+                },
+                method: 'post',
+                operationId: 'pet',
+                parameters: [],
+                path: '',
+              },
+            ],
+            source: './schema.graphql',
+            title: 'PetGraphQL',
+          },
+        },
+      }
+      await writeStore(gqlDir, gqlStore)
+
+      const {calls, mockFetch} = makeMockFetch(200, '{"data":{"pet":{"id":"1","name":"Fido"}}}')
+      const {cmd} = await makeGraphQLCmd(gqlDir, 'petgql:pet', ['42'])
+      cmd._fetch = mockFetch
+      await cmd.run()
+
+      expect(calls).to.have.length(1)
+      expect(calls[0].method).to.equal('POST')
+      expect(calls[0].url).to.equal('https://graphql.example.com/query')
+      expect(calls[0].headers['Content-Type']).to.equal('application/json')
+      const parsed = JSON.parse(calls[0].body ?? '{}') as {query: string; variables?: Record<string, unknown>}
+      expect(parsed.query).to.include('query queryPet($id: ID!)')
+      expect(parsed.variables).to.deep.equal({id: '42'})
+    })
+
+    it('coerces boolean and number body params for GraphQL variables', async () => {
+      const gqlDir = join(tmpDir, 'config-graphql-coerce')
+      const gqlStore: ApiStore = {
+        specs: {
+          petgql2: {
+            auth: {type: 'none'},
+            baseUrl: 'https://graphql.example.com/query',
+            description: '',
+            kind: 'graphql',
+            name: 'petgql2',
+            operations: [
+              {
+                bodyParams: {
+                  active: {required: false, type: 'boolean'},
+                  limit: {required: false, type: 'number'},
+                },
+                description: 'list pets',
+                graphql: {
+                  fieldName: 'pets',
+                  operationType: 'query',
+                  query:
+                    'query queryPets($limit: Int, $active: Boolean) {\n  pets(limit: $limit, active: $active) { id }\n}',
+                },
+                method: 'post',
+                operationId: 'pets',
+                parameters: [],
+                path: '',
+              },
+            ],
+            source: './schema.graphql',
+            title: 'PetGraphQL',
+          },
+        },
+      }
+      await writeStore(gqlDir, gqlStore)
+
+      const {calls, mockFetch} = makeMockFetch(200, '{"data":{"pets":[]}}')
+      const {cmd} = await makeGraphQLCmd(gqlDir, 'petgql2:pets', ['--limit', '5', '--active', 'true'])
+      cmd._fetch = mockFetch
+      await cmd.run()
+
+      const parsed = JSON.parse(calls[0].body ?? '{}') as {variables?: Record<string, unknown>}
+      expect(parsed.variables).to.deep.equal({active: true, limit: 5})
+    })
   })
-}) // end openapi-dynamic-commands
+}) // end api-dynamic-commands

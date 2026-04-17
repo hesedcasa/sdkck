@@ -3,8 +3,8 @@ import {mkdtemp, rm, writeFile} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
-import OpenApiImport from '../../../src/commands/openapi/import.js'
-import {readStore} from '../../../src/openapi-store.js'
+import {readStore} from '../../../src/api-store.js'
+import ApiImport from '../../../src/commands/api/import.js'
 
 const POSTMAN_COLLECTION = {
   info: {
@@ -94,7 +94,7 @@ const PETSTORE_SPEC = {
   servers: [{url: 'https://petstore.example.com'}],
 }
 
-function makeImport(argv: string[], configDir: string): {cmd: OpenApiImport; output: () => string} {
+function makeImport(argv: string[], configDir: string): {cmd: ApiImport; output: () => string} {
   const lines: string[] = []
   const warnings: string[] = []
   const config = {
@@ -103,7 +103,7 @@ function makeImport(argv: string[], configDir: string): {cmd: OpenApiImport; out
     runHook: async () => ({failures: [], successes: []}),
   } as never
 
-  const cmd = new OpenApiImport(argv, config)
+  const cmd = new ApiImport(argv, config)
   cmd.log = (message = '') => {
     lines.push(String(message))
   }
@@ -116,7 +116,7 @@ function makeImport(argv: string[], configDir: string): {cmd: OpenApiImport; out
   return {cmd, output: () => lines.join('\n')}
 }
 
-describe('openapi import', () => {
+describe('api import', () => {
   let tmpDir: string
   let specFile: string
 
@@ -280,5 +280,155 @@ describe('openapi import', () => {
 
     const store = await readStore(configDir)
     expect(store.specs['petstore-postman'].baseUrl).to.equal('https://staging.example.com')
+  })
+
+  describe('graphql import', () => {
+    const SDL = `
+      type Pet {
+        id: ID!
+        name: String!
+        tag: String
+      }
+
+      input PetInput {
+        name: String!
+        tag: String
+      }
+
+      type Query {
+        pet(id: ID!): Pet
+        pets(limit: Int): [Pet!]!
+      }
+
+      type Mutation {
+        createPet(input: PetInput!): Pet!
+        deletePet(id: ID!): Boolean!
+      }
+    `
+
+    it('auto-detects .graphql extension and imports operations', async () => {
+      const configDir = join(tmpDir, 'config-import-gql-1')
+      const sdlFile = join(tmpDir, 'schema.graphql')
+      await writeFile(sdlFile, SDL, 'utf8')
+
+      const {cmd, output} = makeImport([sdlFile, '--base-url', 'https://api.example.com/graphql'], configDir)
+      await cmd.run()
+
+      const out = output()
+      expect(out).to.include('[graphql]')
+      expect(out).to.include('4') // 4 operations
+
+      const store = await readStore(configDir)
+      expect(store.specs).to.have.key('graphql-api')
+      expect(store.specs['graphql-api'].kind).to.equal('graphql')
+      expect(store.specs['graphql-api'].operations).to.have.length(4)
+    })
+
+    it('stores operations with correct graphql metadata', async () => {
+      const configDir = join(tmpDir, 'config-import-gql-2')
+      const sdlFile = join(tmpDir, 'schema2.graphql')
+      await writeFile(sdlFile, SDL, 'utf8')
+
+      const {cmd} = makeImport([sdlFile, '--base-url', 'https://api.example.com/graphql'], configDir)
+      await cmd.run()
+
+      const store = await readStore(configDir)
+      const ops = store.specs['graphql-api'].operations
+      const petOp = ops.find((o) => o.operationId === 'pet')!
+      expect(petOp).to.exist
+      expect(petOp.graphql).to.exist
+      expect(petOp.graphql!.operationType).to.equal('query')
+      expect(petOp.graphql!.fieldName).to.equal('pet')
+      expect(petOp.graphql!.query).to.include('query queryPet')
+
+      const createOp = ops.find((o) => o.operationId === 'createPet')!
+      expect(createOp.graphql!.operationType).to.equal('mutation')
+    })
+
+    it('uses --name flag to override slug for graphql import', async () => {
+      const configDir = join(tmpDir, 'config-import-gql-3')
+      const sdlFile = join(tmpDir, 'schema3.graphql')
+      await writeFile(sdlFile, SDL, 'utf8')
+
+      const {cmd} = makeImport([sdlFile, '--name', 'mygql', '--base-url', 'https://api.example.com/graphql'], configDir)
+      await cmd.run()
+
+      const store = await readStore(configDir)
+      expect(store.specs).to.have.key('mygql')
+      expect(store.specs.mygql.operations).to.have.length(4)
+    })
+
+    it('uses --graphql flag to force graphql import of an introspection JSON file', async () => {
+      const {buildSchema, getIntrospectionQuery, graphqlSync} = await import('graphql')
+      const realSchema = buildSchema(SDL)
+      const introResult = graphqlSync({schema: realSchema, source: getIntrospectionQuery()})
+
+      const configDir = join(tmpDir, 'config-import-gql-4')
+      const jsonFile = join(tmpDir, 'introspection.json')
+      await writeFile(jsonFile, JSON.stringify(introResult), 'utf8')
+
+      const {cmd, output} = makeImport(
+        [jsonFile, '--graphql', '--name', 'petgql', '--base-url', 'https://api.example.com/graphql'],
+        configDir,
+      )
+      await cmd.run()
+
+      const out = output()
+      expect(out).to.include('[graphql]')
+
+      const store = await readStore(configDir)
+      expect(store.specs).to.have.key('petgql')
+      expect(store.specs.petgql.kind).to.equal('graphql')
+      expect(store.specs.petgql.operations).to.have.length(4)
+    })
+
+    it('respects --selection-depth flag', async () => {
+      // Schema with nested object types so depth capping is observable
+      const nestedSdl = `
+        type Owner { name: String address: Address }
+        type Address { street: String city: String }
+        type Query { owner: Owner }
+      `
+      const configDir = join(tmpDir, 'config-import-gql-5')
+      const sdlFile = join(tmpDir, 'schema5.graphql')
+      await writeFile(sdlFile, nestedSdl, 'utf8')
+
+      const {cmd} = makeImport(
+        [sdlFile, '--selection-depth', '1', '--base-url', 'https://api.example.com/graphql', '--name', 'depthtest'],
+        configDir,
+      )
+      await cmd.run()
+
+      const store = await readStore(configDir)
+      const ownerOp = store.specs.depthtest.operations.find((o) => o.operationId === 'owner')!
+      // At depth 1, Address (nested inside Owner) is capped and falls back to __typename
+      expect(ownerOp.graphql!.query).to.include('address {')
+      expect(ownerOp.graphql!.query).to.include('__typename')
+    })
+
+    it('sets baseUrl from --base-url flag', async () => {
+      const configDir = join(tmpDir, 'config-import-gql-6')
+      const sdlFile = join(tmpDir, 'schema6.graphql')
+      await writeFile(sdlFile, SDL, 'utf8')
+
+      const {cmd} = makeImport([sdlFile, '--base-url', 'https://gql.example.com/graphql'], configDir)
+      await cmd.run()
+
+      const store = await readStore(configDir)
+      expect(store.specs['graphql-api'].baseUrl).to.equal('https://gql.example.com/graphql')
+    })
+
+    it('stores graphql kind in the spec entry', async () => {
+      const configDir = join(tmpDir, 'config-import-gql-7')
+      const sdlFile = join(tmpDir, 'schema7.graphql')
+      await writeFile(sdlFile, SDL, 'utf8')
+
+      const {cmd} = makeImport([sdlFile, '--base-url', 'https://api.example.com/graphql'], configDir)
+      await cmd.run()
+
+      const store = await readStore(configDir)
+      expect(store.specs['graphql-api'].kind).to.equal('graphql')
+      expect(store.specs['graphql-api'].source).to.equal(sdlFile)
+    })
   })
 })

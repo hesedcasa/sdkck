@@ -4,18 +4,18 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
 import {
+  type ApiStore,
   buildAuthHeaders,
   buildUrl,
   deleteSpec,
   extractBaseUrl,
   extractOperations,
-  type OpenApiStore,
   parseKV,
   readStore,
   writeStore,
-} from '../src/openapi-store.js'
+} from '../src/api-store.js'
 
-describe('openapi-store', () => {
+describe('api-store', () => {
   // ─── readStore / writeStore / deleteSpec ──────────────────────────────────────
 
   describe('readStore', () => {
@@ -127,7 +127,7 @@ describe('openapi-store', () => {
 
     it('creates the configDir if it does not exist', async () => {
       const dir = join(tmpDir, 'new-config')
-      const store: OpenApiStore = {specs: {}}
+      const store: ApiStore = {specs: {}}
       await writeStore(dir, store)
       const readBack = await readStore(dir)
       expect(readBack.specs).to.deep.equal({})
@@ -135,7 +135,7 @@ describe('openapi-store', () => {
 
     it('writes one JSON file per spec using the openapi-<name>.json naming', async () => {
       const dir = join(tmpDir, 'write-test')
-      const store: OpenApiStore = {
+      const store: ApiStore = {
         specs: {
           bar: {
             auth: {type: 'none'},
@@ -166,7 +166,7 @@ describe('openapi-store', () => {
 
     it('round-trips a store with operations and auth', async () => {
       const dir = join(tmpDir, 'roundtrip')
-      const store: OpenApiStore = {
+      const store: ApiStore = {
         specs: {
           api: {
             auth: {scheme: 'bearer', token: 'tok', type: 'http'},
@@ -209,7 +209,7 @@ describe('openapi-store', () => {
 
     it('returns true and removes the spec file', async () => {
       const dir = join(tmpDir, 'delete-test')
-      const store: OpenApiStore = {
+      const store: ApiStore = {
         specs: {
           todelete: {
             auth: {type: 'none'},
@@ -483,4 +483,4 @@ describe('openapi-store', () => {
       )
     })
   })
-}) // end openapi-store
+}) // end api-store

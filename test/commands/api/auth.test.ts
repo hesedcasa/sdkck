@@ -3,10 +3,10 @@ import {mkdtemp, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
-import OpenApiAuth from '../../../src/commands/openapi/auth.js'
-import {type OpenApiStore, readStore, writeStore} from '../../../src/openapi-store.js'
+import {type ApiStore, readStore, writeStore} from '../../../src/api-store.js'
+import ApiAuth from '../../../src/commands/api/auth.js'
 
-const FIXTURE_STORE: OpenApiStore = {
+const FIXTURE_STORE: ApiStore = {
   specs: {
     petstore: {
       auth: {type: 'none'},
@@ -20,7 +20,7 @@ const FIXTURE_STORE: OpenApiStore = {
   },
 }
 
-function makeAuth(argv: string[], configDir: string): {cmd: OpenApiAuth; output: () => string} {
+function makeAuth(argv: string[], configDir: string): {cmd: ApiAuth; output: () => string} {
   const lines: string[] = []
   const config = {
     bin: 'sdkck',
@@ -28,7 +28,7 @@ function makeAuth(argv: string[], configDir: string): {cmd: OpenApiAuth; output:
     runHook: async () => ({failures: [], successes: []}),
   } as never
 
-  const cmd = new OpenApiAuth(argv, config)
+  const cmd = new ApiAuth(argv, config)
   cmd.log = (message = '') => {
     lines.push(String(message))
   }
@@ -36,7 +36,7 @@ function makeAuth(argv: string[], configDir: string): {cmd: OpenApiAuth; output:
   return {cmd, output: () => lines.join('\n')}
 }
 
-describe('openapi auth', () => {
+describe('api auth', () => {
   let tmpDir: string
 
   before(async () => {
