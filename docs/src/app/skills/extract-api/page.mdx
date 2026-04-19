@@ -41,7 +41,7 @@ npx skills add hesedcasa/sdkck --skill extract-api -a opencode
 
 | Argument   | Description                                          |
 | ---------- | ---------------------------------------------------- |
-| `<source>` | GitHub URL, HTTP/HTTPS docs URL, or local file path  |
+| `source` | GitHub URL, HTTP/HTTPS docs URL, or local file path  |
 | `--name`   | Override the API name (default: derived from source) |
 
 ## Examples
@@ -59,16 +59,22 @@ npx skills add hesedcasa/sdkck --skill extract-api -a opencode
 # From a Postman collection file
 /extract-api ./my-workspace.postman_collection.json --name myapi
 
+# From a GraphQL SDL file
+/extract-api ./schema.graphql --name myapi
+
+# From a live GraphQL endpoint
+/extract-api https://countries.trevorblades.com/graphql --name countries
+
 # From local markdown docs
 /extract-api ./my-project/api-docs.md --name myapi
 ```
 
 ## What happens
 
-1. **Fast path** — if the source is already an OpenAPI spec or Postman collection, it is imported directly.
+1. **Fast path** — if the source is already an OpenAPI spec, Postman collection, or GraphQL schema (SDL, introspection JSON, or live endpoint), it is imported directly.
 2. **Crawl path** — if the source is a GitHub repo or docs site, the skill probes for spec files, follows reference links, and generates an OpenAPI 3.0 document from the discovered content.
-3. **Import** — runs `sdkck openapi import` and registers every operation as `sdkck <name> <operationId>`.
-4. **Auth setup** — detects the auth scheme from the spec and shows the exact `sdkck openapi auth` command to configure credentials.
+3. **Import** — runs `sdkck api import` and registers every operation as `sdkck <name> <operationId>`.
+4. **Auth setup** — detects the auth scheme from the spec and shows the exact `sdkck api auth` command to configure credentials.
 
 ## After import
 
@@ -85,11 +91,14 @@ sdkck petstore listPets --limit 10
 
 ## Supported sources
 
-| Source                         | Notes                                                            |
-| ------------------------------ | ---------------------------------------------------------------- |
-| OpenAPI 3.0 / 3.1 JSON or YAML | Used directly — no extraction needed                             |
-| Swagger 2.0 JSON or YAML       | Used directly                                                    |
-| Postman Collection v2.1        | Converted to OpenAPI internally via `@scalar/postman-to-openapi` |
-| GitHub repository URL          | Probes for spec files; falls back to README + `docs/` crawl      |
-| HTTP/HTTPS docs URL            | Probes well-known spec paths; crawls reference pages if needed   |
-| Local `.md`, `.html`, `.txt`   | Extracts endpoints from prose and generates OpenAPI 3.0          |
+| Source                                        | Notes                                                            |
+| --------------------------------------------- | ---------------------------------------------------------------- |
+| OpenAPI 3.0 / 3.1 JSON or YAML                | Used directly — no extraction needed                             |
+| Swagger 2.0 JSON or YAML                      | Used directly                                                    |
+| Postman Collection v2.1                       | Converted to OpenAPI internally via `@scalar/postman-to-openapi` |
+| GraphQL SDL (`.graphql`, `.gql`, `.graphqls`) | Auto-detected by extension; requires `--base-url`                |
+| GraphQL introspection JSON                    | Pass `--graphql` to force GraphQL mode                           |
+| Live GraphQL endpoint (`/graphql` URL)        | Auto-detected; fetches introspection automatically               |
+| GitHub repository URL                         | Probes for spec files; falls back to README + `docs/` crawl      |
+| HTTP/HTTPS docs URL                           | Probes well-known spec paths; crawls reference pages if needed   |
+| Local `.md`, `.html`, `.txt`                  | Extracts endpoints from prose and generates OpenAPI 3.0          |

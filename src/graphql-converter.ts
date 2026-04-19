@@ -58,6 +58,13 @@ interface LoadOptions {
  */
 export async function loadGraphQLSchema(source: string, opts: LoadOptions = {}): Promise<GraphQLSchema> {
   if (source.startsWith('http://') || source.startsWith('https://')) {
+    if (hasGraphQLExtension(new URL(source).pathname)) {
+      // eslint-disable-next-line n/no-unsupported-features/node-builtins
+      const res = await fetch(source, {headers: opts.headers})
+      if (!res.ok) throw new Error(`HTTP ${res.status} fetching GraphQL SDL from ${source}`)
+      return parseSchemaSource(await res.text())
+    }
+
     return fetchIntrospection(source, opts.headers)
   }
 

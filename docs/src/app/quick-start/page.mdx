@@ -12,13 +12,13 @@ npm install -g sdkck
 
 ```bash
 # From a URL
-sdkck openapi import https://petstore3.swagger.io/api/v3/openapi.json --name petstore
+sdkck api import https://petstore3.swagger.io/api/v3/openapi.json --name petstore
 
 # From a local file
-sdkck openapi import ./api.yaml --name myapi
+sdkck api import ./api.yaml --name myapi
 
 # From a Postman collection
-sdkck openapi import ./postman_collection.json --name myapi
+sdkck api import ./postman_collection.json --name myapi
 ```
 
 ## 3. Run commands
@@ -83,14 +83,14 @@ Sidekick has built-in help at every level.
 sdkck help
 
 # Help for a topic
-sdkck help openapi
+sdkck help api
 # Lists all openapi subcommands
 
 sdkck help permission
 # Lists all permission subcommands
 
 # Help for a specific command
-sdkck help openapi import
+sdkck help api import
 # Shows flags, arguments, and examples
 
 sdkck help search
@@ -104,5 +104,5 @@ sdkck commands
 ## What's next?
 
 - [AI agent integration](/ai-agents) — Connect Sidekick to your AI agent
-- [API to Commands](/openapi) — Deep dive into importing specs
+- [API to Commands](/api) — Deep dive into importing specs
 - [Permissions](/permissions) — Control what your agent can do
