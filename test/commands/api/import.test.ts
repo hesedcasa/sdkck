@@ -401,9 +401,10 @@ describe('api import', () => {
 
       const store = await readStore(configDir)
       const ownerOp = store.specs.depthtest.operations.find((o) => o.operationId === 'owner')!
-      // At depth 1, Address (nested inside Owner) is capped and falls back to __typename
-      expect(ownerOp.graphql!.query).to.include('address {')
-      expect(ownerOp.graphql!.query).to.include('__typename')
+      // At depth 1, Address (nested object) is omitted entirely; only scalars on Owner are selected.
+      expect(ownerOp.graphql!.query).to.include('name')
+      expect(ownerOp.graphql!.query).not.to.include('address')
+      expect(ownerOp.graphql!.query).not.to.include('__typename')
     })
 
     it('sets baseUrl from --base-url flag', async () => {

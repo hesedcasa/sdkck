@@ -178,17 +178,17 @@ function renderSelection(type: GraphQLOutputType, depth: number, visited: Readon
 
   if (isScalarType(inner) || isEnumType(inner)) return ''
 
-  // Unions and interfaces: fall back to __typename — callers can hand-edit for
-  // richer selections with inline fragments.
+  // Unions and interfaces: __typename is the only safe fallback without inline fragments.
   if (isUnionType(inner) || isInterfaceType(inner)) {
     return `{\n${pad(indent)}__typename\n${pad(indent - 1)}}`
   }
 
   if (!isObjectType(inner)) return ''
 
-  if (depth <= 0 || visited.has(inner.name)) {
-    return `{\n${pad(indent)}__typename\n${pad(indent - 1)}}`
-  }
+  // Depth exhausted or cycle detected — return '' so the parent skips this field
+  // entirely rather than emitting `field { __typename }`, which some APIs reject
+  // for feature-gated fields.
+  if (depth <= 0 || visited.has(inner.name)) return ''
 
   const nextVisited = new Set(visited).add(inner.name)
   const fields = (inner as GraphQLObjectType).getFields()
@@ -198,13 +198,19 @@ function renderSelection(type: GraphQLOutputType, depth: number, visited: Readon
     // Can't auto-invoke fields that require arguments — skip them.
     if (field.args.some((arg) => isNonNullType(arg.type))) continue
 
-    const sub = renderSelection(field.type, depth - 1, nextVisited, indent + 1)
-    lines.push(sub ? `${pad(indent)}${field.name} ${sub}` : `${pad(indent)}${field.name}`)
+    const unwrappedField = unwrapOutput(field.type)
+    const isLeaf = isScalarType(unwrappedField) || isEnumType(unwrappedField)
+
+    if (isLeaf) {
+      lines.push(`${pad(indent)}${field.name}`)
+    } else {
+      const sub = renderSelection(field.type, depth - 1, nextVisited, indent + 1)
+      if (sub) lines.push(`${pad(indent)}${field.name} ${sub}`)
+      // Object fields with no selectable sub-fields are omitted entirely.
+    }
   }
 
-  if (lines.length === 0) {
-    return `{\n${pad(indent)}__typename\n${pad(indent - 1)}}`
-  }
+  if (lines.length === 0) return ''
 
   return `{\n${lines.join('\n')}\n${pad(indent - 1)}}`
 }

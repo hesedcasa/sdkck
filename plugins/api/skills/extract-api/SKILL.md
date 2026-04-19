@@ -14,11 +14,11 @@ Extract API endpoints from any source and import them into sdkck as executable C
 
 This skill reads API documentation from three source types:
 
-- **GitHub repositories** (public): scans for OpenAPI specs, Postman collections, README, and docs files
-- **HTTP/HTTPS documentation URLs**: fetches single or multi-page doc sites; probes for spec/collection files
-- **Local files**: reads OpenAPI JSON/YAML, Postman collections, markdown, HTML, or plain text
+- **GitHub repositories** (public): scans for OpenAPI specs, Postman collections, GraphQL schemas, README, and docs files
+- **HTTP/HTTPS documentation URLs**: fetches single or multi-page doc sites; probes for spec/collection/schema files; POSTs introspection query to live GraphQL endpoints
+- **Local files**: reads OpenAPI JSON/YAML, Postman collections, GraphQL SDL/introspection JSON, markdown, HTML, or plain text
 
-When an existing OpenAPI spec or Postman collection is found it is used directly — no extraction needed. Otherwise, API endpoints are extracted from the documentation and an OpenAPI 3.0 JSON document is generated. Either way, the result is imported via `sdkck api import`.
+When an existing OpenAPI spec, Postman collection, or GraphQL schema is found it is used directly — no extraction needed. Otherwise, API endpoints are extracted from the documentation and an OpenAPI 3.0 JSON document is generated. Either way, the result is imported via `sdkck api import`.
 
 ## Usage
 
@@ -39,8 +39,11 @@ When an existing OpenAPI spec or Postman collection is found it is used directly
 /extract https://github.com/stripe/openapi --name stripe
 /extract https://developers.notion.com/reference/intro
 /extract https://docs.github.com/en/rest --name github
+/extract https://api.example.com/graphql --name myapi
 /extract ./my-workspace.postman_collection.json --name myapi
 /extract ./my-project/api-docs.md --name myapi
+/extract ./introspection.json --name myapi
+/extract ./schema.graphql --name myapi
 ```
 
 ## Workflow
@@ -63,8 +66,10 @@ Before extracting anything, check whether the source already provides a ready-ma
 
 **Identifying file types:**
 
-- **OpenAPI/Swagger spec**: JSON or YAML with an `openapi` or `swagger` root field → write to `/tmp/openapi-<NAME>.json` and skip to Step 4.
-- **Postman collection**: JSON with `info.schema` containing `getpostman.com` (e.g. `https://schema.getpostman.com/json/collection/v2.1.0/collection.json`) → write to `/tmp/postman-<NAME>.json` and skip to Step 4. Postman files bypass the validation hook and are imported as-is.
+- **OpenAPI/Swagger spec**: JSON or YAML with an `openapi` or `swagger` root field → write to `./sdkck/openapi-<NAME>.json` and skip to Step 4.
+- **Postman collection**: JSON with `info.schema` containing `getpostman.com` (e.g. `https://schema.getpostman.com/json/collection/v2.1.0/collection.json`) → write to `./sdkck/postman-<NAME>.json` and skip to Step 4. Postman files bypass the validation hook and are imported as-is.
+- **GraphQL SDL**: text file with `.graphql`, `.gql`, or `.graphqls` extension, or SDL text starting with `type Query` / `schema {` / `type Mutation` → write to `./sdkck/schema-<NAME>.graphql` and skip to Step 4.
+- **GraphQL introspection JSON**: JSON containing a `__schema` key (either at the root or nested under `data`) → write to `./sdkck/graphql-<NAME>.json` and skip to Step 4.
 
 ---
 
@@ -78,12 +83,13 @@ Before extracting anything, check whether the source already provides a ready-ma
      If any signal is present, the repo is a **generated SDK** — its API spec lives elsewhere. Apply the companion spec heuristics:
    - **Naming pattern**: try `github.com/<owner>/openapi`, `github.com/<owner>/api-spec`, `github.com/<owner>/openapi-spec`, `github.com/<owner>/<repo-without-lang-suffix>` (e.g. `stripe-node` → try `stripe/openapi`). Check if those repos exist and contain a spec file.
    - **README links**: scan the README for any link pointing to a spec URL or a companion repo. Follow the first one that looks like an OpenAPI/Swagger source.
-   - If a companion spec is found → **fetch it, write to the appropriate `/tmp/` path, and skip to Step 4.** Report to the user that the spec came from the companion repo, not the SDK repo.
+   - If a companion spec is found → **fetch it, write to the appropriate `./sdkck/` path, and skip to Step 4.** Report to the user that the spec came from the companion repo, not the SDK repo.
    - If no companion spec can be found → inform the user that this is a generated SDK and suggest providing the spec repo or docs URL directly. Then continue to step 3 to do best-effort extraction from the SDK source.
-3. Probe the repo root and common subdirectories (`docs/`, `spec/`, `api/`, `postman/`) for spec/collection files:
+3. Probe the repo root and common subdirectories (`docs/`, `spec/`, `api/`, `postman/`, `graphql/`) for spec/collection/schema files:
    - OpenAPI candidates: `openapi.json`, `openapi.yaml`, `openapi.yml`, `swagger.json`, `swagger.yaml`, `swagger.yml`, `api.json`, `api.yaml`
    - Postman candidates: `*.postman_collection.json`, `postman_collection.json`, `collection.json`
-   - For each candidate, fetch raw content and identify its type. If confirmed → **write to the appropriate `/tmp/` path and skip to Step 4.**
+   - GraphQL candidates: `schema.graphql`, `schema.gql`, `schema.graphqls`, `*.graphql`, `*.gql`, `introspection.json`, `schema.json`
+   - For each candidate, fetch raw content and identify its type. If confirmed → **write to the appropriate `./sdkck/` path and skip to Step 4.**
 4. No spec or collection found — fall back to content collection:
    - Fetch the README: `https://raw.githubusercontent.com/<owner>/<repo>/HEAD/README.md`
    - Check for a `docs/` directory: `GET https://api.github.com/repos/<owner>/<repo>/contents/docs` — if it exists, fetch up to 5 `.md` files from it.
@@ -93,13 +99,16 @@ Before extracting anything, check whether the source already provides a ready-ma
 
 **HTTP/HTTPS URL** (non-GitHub):
 
-1. If the URL itself looks like a spec or collection (path ends with `.json`/`.yaml`/`.yml`, or contains `openapi`/`swagger`/`postman`/`api-docs` in the path), fetch it directly and identify its type. If confirmed → **write to the appropriate `/tmp/` path and skip to Step 4.**
-2. Derive the base URL (`<scheme>://<host>`) and probe well-known paths with WebFetch (stop at the first valid match):
+1. If the URL's pathname ends with `/graphql` or matches `/(graphql|gql)$` — this is a **live GraphQL endpoint**. No temp file is needed; pass the URL directly to `sdkck api import` in Step 6 (it POSTs an introspection query automatically). Skip to Step 4.
+2. If the URL itself looks like a spec or collection (path ends with `.json`/`.yaml`/`.yml`/`.graphql`/`.gql`, or contains `openapi`/`swagger`/`postman`/`api-docs`/`graphql`/`schema` in the path), fetch it directly and identify its type. If confirmed → **write to the appropriate `./sdkck/` path and skip to Step 4.**
+3. Derive the base URL (`<scheme>://<host>`) and probe well-known paths with WebFetch (stop at the first valid match):
    - OpenAPI: `/openapi.json`, `/openapi.yaml`, `/swagger.json`, `/swagger.yaml`, `/api-docs.json`, `/api-docs`, `/api/openapi.json`, `/api/swagger.json`, `/v1/openapi.json`, `/v2/openapi.json`
    - Postman: `/postman.json`, `/collection.json`, `/postman_collection.json`
-   - If found → **write to the appropriate `/tmp/` path and skip to Step 4.**
-3. Fetch the original page. Scan its links for URLs that reference a spec or collection: paths containing `openapi`, `swagger`, `postman`, `api-spec`, `api-docs`, `schema`, or ending in `.json`/`.yaml`. Fetch the first such link and identify its type. If confirmed → **write to the appropriate `/tmp/` path and skip to Step 4.**
-4. No spec or collection found — fall back to content collection:
+   - GraphQL (live endpoints): `/graphql`, `/api/graphql`, `/v1/graphql`, `/v2/graphql` — attempt introspection (POST `{"query": "__schema { ... }"}`) to confirm; if it responds with `data.__schema`, treat as live endpoint and pass URL directly to Step 4.
+   - GraphQL (schema files): `/schema.graphql`, `/schema.gql`, `/graphql/schema.graphql`
+   - If found → **write to the appropriate `./sdkck/` path and skip to Step 4** (or pass URL directly for live endpoints).
+4. Fetch the original page. Scan its links for URLs that reference a spec or collection: paths containing `openapi`, `swagger`, `postman`, `api-spec`, `api-docs`, `schema`, `graphql`, or ending in `.json`/`.yaml`/`.graphql`. Fetch the first such link and identify its type. If confirmed → **write to the appropriate `./sdkck/` path and skip to Step 4.**
+5. No spec or collection found — fall back to content collection:
    - Count internal links on the same domain whose paths contain `/api/`, `/reference/`, `/endpoint`, `/resource/`, `/operation/`, `/v1/`, `/v2/`, `/methods/`, `/routes/`.
    - If 2 or more such links, spawn the `web-crawler` agent:
      ```
@@ -112,11 +121,13 @@ Before extracting anything, check whether the source already provides a ready-ma
 
 **Local file path**:
 
-1. Read the file with the Read tool. Supported formats: `.md`, `.mdx`, `.html`, `.txt`, `.json`, `.yaml`, `.yml`
-2. If the file is `.json`/`.yaml`/`.yml`:
-   - Contains `openapi` or `swagger` root field → **write to `/tmp/openapi-<NAME>.json` and skip to Step 4.**
-   - Contains `info.schema` with `getpostman.com` → **write to `/tmp/postman-<NAME>.json` and skip to Step 4.**
-3. No spec or collection — continue to Step 3 for extraction.
+1. Read the file with the Read tool. Supported formats: `.md`, `.mdx`, `.html`, `.txt`, `.json`, `.yaml`, `.yml`, `.graphql`, `.gql`, `.graphqls`
+2. If the file is `.graphql`/`.gql`/`.graphqls` → **write to `./sdkck/schema-<NAME>.graphql` and skip to Step 4.**
+3. If the file is `.json`/`.yaml`/`.yml`:
+   - Contains `openapi` or `swagger` root field → **write to `./sdkck/openapi-<NAME>.json` and skip to Step 4.**
+   - Contains `info.schema` with `getpostman.com` → **write to `./sdkck/postman-<NAME>.json` and skip to Step 4.**
+   - Contains `__schema` at root or under `data` → **write to `./sdkck/graphql-<NAME>.json` and skip to Step 4.**
+4. No spec or collection — continue to Step 3 for extraction.
 
 ### Step 3 — Extract API endpoints
 
@@ -137,7 +148,9 @@ Analyze the collected documentation and identify every API operation. For each o
 
 Focus only on HTTP API endpoints. Ignore installation guides, changelogs, and non-API content.
 
-### Step 4 — Generate OpenAPI JSON
+### Step 4 — Generate OpenAPI JSON (REST only)
+
+> **GraphQL sources skip this step.** If a GraphQL SDL, introspection JSON, or live endpoint was found in Step 2, go directly to Step 5/6 — sdkck converts GraphQL schemas internally.
 
 Build a complete OpenAPI document. Extract the base server URL from the documentation (fall back to `https://api.example.com` if not found).
 
@@ -150,25 +163,40 @@ Mandatory rules:
 - All `operationId` values must be unique across the document
 - `info.title` = `NAME`, `info.version` = `"1.0.0"`
 
-Write the completed document to `/tmp/openapi-<NAME>.json`.
+Write the completed document to `./sdkck/openapi-<NAME>.json`.
 
 ### Step 5 — Validation (automatic, OpenAPI only)
 
-If the file written is `/tmp/openapi-<NAME>.json`, the PostToolUse hook validates it automatically. If validation fails, the hook reports specific errors — fix each issue and rewrite the file until the hook reports validation passed.
+If the file written is `./sdkck/openapi-<NAME>.json`, the PostToolUse hook validates it automatically. If validation fails, the hook reports specific errors — fix each issue and rewrite the file until the hook reports validation passed.
 
-Postman collections written to `/tmp/postman-<NAME>.json` bypass the hook and are imported as-is; sdkck handles the Postman → OpenAPI conversion internally.
+Postman collections (`./sdkck/postman-<NAME>.json`), GraphQL SDL files (`./sdkck/schema-<NAME>.graphql`), and GraphQL introspection JSON (`./sdkck/graphql-<NAME>.json`) bypass the hook and are imported as-is; sdkck handles format conversion internally.
 
 ### Step 6 — Import into sdkck
+
+Create an `sdkck/` folder in the current working directory (`mkdir -p sdkck`) and write all intermediate files there. Use `./sdkck/` as the file prefix for all imports below.
 
 Run the appropriate command based on which file was produced:
 
 ```bash
 # OpenAPI spec (generated or found)
-sdkck api import /tmp/openapi-{NAME}.json --name {NAME}
+sdkck api import ./sdkck/openapi-{NAME}.json --name {NAME}
 
 # Postman collection (found directly)
-sdkck api import /tmp/postman-{NAME}.json --name {NAME}
+sdkck api import ./sdkck/postman-{NAME}.json --name {NAME}
+
+# GraphQL SDL file (needs --base-url pointing at the live endpoint)
+sdkck api import ./sdkck/schema-{NAME}.graphql --name {NAME} --base-url {graphql-endpoint}
+
+# GraphQL introspection JSON
+sdkck api import ./sdkck/graphql-{NAME}.json --name {NAME} --graphql
+
+# Live GraphQL endpoint (no temp file — import directly)
+sdkck api import {graphql-endpoint-url} --name {NAME}
 ```
+
+For GraphQL SDL imports, if the base URL (GraphQL endpoint) is not known from the source, ask the user: _"What is the GraphQL endpoint URL? (needed for `--base-url`)"_
+
+The `--selection-depth` flag (default `3`) controls how deeply auto-generated selection sets recurse into nested object types. Increase it if the user wants richer default queries.
 
 Report the result. On success, show:
 
@@ -227,3 +255,6 @@ If auth type cannot be determined from the spec, ask: _"Does this API require au
 | Duplicate `operationId` | Append method suffix (e.g. `getUser`, `postUser`, `deleteUser`) |
 | No base URL found | Use `https://api.example.com` as placeholder |
 | Validation loop (3+ retries) | Report what was found; ask the user to provide a more targeted source file |
+| GraphQL introspection disabled (HTTP 400/403) | Inform user that introspection is disabled on the endpoint; ask them to provide an SDL file or introspection JSON instead |
+| GraphQL SDL missing `--base-url` | Ask: _"What is the GraphQL endpoint URL for this schema?"_ — required to make calls |
+| GraphQL introspection JSON not recognized | Pass `--graphql` flag explicitly: `sdkck api import ./schema.json --name {NAME} --graphql` |

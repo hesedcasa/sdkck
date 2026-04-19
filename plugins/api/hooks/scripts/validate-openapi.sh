@@ -1,8 +1,8 @@
 #!/bin/bash
 # validate-openapi.sh
-# PostToolUse hook: validates OpenAPI JSON files written to /tmp/
+# PostToolUse hook: validates OpenAPI JSON files written to ./sdkck/
 #
-# Exits 0  — file is not a /tmp/*.json target, or validation passed
+# Exits 0  — file is not a ./sdkck/openapi-*.json target, or validation passed
 # Exits 1  — validation failed (blocking; Claude must fix and rewrite)
 
 set -euo pipefail
@@ -10,8 +10,8 @@ set -euo pipefail
 INPUT=$(cat)
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 
-# Only validate openapi-prefixed JSON files written to /tmp/
-if [[ -z "$FILE_PATH" ]] || [[ "$FILE_PATH" != /tmp/openapi-*.json ]]; then
+# Only validate openapi-prefixed JSON files written to the sdkck/ working folder
+if [[ -z "$FILE_PATH" ]] || [[ "$FILE_PATH" != */sdkck/openapi-*.json ]]; then
   exit 0
 fi
 

@@ -166,10 +166,10 @@ describe('graphql-converter', () => {
         type Query { a: A }
       `)
       const shallow = convertSchema(deep, {selectionDepth: 1}).operations.find((o) => o.operationId === 'a')!
-      // Depth 1 should visit only A's fields — B appears as just __typename
-      expect(shallow.graphql!.query).to.include('b {')
-      expect(shallow.graphql!.query).to.include('__typename')
-      expect(shallow.graphql!.query).not.to.match(/c\s*\{/)
+      // Depth 1: A's scalar fields are selected; B is an object beyond the limit and omitted entirely.
+      expect(shallow.graphql!.query).to.include('name')
+      expect(shallow.graphql!.query).not.to.include('b')
+      expect(shallow.graphql!.query).not.to.include('__typename')
     })
   })
 
