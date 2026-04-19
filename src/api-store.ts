@@ -149,7 +149,8 @@ export async function readStore(configDir: string): Promise<ApiStore> {
   let files: string[]
   try {
     files = await readdir(configDir)
-  } catch {
+  } catch (error) {
+    console.error(`Failed to read config directory "${configDir}": ${(error as Error).message}`)
     return store
   }
 
@@ -163,7 +164,8 @@ export async function readStore(configDir: string): Promise<ApiStore> {
       try {
         const raw = await readFile(join(configDir, file), 'utf8')
         return JSON.parse(raw) as StoredSpec
-      } catch {
+      } catch (error) {
+        console.error(`Failed to load spec file "${file}": ${(error as Error).message}`)
         return null
       }
     }),
@@ -185,7 +187,11 @@ export async function writeStore(configDir: string, store: ApiStore): Promise<vo
     Object.entries(store.specs).map(async ([name, spec]) => {
       await writeFile(specFilePath(configDir, name), JSON.stringify(spec, null, 2), 'utf8')
       // Remove any stale legacy file so readStore sees a single source of truth.
-      await unlink(legacySpecFilePath(configDir, name)).catch(() => {})
+      await unlink(legacySpecFilePath(configDir, name)).catch((error: NodeJS.ErrnoException) => {
+        if (error.code !== 'ENOENT') {
+          console.error(`Failed to remove legacy spec file for "${name}": ${error.message}`)
+        }
+      })
     }),
   )
 }
@@ -195,7 +201,10 @@ export async function deleteSpec(configDir: string, name: string): Promise<boole
     [specFilePath(configDir, name), legacySpecFilePath(configDir, name)].map((fp) =>
       unlink(fp)
         .then(() => true)
-        .catch(() => false),
+        .catch((error: NodeJS.ErrnoException) => {
+          if (error.code === 'ENOENT') return false
+          throw new Error(`Failed to delete spec file "${fp}": ${error.message}`)
+        }),
     ),
   )
   return results.some(Boolean)

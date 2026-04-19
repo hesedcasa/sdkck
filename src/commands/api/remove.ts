@@ -20,7 +20,11 @@ export default class ApiRemove extends Command {
       this.error(`No spec found with name "${args.name}"`)
     }
 
-    await deleteSpec(this.config.configDir, args.name)
+    const deleted = await deleteSpec(this.config.configDir, args.name)
+    if (!deleted) {
+      this.warn(`Spec "${args.name}" was registered but no file was found on disk.`)
+    }
+
     this.log(`Removed "${args.name}".`)
   }
 }

@@ -1,4 +1,5 @@
 import {expect} from 'chai'
+import {existsSync} from 'node:fs'
 import {mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
@@ -88,6 +89,34 @@ describe('api-store', () => {
       expect(store.specs).to.deep.equal({})
     })
 
+    it('prefers api-<name>.json over openapi-<name>.json when both exist', async () => {
+      const dir = join(tmpDir, 'collision')
+      await mkdir(dir)
+      const apiSpec = {
+        auth: {type: 'none'},
+        baseUrl: 'https://api.example.com',
+        description: '',
+        name: 'myapi',
+        operations: [],
+        source: '',
+        title: 'API Version',
+      }
+      const legacySpec = {
+        auth: {type: 'none'},
+        baseUrl: 'https://legacy.example.com',
+        description: '',
+        name: 'myapi',
+        operations: [],
+        source: '',
+        title: 'Legacy Version',
+      }
+      await writeFile(join(dir, 'api-myapi.json'), JSON.stringify(apiSpec))
+      await writeFile(join(dir, 'openapi-myapi.json'), JSON.stringify(legacySpec))
+      const store = await readStore(dir)
+      expect(store.specs.myapi.title).to.equal('API Version')
+      expect(Object.keys(store.specs)).to.have.length(1)
+    })
+
     it('reads multiple spec files into the same store', async () => {
       const dir = join(tmpDir, 'multi-specs')
       await mkdir(dir)
@@ -133,7 +162,7 @@ describe('api-store', () => {
       expect(readBack.specs).to.deep.equal({})
     })
 
-    it('writes one JSON file per spec using the openapi-<name>.json naming', async () => {
+    it('writes one JSON file per spec using the api-<name>.json naming', async () => {
       const dir = join(tmpDir, 'write-test')
       const store: ApiStore = {
         specs: {
@@ -158,10 +187,33 @@ describe('api-store', () => {
         },
       }
       await writeStore(dir, store)
+      expect(existsSync(join(dir, 'api-foo.json'))).to.be.true
+      expect(existsSync(join(dir, 'openapi-foo.json'))).to.be.false
       const readBack = await readStore(dir)
       expect(Object.keys(readBack.specs)).to.have.length(2)
       expect(readBack.specs.foo.title).to.equal('Foo')
       expect(readBack.specs.bar.baseUrl).to.equal('https://bar.com')
+    })
+
+    it('deletes the legacy openapi-<name>.json file after writing', async () => {
+      const dir = join(tmpDir, 'migrate')
+      await mkdir(dir)
+      const legacySpec = {
+        auth: {type: 'none'},
+        baseUrl: '',
+        description: '',
+        name: 'mig',
+        operations: [],
+        source: '',
+        title: 'Mig',
+      }
+      await writeFile(join(dir, 'openapi-mig.json'), JSON.stringify(legacySpec))
+
+      const store = await readStore(dir)
+      await writeStore(dir, store)
+
+      expect(existsSync(join(dir, 'openapi-mig.json'))).to.be.false
+      expect(existsSync(join(dir, 'api-mig.json'))).to.be.true
     })
 
     it('round-trips a store with operations and auth', async () => {

@@ -203,5 +203,69 @@ describe('graphql-converter', () => {
       const schema = await loadGraphQLSchema(jsonPath)
       expect(schema.getQueryType()?.name).to.equal('Query')
     })
+
+    /* eslint-disable n/no-unsupported-features/node-builtins */
+    describe('live endpoint (mocked fetch)', () => {
+      let origFetch: typeof globalThis.fetch
+
+      beforeEach(() => {
+        origFetch = globalThis.fetch
+      })
+
+      afterEach(() => {
+        globalThis.fetch = origFetch
+      })
+
+      it('throws on HTTP error from live endpoint', async () => {
+        globalThis.fetch = async () =>
+          ({json: async () => ({}), ok: false, status: 403, text: async () => ''}) as unknown as Response
+
+        let thrown: Error | undefined
+        try {
+          await loadGraphQLSchema('https://api.example.com/graphql')
+        } catch (error) {
+          thrown = error as Error
+        }
+
+        expect(thrown).to.exist
+        expect(thrown!.message).to.include('HTTP 403')
+      })
+
+      it('throws when introspection is disabled (errors array in response)', async () => {
+        globalThis.fetch = async () =>
+          ({
+            json: async () => ({errors: [{message: 'introspection disabled'}]}),
+            ok: true,
+            status: 200,
+            text: async () => '',
+          }) as unknown as Response
+
+        let thrown: Error | undefined
+        try {
+          await loadGraphQLSchema('https://api.example.com/graphql')
+        } catch (error) {
+          thrown = error as Error
+        }
+
+        expect(thrown).to.exist
+        expect(thrown!.message).to.include('GraphQL introspection failed')
+        expect(thrown!.message).to.include('introspection disabled')
+      })
+    })
+    /* eslint-enable n/no-unsupported-features/node-builtins */
+  })
+
+  describe('parseSchemaSource', () => {
+    it('throws when JSON does not contain __schema', () => {
+      let thrown: Error | undefined
+      try {
+        parseSchemaSource('{"openapi":"3.0.0"}')
+      } catch (error) {
+        thrown = error as Error
+      }
+
+      expect(thrown).to.exist
+      expect(thrown!.message).to.include('missing __schema')
+    })
   })
 })
