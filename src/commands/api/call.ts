@@ -2,12 +2,14 @@ import {Args, Command, Flags} from '@oclif/core'
 
 import {
   buildAuthHeaders,
+  buildGraphQLBody,
   buildInsecureFetch,
   buildUrl,
+  coerceBodyValue,
   parseKV,
   readStore,
   type StoredOperation,
-} from '../../openapi-store.js'
+} from '../../api-store.js'
 
 /**
  * Minimal interface for the fetch-like function used to make HTTP requests.
@@ -22,23 +24,23 @@ export interface FetchLike {
   ): Promise<{ok: boolean; status: number; statusText: string; text: () => Promise<string>}>
 }
 
-export default class OpenApiCall extends Command {
+export default class ApiCall extends Command {
   static args = {
     name: Args.string({
-      description: 'API name (as shown in `openapi list`)',
+      description: 'API name (as shown in `api list`)',
       required: true,
     }),
     operationId: Args.string({
-      description: 'Operation ID to call (as shown in `openapi list <name>`)',
+      description: 'Operation ID to call (as shown in `api list <name>`)',
       required: true,
     }),
   }
-  static description = 'Call an imported OpenAPI operation'
+  static description = 'Call an imported API operation'
   static examples = [
-    '<%= config.bin %> openapi call petstore listPets',
-    '<%= config.bin %> openapi call petstore getPetById --param petId=42',
-    '<%= config.bin %> openapi call petstore createPet --body name=Fido --body tag=dog',
-    '<%= config.bin %> openapi call petstore listPets --query limit=10 --header X-Trace=abc',
+    '<%= config.bin %> api call petstore listPets',
+    '<%= config.bin %> api call petstore getPetById --param petId=42',
+    '<%= config.bin %> api call petstore createPet --body name=Fido --body tag=dog',
+    '<%= config.bin %> api call petstore listPets --query limit=10 --header X-Trace=abc',
   ]
   static flags = {
     'base-url': Flags.string({
@@ -70,24 +72,24 @@ export default class OpenApiCall extends Command {
   _fetch: FetchLike = fetch
 
   async run(): Promise<void> {
-    const {args, flags} = await this.parse(OpenApiCall)
+    const {args, flags} = await this.parse(ApiCall)
 
     const store = await readStore(this.config.configDir)
     const spec = store.specs[args.name]
     if (!spec) {
-      this.error(`No spec found with name "${args.name}". Run \`openapi list\` to see available specs.`)
+      this.error(`No spec found with name "${args.name}". Run \`api list\` to see available specs.`)
     }
 
     const operation: StoredOperation | undefined = spec.operations.find((o) => o.operationId === args.operationId)
     if (!operation) {
       this.error(
-        `Operation "${args.operationId}" not found in "${args.name}". Run \`openapi list ${args.name}\` to see operations.`,
+        `Operation "${args.operationId}" not found in "${args.name}". Run \`api list ${args.name}\` to see operations.`,
       )
     }
 
     const baseUrl = flags['base-url'] ?? spec.baseUrl
     if (!baseUrl) {
-      this.error('No base URL set. Supply one with --base-url or re-import with `openapi import --base-url <url>`.')
+      this.error('No base URL set. Supply one with --base-url or re-import with `api import --base-url <url>`.')
     }
 
     // ── Parse key=value pairs ──────────────────────────────────────────────────
@@ -107,9 +109,22 @@ export default class OpenApiCall extends Command {
       url.searchParams.set(k, v)
     }
 
+    // ── Build body ─────────────────────────────────────────────────────────────
+    const coercedBody: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(parsedBody)) {
+      coercedBody[k] = coerceBodyValue(operation.bodyParams, k, v)
+    }
+
+    const isGraphQL = operation.graphql !== undefined
+    const hasBody = isGraphQL || Object.keys(coercedBody).length > 0
+    const requestBody = isGraphQL
+      ? buildGraphQLBody(operation.graphql!.query, coercedBody)
+      : hasBody
+        ? JSON.stringify(coercedBody)
+        : undefined
+
     // ── Build headers ──────────────────────────────────────────────────────────
     // parsedHeaders (from --header) take priority — they can override the inferred Content-Type.
-    const hasBody = Object.keys(parsedBody).length > 0
     const headers: Record<string, string> = {
       ...buildAuthHeaders(spec.auth),
       ...headerParams,
@@ -122,7 +137,7 @@ export default class OpenApiCall extends Command {
 
     // ── Execute ────────────────────────────────────────────────────────────────
     const method = operation.method.toUpperCase()
-    const reqInit = {body: hasBody ? JSON.stringify(parsedBody) : undefined, headers, method}
+    const reqInit = {body: requestBody, headers, method}
 
     this.log(`${method} ${url.toString()}`)
 

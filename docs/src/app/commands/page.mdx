@@ -12,16 +12,16 @@ Sidekick provides built-in commands and dynamically registers commands from impo
 | `sdkck version`          | Show version info           |
 | `sdkck update [CHANNEL]` | Update the CLI              |
 
-## OpenAPI commands
+## API commands
 
-| Command                               | Description                                  |
-| ------------------------------------- | -------------------------------------------- |
-| `sdkck openapi import SOURCE`         | Import an OpenAPI spec or Postman collection |
-| `sdkck openapi list [NAME]`           | List imported specs and operations           |
-| `sdkck openapi call NAME OPERATIONID` | Call an imported operation                   |
-| `sdkck openapi auth NAME`             | Configure authentication for a spec          |
-| `sdkck openapi config NAME`           | Update spec configuration                    |
-| `sdkck openapi remove NAME`           | Remove an imported spec                      |
+| Command                           | Description                                                   |
+| --------------------------------- | ------------------------------------------------------------- |
+| `sdkck api import SOURCE`         | Import an OpenAPI spec, Postman collection, or GraphQL schema |
+| `sdkck api list [NAME]`           | List imported specs and operations                            |
+| `sdkck api call NAME OPERATIONID` | Call an imported operation                                    |
+| `sdkck api auth NAME`             | Configure authentication for a spec                           |
+| `sdkck api config NAME`           | Update spec configuration                                     |
+| `sdkck api remove NAME`           | Remove an imported spec                                       |
 
 ## Permission commands
 
@@ -65,7 +65,7 @@ These dynamic commands appear in `sdkck help` and `sdkck commands` just like bui
 ## Getting help
 
 ```bash
-sdkck --help                  # General help
-sdkck openapi --help          # Topic help
-sdkck openapi import --help   # Command-specific help
+sdkck --help              # General help
+sdkck api --help          # Topic help
+sdkck api import --help   # Command-specific help
 ```

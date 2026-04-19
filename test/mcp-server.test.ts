@@ -37,7 +37,7 @@ const SEARCH_CMD = cmd({
 const IMPORT_CMD = cmd({
   args: {source: {description: 'Path or URL', name: 'source', required: true}},
   flags: {name: {description: 'Override spec name', required: false, type: 'option'}},
-  id: 'openapi:import',
+  id: 'api:import',
   summary: 'Import an OpenAPI spec',
 })
 
@@ -181,9 +181,9 @@ describe('mcp-server', () => {
     it('resolves command by space-separated ID (display form)', async () => {
       const executable = cmdWithOutput(IMPORT_CMD, 'imported')
       const client = await makeClient([executable, SEARCH_CMD])
-      // 'openapi import' is the display form of 'openapi:import'
+      // 'api import' is the display form of 'api:import'
       const result = (await client.callTool({
-        arguments: {args: {source: './spec.json'}, commandId: 'openapi import'},
+        arguments: {args: {source: './spec.json'}, commandId: 'api import'},
         name: 'run_command',
       })) as any // eslint-disable-line @typescript-eslint/no-explicit-any
       expect(result.isError).to.be.undefined
@@ -194,9 +194,9 @@ describe('mcp-server', () => {
     it('resolves command by colon-separated ID (canonical form)', async () => {
       const executable = cmdWithOutput(IMPORT_CMD, 'imported-colon')
       const client = await makeClient([executable, SEARCH_CMD])
-      // 'openapi:import' is the canonical id stored in the map
+      // 'api:import' is the canonical id stored in the map
       const result = (await client.callTool({
-        arguments: {args: {source: './spec.json'}, commandId: 'openapi:import'},
+        arguments: {args: {source: './spec.json'}, commandId: 'api:import'},
         name: 'run_command',
       })) as any // eslint-disable-line @typescript-eslint/no-explicit-any
       expect(result.isError).to.be.undefined
@@ -227,7 +227,7 @@ describe('mcp-server', () => {
       } as never as Command.Loadable
       const client = await makeClient([loadable, SEARCH_CMD])
       await client.callTool({
-        arguments: {args: {name: 'my-api', source: './api.json'}, commandId: 'openapi import'},
+        arguments: {args: {name: 'my-api', source: './api.json'}, commandId: 'api import'},
         name: 'run_command',
       })
       expect(capturedArgv).to.deep.equal(['./api.json', '--name', 'my-api'])
@@ -237,7 +237,7 @@ describe('mcp-server', () => {
       const failing = cmdThatThrows(IMPORT_CMD, 'something went wrong')
       const client = await makeClient([failing, SEARCH_CMD])
       const result = (await client.callTool({
-        arguments: {args: {source: './bad.json'}, commandId: 'openapi import'},
+        arguments: {args: {source: './bad.json'}, commandId: 'api import'},
         name: 'run_command',
       })) as any // eslint-disable-line @typescript-eslint/no-explicit-any
       expect(result.isError).to.be.true

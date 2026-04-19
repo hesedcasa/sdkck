@@ -90,9 +90,21 @@ interface BodyParam {
   type: string
 }
 
+interface GraphQLOperationMeta {
+  fieldName: string
+  operationType: 'mutation' | 'query'
+  /**
+   * The full GraphQL document to POST, including `query Name($var: Type!) { ... }`
+   * or `mutation Name($var: Type!) { ... }` with a pre-generated selection set.
+   */
+  query: string
+}
+
 export interface StoredOperation {
   bodyParams: Record<string, BodyParam>
   description: string
+  /** Present when this operation was extracted from a GraphQL schema. */
+  graphql?: GraphQLOperationMeta
   method: string
   operationId: string
   parameters: OpenApiParameter[]
@@ -105,6 +117,8 @@ interface StoredSpec {
   baseUrl: string
   description: string
   insecure?: boolean
+  /** Discriminates between OpenAPI/Postman-derived specs and GraphQL-derived specs. */
+  kind?: 'graphql' | 'openapi'
   name: string
   operations: StoredOperation[]
   source: string
@@ -112,68 +126,88 @@ interface StoredSpec {
 }
 
 // ts-prune-ignore-next
-export interface OpenApiStore {
+export interface ApiStore {
   specs: Record<string, StoredSpec>
 }
 
 // ─── File paths ───────────────────────────────────────────────────────────────
 
 function specFilePath(configDir: string, name: string): string {
+  return join(configDir, `api-${name}.json`)
+}
+
+function legacySpecFilePath(configDir: string, name: string): string {
   return join(configDir, `openapi-${name}.json`)
 }
 
 // ─── Read / write ─────────────────────────────────────────────────────────────
 
-export async function readStore(configDir: string): Promise<OpenApiStore> {
-  const store: OpenApiStore = {specs: {}}
+export async function readStore(configDir: string): Promise<ApiStore> {
+  const store: ApiStore = {specs: {}}
   if (!existsSync(configDir)) return store
 
   let files: string[]
   try {
     files = await readdir(configDir)
-  } catch {
+  } catch (error) {
+    console.error(`Failed to read config directory "${configDir}": ${(error as Error).message}`)
     return store
   }
 
-  const specFiles = files.filter((f) => /^openapi-.+\.json$/.test(f))
+  // Accept both `api-<name>.json` (current) and `openapi-<name>.json` (legacy).
+  // When both exist for the same spec name, api-<name>.json wins.
+  const specFiles = files.filter((f) => /^(api|openapi)-.+\.json$/.test(f))
+  specFiles.sort((a, b) => (a.startsWith('api-') ? -1 : b.startsWith('api-') ? 1 : 0))
+
   const loaded = await Promise.all(
     specFiles.map(async (file) => {
       try {
         const raw = await readFile(join(configDir, file), 'utf8')
         return JSON.parse(raw) as StoredSpec
-      } catch {
+      } catch (error) {
+        console.error(`Failed to load spec file "${file}": ${(error as Error).message}`)
         return null
       }
     }),
   )
 
   for (const spec of loaded) {
-    if (spec) store.specs[spec.name] = spec
+    if (spec && !store.specs[spec.name]) store.specs[spec.name] = spec
   }
 
   return store
 }
 
-export async function writeStore(configDir: string, store: OpenApiStore): Promise<void> {
+export async function writeStore(configDir: string, store: ApiStore): Promise<void> {
   if (!existsSync(configDir)) {
     await mkdir(configDir, {recursive: true})
   }
 
   await Promise.all(
-    Object.entries(store.specs).map(([name, spec]) =>
-      writeFile(specFilePath(configDir, name), JSON.stringify(spec, null, 2), 'utf8'),
-    ),
+    Object.entries(store.specs).map(async ([name, spec]) => {
+      await writeFile(specFilePath(configDir, name), JSON.stringify(spec, null, 2), 'utf8')
+      // Remove any stale legacy file so readStore sees a single source of truth.
+      await unlink(legacySpecFilePath(configDir, name)).catch((error: NodeJS.ErrnoException) => {
+        if (error.code !== 'ENOENT') {
+          console.error(`Failed to remove legacy spec file for "${name}": ${error.message}`)
+        }
+      })
+    }),
   )
 }
 
 export async function deleteSpec(configDir: string, name: string): Promise<boolean> {
-  const fp = specFilePath(configDir, name)
-  try {
-    await unlink(fp)
-    return true
-  } catch {
-    return false
-  }
+  const results = await Promise.all(
+    [specFilePath(configDir, name), legacySpecFilePath(configDir, name)].map((fp) =>
+      unlink(fp)
+        .then(() => true)
+        .catch((error: NodeJS.ErrnoException) => {
+          if (error.code === 'ENOENT') return false
+          throw new Error(`Failed to delete spec file "${fp}": ${error.message}`)
+        }),
+    ),
+  )
+  return results.some(Boolean)
 }
 
 // ─── Spec loading ─────────────────────────────────────────────────────────────
@@ -322,6 +356,52 @@ export function extractBaseUrl(spec: OpenApiSpec & {servers?: Array<{url: string
   }
 
   return ''
+}
+
+// ─── Body value coercion ──────────────────────────────────────────────────────
+
+/**
+ * Coerces a raw string value (argv or --body flag) to the JSON-encodable type
+ * indicated by the StoredOperation's bodyParam metadata. Used to turn stringly
+ * typed CLI input into real numbers/booleans/objects before serialising as JSON.
+ */
+export function coerceBodyValue(bodyParams: Record<string, BodyParam>, name: string, raw: string): unknown {
+  const paramType = bodyParams[name]?.type
+  switch (paramType) {
+    case 'array':
+    case 'object': {
+      try {
+        return JSON.parse(raw)
+      } catch {
+        return raw
+      }
+    }
+
+    case 'boolean': {
+      return raw === 'true'
+    }
+
+    case 'integer':
+    case 'number': {
+      const n = Number(raw)
+      return Number.isNaN(n) ? raw : n
+    }
+
+    default: {
+      return raw
+    }
+  }
+}
+
+/**
+ * Wraps a variables map for a GraphQL operation into the JSON body expected by
+ * a GraphQL endpoint: `{query, variables}`. Omits `variables` when empty so the
+ * server sees an identical request to what a typical GraphQL client sends.
+ */
+export function buildGraphQLBody(query: string, variables: Record<string, unknown>): string {
+  const payload: {query: string; variables?: Record<string, unknown>} = {query}
+  if (Object.keys(variables).length > 0) payload.variables = variables
+  return JSON.stringify(payload)
 }
 
 // ─── KV parsing ───────────────────────────────────────────────────────────────

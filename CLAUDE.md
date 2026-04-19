@@ -28,15 +28,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Built-in Features
 
-### OpenAPI Import (`openapi` topic)
+### API Import (`api` topic)
 
-`openapi import <source>` reads an OpenAPI spec (JSON/YAML) or Postman collection and stores each operation in `~/.local/share/sdkck/openapi/<name>/`. The name defaults to the spec title slug but can be overridden with `--name`. The `init` hook (`src/hooks/init/register-openapi-commands.ts`) runs at startup and calls `registerOpenApiCommands` to load every stored operation as a first-class oclif command under `<specName> <operationId>`. These dynamic commands appear in `sdkck help` and `sdkck commands` exactly like static commands.
+`api import <source>` reads an OpenAPI spec (JSON/YAML), Postman collection, or GraphQL schema (SDL file, introspection JSON, or live endpoint) and stores each operation as a `StoredOperation`. The name defaults to the spec title slug but can be overridden with `--name`. The `init` hook (`src/hooks/init/register-api-commands.ts`) runs at startup and calls `registerApiCommands` to load every stored operation as a first-class oclif command under `<specName> <operationId>`. These dynamic commands appear in `sdkck help` and `sdkck commands` exactly like static commands.
 
-Key files: `src/openapi-store.ts` (CRUD for stored specs/ops), `src/openapi-dynamic-commands.ts` (command factory), `src/hooks/init/register-openapi-commands.ts`, `src/postman-converter.ts` (Postman→OpenAPI via `@scalar/postman-to-openapi`).
+Key files: `src/api-store.ts` (CRUD for stored specs/ops), `src/api-dynamic-commands.ts` (command factory), `src/hooks/init/register-api-commands.ts`, `src/postman-converter.ts` (Postman→OpenAPI via `@scalar/postman-to-openapi`), `src/graphql-converter.ts` (GraphQL SDL/introspection → StoredOperations).
 
-Other subcommands: `openapi auth`, `openapi call`, `openapi list`, `openapi config`, `openapi remove`.
+Other subcommands: `api auth`, `api call`, `api list`, `api config`, `api remove`.
 
-`openapi import --insecure` and `openapi config --insecure` skip TLS certificate verification — useful for self-signed certs. `--no-insecure` disables it on an already-imported spec.
+`api import --insecure` and `api config --insecure` skip TLS certificate verification — useful for self-signed certs. `--no-insecure` disables it on an already-imported spec.
+
+**Storage layout:** stored under `<configDir>/api-<name>.json`. `readStore` also reads legacy `openapi-<name>.json` files for backward compat; `writeStore` migrates by deleting the legacy file after the first successful write.
 
 ### Permission Allowlist (`permission` topic)
 
@@ -87,11 +89,11 @@ Commands that depend on external clients (e.g., `Search._llmClient`) use public 
 
 ## Gotchas
 
-- **Lint false-positive after build:** `npm run build` wipes `dist/`, so the `posttest` lint step always errors on `bin/run.js` (`Unable to resolve path to module '../dist/openapi-dynamic-commands.js'`). Pre-existing; not a regression.
+- **Lint false-positive after build:** `npm run build` wipes `dist/`, so the `posttest` lint step always errors on `bin/run.js` (`Unable to resolve path to module '../dist/api-dynamic-commands.js'`). Pre-existing; not a regression.
 - **`@scalar/openapi-parser` peer dep:** Installing this package also requires `npm install @scalar/types` explicitly — npm does not auto-install it.
 - **`@scalar/postman-to-openapi` peer dep:** Same pattern — also requires `npm install @scalar/types` explicitly.
 - **`extractOperations` expects a dereferenced spec:** Call `loadSpec` (which runs `dereference` internally) before passing a spec to `extractOperations`. Tests that call `extractOperations` directly should use inline specs without `$ref`s.
-- **`run_command` accepts both separators:** the MCP tool accepts command IDs with either spaces (`"openapi import"`) or colons (`"openapi:import"`) — both resolve to the same command.
+- **`run_command` accepts both separators:** the MCP tool accepts command IDs with either spaces (`"api import"`) or colons (`"api:import"`) — both resolve to the same command.
 
 ## Conventions
 

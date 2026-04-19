@@ -3,10 +3,10 @@ import {mkdtemp, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
-import OpenApiRemove from '../../../src/commands/openapi/remove.js'
-import {type OpenApiStore, readStore, writeStore} from '../../../src/openapi-store.js'
+import {type ApiStore, readStore, writeStore} from '../../../src/api-store.js'
+import ApiRemove from '../../../src/commands/api/remove.js'
 
-const FIXTURE_STORE: OpenApiStore = {
+const FIXTURE_STORE: ApiStore = {
   specs: {
     petstore: {
       auth: {type: 'none'},
@@ -20,7 +20,7 @@ const FIXTURE_STORE: OpenApiStore = {
   },
 }
 
-function makeRemove(argv: string[], configDir: string): {cmd: OpenApiRemove; output: () => string} {
+function makeRemove(argv: string[], configDir: string): {cmd: ApiRemove; output: () => string} {
   const lines: string[] = []
   const config = {
     bin: 'sdkck',
@@ -28,7 +28,7 @@ function makeRemove(argv: string[], configDir: string): {cmd: OpenApiRemove; out
     runHook: async () => ({failures: [], successes: []}),
   } as never
 
-  const cmd = new OpenApiRemove(argv, config)
+  const cmd = new ApiRemove(argv, config)
   cmd.log = (message = '') => {
     lines.push(String(message))
   }
@@ -36,7 +36,7 @@ function makeRemove(argv: string[], configDir: string): {cmd: OpenApiRemove; out
   return {cmd, output: () => lines.join('\n')}
 }
 
-describe('openapi remove', () => {
+describe('api remove', () => {
   let tmpDir: string
 
   before(async () => {

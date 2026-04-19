@@ -4,12 +4,14 @@ import {Args, Command, Flags} from '@oclif/core'
 
 import {
   buildAuthHeaders,
+  buildGraphQLBody,
   buildInsecureFetch,
   buildUrl,
+  coerceBodyValue,
   parseKV,
   readStore,
   type StoredOperation,
-} from './openapi-store.js'
+} from './api-store.js'
 
 async function readStdin(): Promise<string> {
   const parts: string[] = []
@@ -67,19 +69,6 @@ function routeUrlParams(
   return {headerParams, pathParams, queryParams}
 }
 
-function coerceBodyValue(bodyParams: StoredOperation['bodyParams'], name: string, raw: string): unknown {
-  const paramType = bodyParams[name]?.type
-  if (paramType === 'object' || paramType === 'array') {
-    try {
-      return JSON.parse(raw)
-    } catch {
-      // fall through — return as string so the server can report the error
-    }
-  }
-
-  return raw
-}
-
 async function buildRequestBody(
   op: StoredOperation,
   bodyParamNames: {argNames: Record<string, string>; flagNames: Record<string, string>},
@@ -111,6 +100,12 @@ async function buildRequestBody(
     if (value !== undefined) body[name] = coerceBodyValue(op.bodyParams, name, value)
   }
 
+  // GraphQL: always POST {query, variables} — even with zero variables the server
+  // needs the query document.
+  if (op.graphql) {
+    return {inferredContentType: 'application/json', requestBody: buildGraphQLBody(op.graphql.query, body)}
+  }
+
   if (Object.keys(body).length === 0) return {inferredContentType: undefined, requestBody: undefined}
 
   return {inferredContentType: 'application/json', requestBody: JSON.stringify(body)}
@@ -119,7 +114,7 @@ async function buildRequestBody(
 // ─── Dynamic command factory ──────────────────────────────────────────────────
 
 /**
- * Creates a fully-functional oclif Command class for a single OpenAPI operation.
+ * Creates a fully-functional oclif Command class for a single imported API operation.
  * Required URL/query/header/body parameters become positional `Args`.
  * Optional parameters become `--<name>` flags.
  * Body param names that collide with URL param names are prefixed with `body-`.
@@ -220,12 +215,12 @@ function createOperationCommand(
       const store = await readStore(this.config.configDir)
       const spec = store.specs[capturedSpecName]
       if (!spec) {
-        this.error(`Spec "${capturedSpecName}" was removed. Run \`openapi list\` to see available specs.`)
+        this.error(`Spec "${capturedSpecName}" was removed. Run \`api list\` to see available specs.`)
       }
 
       const {baseUrl} = spec
       if (!baseUrl) {
-        this.error('No base URL set. Use --base-url or re-import with `openapi import --base-url <url>`.')
+        this.error('No base URL set. Use --base-url or re-import with `api import --base-url <url>`.')
       }
 
       // ── Route URL params ────────────────────────────────────────────────────
@@ -312,11 +307,11 @@ interface InternalConfig {
 }
 
 /**
- * Reads the openapi store and injects one oclif command per operation into the
+ * Reads the api store and injects one oclif command per operation into the
  * Config's internal `_commands` map, making them visible in `help`, `commands`,
  * and invocable directly as `<specName> <operationId> [args] [flags]`.
  */
-export async function registerOpenApiCommands(config: Config): Promise<void> {
+export async function registerApiCommands(config: Config): Promise<void> {
   const store = await readStore(config.configDir)
   const internal = config as unknown as InternalConfig
 

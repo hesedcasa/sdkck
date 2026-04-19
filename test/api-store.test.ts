@@ -1,21 +1,22 @@
 import {expect} from 'chai'
+import {existsSync} from 'node:fs'
 import {mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
 import {
+  type ApiStore,
   buildAuthHeaders,
   buildUrl,
   deleteSpec,
   extractBaseUrl,
   extractOperations,
-  type OpenApiStore,
   parseKV,
   readStore,
   writeStore,
-} from '../src/openapi-store.js'
+} from '../src/api-store.js'
 
-describe('openapi-store', () => {
+describe('api-store', () => {
   // ─── readStore / writeStore / deleteSpec ──────────────────────────────────────
 
   describe('readStore', () => {
@@ -88,6 +89,34 @@ describe('openapi-store', () => {
       expect(store.specs).to.deep.equal({})
     })
 
+    it('prefers api-<name>.json over openapi-<name>.json when both exist', async () => {
+      const dir = join(tmpDir, 'collision')
+      await mkdir(dir)
+      const apiSpec = {
+        auth: {type: 'none'},
+        baseUrl: 'https://api.example.com',
+        description: '',
+        name: 'myapi',
+        operations: [],
+        source: '',
+        title: 'API Version',
+      }
+      const legacySpec = {
+        auth: {type: 'none'},
+        baseUrl: 'https://legacy.example.com',
+        description: '',
+        name: 'myapi',
+        operations: [],
+        source: '',
+        title: 'Legacy Version',
+      }
+      await writeFile(join(dir, 'api-myapi.json'), JSON.stringify(apiSpec))
+      await writeFile(join(dir, 'openapi-myapi.json'), JSON.stringify(legacySpec))
+      const store = await readStore(dir)
+      expect(store.specs.myapi.title).to.equal('API Version')
+      expect(Object.keys(store.specs)).to.have.length(1)
+    })
+
     it('reads multiple spec files into the same store', async () => {
       const dir = join(tmpDir, 'multi-specs')
       await mkdir(dir)
@@ -127,15 +156,15 @@ describe('openapi-store', () => {
 
     it('creates the configDir if it does not exist', async () => {
       const dir = join(tmpDir, 'new-config')
-      const store: OpenApiStore = {specs: {}}
+      const store: ApiStore = {specs: {}}
       await writeStore(dir, store)
       const readBack = await readStore(dir)
       expect(readBack.specs).to.deep.equal({})
     })
 
-    it('writes one JSON file per spec using the openapi-<name>.json naming', async () => {
+    it('writes one JSON file per spec using the api-<name>.json naming', async () => {
       const dir = join(tmpDir, 'write-test')
-      const store: OpenApiStore = {
+      const store: ApiStore = {
         specs: {
           bar: {
             auth: {type: 'none'},
@@ -158,15 +187,38 @@ describe('openapi-store', () => {
         },
       }
       await writeStore(dir, store)
+      expect(existsSync(join(dir, 'api-foo.json'))).to.be.true
+      expect(existsSync(join(dir, 'openapi-foo.json'))).to.be.false
       const readBack = await readStore(dir)
       expect(Object.keys(readBack.specs)).to.have.length(2)
       expect(readBack.specs.foo.title).to.equal('Foo')
       expect(readBack.specs.bar.baseUrl).to.equal('https://bar.com')
     })
 
+    it('deletes the legacy openapi-<name>.json file after writing', async () => {
+      const dir = join(tmpDir, 'migrate')
+      await mkdir(dir)
+      const legacySpec = {
+        auth: {type: 'none'},
+        baseUrl: '',
+        description: '',
+        name: 'mig',
+        operations: [],
+        source: '',
+        title: 'Mig',
+      }
+      await writeFile(join(dir, 'openapi-mig.json'), JSON.stringify(legacySpec))
+
+      const store = await readStore(dir)
+      await writeStore(dir, store)
+
+      expect(existsSync(join(dir, 'openapi-mig.json'))).to.be.false
+      expect(existsSync(join(dir, 'api-mig.json'))).to.be.true
+    })
+
     it('round-trips a store with operations and auth', async () => {
       const dir = join(tmpDir, 'roundtrip')
-      const store: OpenApiStore = {
+      const store: ApiStore = {
         specs: {
           api: {
             auth: {scheme: 'bearer', token: 'tok', type: 'http'},
@@ -209,7 +261,7 @@ describe('openapi-store', () => {
 
     it('returns true and removes the spec file', async () => {
       const dir = join(tmpDir, 'delete-test')
-      const store: OpenApiStore = {
+      const store: ApiStore = {
         specs: {
           todelete: {
             auth: {type: 'none'},
@@ -483,4 +535,4 @@ describe('openapi-store', () => {
       )
     })
   })
-}) // end openapi-store
+}) // end api-store

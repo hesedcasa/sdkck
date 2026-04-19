@@ -260,7 +260,7 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
               type: 'object',
             },
             commandId: {
-              description: 'The command ID to run (e.g. "openapi import", "permission list")',
+              description: 'The command ID to run (e.g. "api import", "permission list")',
               type: 'string',
             },
           },

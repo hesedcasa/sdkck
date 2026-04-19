@@ -1,19 +1,19 @@
 import {Args, Command, Flags} from '@oclif/core'
 
-import {readStore, writeStore} from '../../openapi-store.js'
+import {deleteSpec, readStore, writeStore} from '../../api-store.js'
 
-export default class OpenApiConfig extends Command {
+export default class ApiConfig extends Command {
   static args = {
     name: Args.string({
-      description: 'API name (as shown in `openapi list`)',
+      description: 'API name (as shown in `api list`)',
       required: true,
     }),
   }
-  static description = 'Update configuration for an imported OpenAPI spec'
+  static description = 'Update configuration for an imported API spec'
   static examples = [
-    '<%= config.bin %> openapi config petstore --base-url https://api.example.com',
-    '<%= config.bin %> openapi config petstore --rename mystore',
-    '<%= config.bin %> openapi config petstore --title "My Petstore" --description "A pet store API"',
+    '<%= config.bin %> api config petstore --base-url https://api.example.com',
+    '<%= config.bin %> api config petstore --rename mystore',
+    '<%= config.bin %> api config petstore --title "My Petstore" --description "A pet store API"',
   ]
   static flags = {
     'base-url': Flags.string({
@@ -40,7 +40,7 @@ export default class OpenApiConfig extends Command {
   }
 
   async run(): Promise<void> {
-    const {args, flags} = await this.parse(OpenApiConfig)
+    const {args, flags} = await this.parse(ApiConfig)
 
     if (!flags['base-url'] && !flags.rename && !flags.title && !flags.description && flags.insecure === undefined) {
       this.error('Provide at least one flag to update: --base-url, --rename, --title, --description, --insecure')
@@ -49,7 +49,7 @@ export default class OpenApiConfig extends Command {
     const store = await readStore(this.config.configDir)
     const spec = store.specs[args.name]
     if (!spec) {
-      this.error(`No spec found with name "${args.name}". Run \`openapi list\` to see available specs.`)
+      this.error(`No spec found with name "${args.name}". Run \`api list\` to see available specs.`)
     }
 
     if (flags['base-url'] !== undefined) spec.baseUrl = flags['base-url']
@@ -66,10 +66,6 @@ export default class OpenApiConfig extends Command {
       spec.name = newName
       store.specs[newName] = spec
       delete store.specs[args.name]
-
-      // Delete the old file by writing the updated store (writeStore writes per-name files)
-      // and removing the old file separately
-      const {deleteSpec} = await import('../../openapi-store.js')
       await deleteSpec(this.config.configDir, args.name)
     }
 
