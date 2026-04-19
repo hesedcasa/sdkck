@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.0](https://github.com/hesedcasa/sdkck/compare/v0.15.0...v0.16.0) (2026-04-19)
+
+
+### 🎉 Features
+
+* rename openapi topic to api and add GraphQL schema support ([#86](https://github.com/hesedcasa/sdkck/issues/86)) ([5dee2d6](https://github.com/hesedcasa/sdkck/commit/5dee2d64d408c92368c7f8cca981702517ce033c))
+
 ## [0.15.0](https://github.com/hesedcasa/sdkck/compare/v0.14.0...v0.15.0) (2026-04-16)
 
 
