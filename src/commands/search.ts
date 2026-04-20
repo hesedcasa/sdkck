@@ -2,6 +2,8 @@ import UFuzzy from '@leeoniya/ufuzzy'
 import {Args, Command, CommandHelp, Flags, toConfiguredId} from '@oclif/core'
 import {OpenAI} from 'openai'
 
+import {SearchCache} from '../search-cache.js'
+
 interface CommandEntry {
   description: string
   id: string
@@ -96,29 +98,55 @@ export default class Search extends Command {
       summary: c.summary ?? '',
     }))
 
+    const cacheFilePath = this.config.configDir ? `${this.config.configDir}/search-cache.json` : undefined
+    const searchCache = new SearchCache({cacheFilePath})
+
     const client = this._llmClient ?? this._createOpenAIClient()
     type ScoredEntry = {cmd: Command.Loadable; score: number}
-    let scored: ScoredEntry[]
+    let scored: ScoredEntry[] = []
 
-    if (client === null) {
-      scored = this._fuzzySearch(args.query, allCommands)
-    } else {
+    const idToCmd = new Map(allCommands.map((c) => [c.id, c]))
+    const cached = searchCache.get(args.query, flags.limit)
+    let cacheHit = false
+
+    if (cached !== undefined) {
       try {
-        const matchedIds = await samplingSearch(args.query, commandEntries, client)
-        const idToCmd = new Map(allCommands.map((c) => [c.id, c]))
-        scored = matchedIds
+        const cachedIds = JSON.parse(cached) as string[]
+        scored = cachedIds
           .map((id, index) => {
             const cmd = idToCmd.get(id)
             return cmd ? {cmd, score: index} : null
           })
           .filter((entry): entry is ScoredEntry => entry !== null)
+        cacheHit = true
       } catch {
-        // Fall back to fuzzy matching on any LLM error
+        // corrupted cache entry — fall through to live search
+      }
+    }
+
+    if (!cacheHit) {
+      if (client === null) {
         scored = this._fuzzySearch(args.query, allCommands)
+      } else {
+        try {
+          const matchedIds = await samplingSearch(args.query, commandEntries, client)
+          scored = matchedIds
+            .map((id, index) => {
+              const cmd = idToCmd.get(id)
+              return cmd ? {cmd, score: index} : null
+            })
+            .filter((entry): entry is ScoredEntry => entry !== null)
+        } catch {
+          // Fall back to fuzzy matching on any LLM error
+          scored = this._fuzzySearch(args.query, allCommands)
+        }
       }
     }
 
     scored = scored.slice(0, flags.limit)
+    if (!cacheHit) {
+      searchCache.set(args.query, flags.limit, JSON.stringify(scored.map((e) => e.cmd.id)))
+    }
 
     const results = scored.map((entry) => {
       const {cmd} = entry
