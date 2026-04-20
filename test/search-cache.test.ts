@@ -114,5 +114,14 @@ describe('SearchCache', () => {
       cache.set('test', 5, 'result')
       expect(cache.get('test', 5)).to.equal('result')
     })
+
+    it('degrades gracefully when file contains valid JSON with wrong structure', async () => {
+      const cachePath = join(tmpDir, 'search-cache.json')
+      // Valid JSON but entries is null — Object.entries(null) would throw TypeError
+      await writeFile(cachePath, JSON.stringify({entries: null}))
+      const cache = new SearchCache({cacheFilePath: cachePath})
+      // Should start empty without throwing
+      expect(cache.get('jira', 5)).to.be.undefined
+    })
   })
 })
