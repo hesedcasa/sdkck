@@ -195,7 +195,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.16.0 linux-x64 node-v20.20.2
+sdkck/0.17.0 linux-x64 node-v20.20.2
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -277,7 +277,7 @@ EXAMPLES
   $ sdkck api auth petstore --show
 ```
 
-_See code: [src/commands/api/auth.ts](https://github.com/hesedcasa/sdkck/blob/v0.16.0/src/commands/api/auth.ts)_
+_See code: [src/commands/api/auth.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/api/auth.ts)_
 
 ## `sdkck api call NAME OPERATIONID`
 
@@ -312,7 +312,7 @@ EXAMPLES
   $ sdkck api call petstore listPets --query limit=10 --header X-Trace=abc
 ```
 
-_See code: [src/commands/api/call.ts](https://github.com/hesedcasa/sdkck/blob/v0.16.0/src/commands/api/call.ts)_
+_See code: [src/commands/api/call.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/api/call.ts)_
 
 ## `sdkck api config NAME`
 
@@ -344,7 +344,7 @@ EXAMPLES
   $ sdkck api config petstore --title "My Petstore" --description "A pet store API"
 ```
 
-_See code: [src/commands/api/config.ts](https://github.com/hesedcasa/sdkck/blob/v0.16.0/src/commands/api/config.ts)_
+_See code: [src/commands/api/config.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/api/config.ts)_
 
 ## `sdkck api import SOURCE`
 
@@ -395,7 +395,7 @@ EXAMPLES
   $ sdkck api import ./api.yaml --auth-type basic --username user --password pass
 ```
 
-_See code: [src/commands/api/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.16.0/src/commands/api/import.ts)_
+_See code: [src/commands/api/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/api/import.ts)_
 
 ## `sdkck api list [NAME]`
 
@@ -417,7 +417,7 @@ EXAMPLES
   $ sdkck api list petstore
 ```
 
-_See code: [src/commands/api/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.16.0/src/commands/api/list.ts)_
+_See code: [src/commands/api/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/api/list.ts)_
 
 ## `sdkck api remove NAME`
 
@@ -437,7 +437,7 @@ EXAMPLES
   $ sdkck api remove petstore
 ```
 
-_See code: [src/commands/api/remove.ts](https://github.com/hesedcasa/sdkck/blob/v0.16.0/src/commands/api/remove.ts)_
+_See code: [src/commands/api/remove.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/api/remove.ts)_
 
 ## `sdkck commands`
 
@@ -503,7 +503,7 @@ EXAMPLES
   $ sdkck mcp start
 ```
 
-_See code: [src/commands/mcp/start.ts](https://github.com/hesedcasa/sdkck/blob/v0.16.0/src/commands/mcp/start.ts)_
+_See code: [src/commands/mcp/start.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/mcp/start.ts)_
 
 ## `sdkck permission allow PATTERN`
 
@@ -530,7 +530,7 @@ EXAMPLES
   $ sdkck permission allow "jira issue create"
 ```
 
-_See code: [src/commands/permission/allow.ts](https://github.com/hesedcasa/sdkck/blob/v0.16.0/src/commands/permission/allow.ts)_
+_See code: [src/commands/permission/allow.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/permission/allow.ts)_
 
 ## `sdkck permission disallow PATTERN`
 
@@ -557,7 +557,7 @@ EXAMPLES
   $ sdkck permission disallow "jira issue create"
 ```
 
-_See code: [src/commands/permission/disallow.ts](https://github.com/hesedcasa/sdkck/blob/v0.16.0/src/commands/permission/disallow.ts)_
+_See code: [src/commands/permission/disallow.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/permission/disallow.ts)_
 
 ## `sdkck permission export FILE`
 
@@ -577,7 +577,7 @@ EXAMPLES
   $ sdkck permission export permission.json
 ```
 
-_See code: [src/commands/permission/export.ts](https://github.com/hesedcasa/sdkck/blob/v0.16.0/src/commands/permission/export.ts)_
+_See code: [src/commands/permission/export.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/permission/export.ts)_
 
 ## `sdkck permission import FILE`
 
@@ -597,7 +597,7 @@ EXAMPLES
   $ sdkck permission import permission.json
 ```
 
-_See code: [src/commands/permission/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.16.0/src/commands/permission/import.ts)_
+_See code: [src/commands/permission/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/permission/import.ts)_
 
 ## `sdkck permission list`
 
@@ -614,7 +614,7 @@ EXAMPLES
   $ sdkck permission list
 ```
 
-_See code: [src/commands/permission/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.16.0/src/commands/permission/list.ts)_
+_See code: [src/commands/permission/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/permission/list.ts)_
 
 ## `sdkck permission reset`
 
@@ -636,7 +636,7 @@ EXAMPLES
   $ sdkck permission reset --confirm
 ```
 
-_See code: [src/commands/permission/reset.ts](https://github.com/hesedcasa/sdkck/blob/v0.16.0/src/commands/permission/reset.ts)_
+_See code: [src/commands/permission/reset.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/permission/reset.ts)_
 
 ## `sdkck plugins`
 
@@ -957,7 +957,7 @@ EXAMPLES
   $ sdkck search "update jira" --details
 ```
 
-_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.16.0/src/commands/search.ts)_
+_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/search.ts)_
 
 ## `sdkck update [CHANNEL]`
 
