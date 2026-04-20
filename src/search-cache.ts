@@ -73,8 +73,11 @@ export class SearchCache {
     if (this.writePending) return
     this.writePending = true
     setTimeout(() => {
-      this.writePending = false
-      this.writeToFile().catch(() => {})
+      this.writeToFile()
+        .catch(() => {})
+        .finally(() => {
+          this.writePending = false
+        })
     }, 0)
   }
 
