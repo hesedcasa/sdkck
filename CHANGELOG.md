@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.0](https://github.com/hesedcasa/sdkck/compare/v0.16.0...v0.17.0) (2026-04-20)
+
+
+### 🎉 Features
+
+* cache search_tools results in MCP server ([#88](https://github.com/hesedcasa/sdkck/issues/88)) ([15d3d80](https://github.com/hesedcasa/sdkck/commit/15d3d805affad9d4b42439831874404deabea381))
+
 ## [0.16.0](https://github.com/hesedcasa/sdkck/compare/v0.15.0...v0.16.0) (2026-04-19)
 
 
