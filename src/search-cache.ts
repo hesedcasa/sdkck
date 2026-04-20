@@ -63,8 +63,10 @@ export class SearchCache {
           this.cache.set(key, entry)
         }
       }
-    } catch {
-      // File doesn't exist or is invalid JSON — start fresh
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        console.error(`[search-cache] Failed to load cache from "${this.filePath}": ${error instanceof Error ? error.message : String(error)}`)
+      }
     }
   }
 
@@ -87,8 +89,8 @@ export class SearchCache {
       const json = JSON.stringify(data, null, 2)
       await mkdir(dirname(this.filePath!), {recursive: true})
       await writeFile(this.filePath!, json, 'utf8')
-    } catch {
-      // Unwritable path — degrade gracefully, cache still works in-memory
+    } catch (error) {
+      console.error(`[search-cache] Failed to persist cache to "${this.filePath}": ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 }
