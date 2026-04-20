@@ -98,7 +98,7 @@ export default class Search extends Command {
       summary: c.summary ?? '',
     }))
 
-    const cacheFilePath = this.config.configDir ? `${this.config.configDir}/search-cache.json` : undefined
+    const cacheFilePath = this.config.configDir ? `${this.config.configDir}/search-cache-cli.json` : undefined
     const searchCache = new SearchCache({cacheFilePath})
 
     const client = this._llmClient ?? this._createOpenAIClient()

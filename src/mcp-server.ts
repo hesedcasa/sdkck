@@ -154,7 +154,7 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
 
   const searchCmd = config.commands.find((c) => c.id === 'search')
 
-  const cacheFilePath = config.configDir ? `${config.configDir}/search-cache.json` : undefined
+  const cacheFilePath = config.configDir ? `${config.configDir}/search-cache-mcp.json` : undefined
   const searchCache = new SearchCache({cacheFilePath})
 
   // Build a deduplicated keyword list from each command's ID parts (topics,
