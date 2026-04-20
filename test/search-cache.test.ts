@@ -46,7 +46,7 @@ describe('SearchCache', () => {
     it('expires entries after the TTL elapses', async () => {
       const cache = new SearchCache({ttlMs: 50})
       cache.set('jira', 5, 'old result')
-      await new Promise((resolve) => setTimeout(resolve, 80))
+      await new Promise((resolve) => { setTimeout(resolve, 80) })
       expect(cache.get('jira', 5)).to.be.undefined
     })
 
@@ -65,15 +65,15 @@ describe('SearchCache', () => {
     })
 
     afterEach(() => {
-      rmSync(tmpDir, {recursive: true, force: true})
+      rmSync(tmpDir, {force: true, recursive: true})
     })
 
     it('writes cache entries to file', async () => {
       const cachePath = join(tmpDir, 'search-cache.json')
       const cache = new SearchCache({cacheFilePath: cachePath})
       cache.set('jira', 5, 'result')
-      await new Promise((resolve) => setTimeout(resolve, 50))
-      const content = await readFile(cachePath, 'utf-8')
+      await new Promise((resolve) => { setTimeout(resolve, 50) })
+      const content = await readFile(cachePath, 'utf8')
       const data = JSON.parse(content)
       expect(data.entries['jira|5']).to.exist
       expect(data.entries['jira|5'].output).to.equal('result')
@@ -99,7 +99,7 @@ describe('SearchCache', () => {
           'jira|5': {output: 'expired', timestamp: oldTimestamp},
         },
       }))
-      const cache = new SearchCache({ttlMs: 1000, cacheFilePath: cachePath})
+      const cache = new SearchCache({cacheFilePath: cachePath, ttlMs: 1000})
       expect(cache.get('jira', 5)).to.be.undefined
     })
 

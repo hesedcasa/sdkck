@@ -55,7 +55,7 @@ export class SearchCache {
 
   private loadFromFile(): void {
     try {
-      const raw = readFileSync(this.filePath!, 'utf-8')
+      const raw = readFileSync(this.filePath!, 'utf8')
       const data: CacheFile = JSON.parse(raw)
       const now = Date.now()
       for (const [key, entry] of Object.entries(data.entries)) {
@@ -83,7 +83,7 @@ export class SearchCache {
       const data: CacheFile = {entries: Object.fromEntries(this.cache)}
       const json = JSON.stringify(data, null, 2)
       await mkdir(dirname(this.filePath!), {recursive: true})
-      await writeFile(this.filePath!, json, 'utf-8')
+      await writeFile(this.filePath!, json, 'utf8')
     } catch {
       // Unwritable path — degrade gracefully, cache still works in-memory
     }
