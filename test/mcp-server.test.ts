@@ -255,4 +255,63 @@ describe('mcp-server', () => {
       expect(text).to.include('all pets')
     })
   })
+
+  // ─── search_tools cache integration ───────────────────────────────────────
+
+  describe('search_tools cache integration', () => {
+    it('caches results and reuses them on identical query', async () => {
+      let callCount = 0
+      const loadable = {
+        ...SEARCH_CMD,
+        load: async () =>
+          class CountingCmd {
+            log = (_msg?: string) => {}
+            warn = String
+
+            async run() {
+              callCount++
+              this.log(`result-${callCount}`)
+              return null
+            }
+          },
+      } as never as Command.Loadable
+      const client = await makeClient([loadable])
+
+      const first = (await client.callTool({
+        arguments: {limit: 5, query: 'jira'},
+        name: 'search_tools',
+      })) as any // eslint-disable-line @typescript-eslint/no-explicit-any
+      const second = (await client.callTool({
+        arguments: {limit: 5, query: 'jira'},
+        name: 'search_tools',
+      })) as any // eslint-disable-line @typescript-eslint/no-explicit-any
+
+      expect(callCount).to.equal(1)
+      expect(first.content[0].text).to.equal(second.content[0].text)
+    })
+
+    it('does not reuse cache across different queries', async () => {
+      let callCount = 0
+      const loadable = {
+        ...SEARCH_CMD,
+        load: async () =>
+          class CountingCmd {
+            log = (_msg?: string) => {}
+            warn = String
+
+            async run() {
+              callCount++
+              this.log(`result-${callCount}`)
+              return null
+            }
+          },
+      } as never as Command.Loadable
+      const client = await makeClient([loadable])
+
+      await client.callTool({arguments: {query: 'jira'}, name: 'search_tools'})
+      await client.callTool({arguments: {query: 'confluence'}, name: 'search_tools'})
+
+      expect(callCount).to.equal(2)
+    })
+  })
 })

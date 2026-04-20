@@ -8,6 +8,8 @@ import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js'
 import {CallToolRequestSchema, ListToolsRequestSchema} from '@modelcontextprotocol/sdk/types.js'
 import {Command, toConfiguredId} from '@oclif/core'
 
+import {SearchCache} from './search-cache.js'
+
 // ─── Argv builder ────────────────────────────────────────────────────────────
 
 // ts-prune-ignore-next
@@ -152,6 +154,9 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
 
   const searchCmd = config.commands.find((c) => c.id === 'search')
 
+  const cacheFilePath = config.configDir ? `${config.configDir}/search-cache-mcp.json` : undefined
+  const searchCache = new SearchCache({cacheFilePath})
+
   // Build a deduplicated keyword list from each command's ID parts (topics,
   // subcommands) and its summary/description so the search_tools tool
   // advertises both the namespace and what each command actually does.
@@ -282,6 +287,12 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
 
       const query = (toolArgs?.query as string) ?? ''
       const limit = toolArgs?.limit as number | undefined
+
+      const cached = searchCache.get(query, limit)
+      if (cached !== undefined) {
+        return {content: [{text: cached, type: 'text' as const}]}
+      }
+
       const argv = [query]
       if (limit !== undefined) argv.push('--limit', String(limit))
 
@@ -291,6 +302,7 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
         return {content: [{text: error, type: 'text' as const}], isError: true}
       }
 
+      searchCache.set(query, limit, output)
       return {content: [{text: output, type: 'text' as const}]}
     }
 

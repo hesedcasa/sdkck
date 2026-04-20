@@ -2,6 +2,8 @@ import UFuzzy from '@leeoniya/ufuzzy'
 import {Args, Command, CommandHelp, Flags, toConfiguredId} from '@oclif/core'
 import {OpenAI} from 'openai'
 
+import {SearchCache} from '../search-cache.js'
+
 interface CommandEntry {
   description: string
   id: string
@@ -85,6 +87,8 @@ export default class Search extends Command {
   }
   // Exposed for testing — inject a mock client to exercise the LLM search path
   _llmClient: null | SamplingClient = null
+  // Exposed for testing — inject a pre-populated cache to exercise the cache hit path
+  _searchCache: null | SearchCache = null
 
   async run(): Promise<Array<{command: string; description: string}>> {
     const {args, flags} = await this.parse(Search)
@@ -96,29 +100,63 @@ export default class Search extends Command {
       summary: c.summary ?? '',
     }))
 
+    const cacheFilePath = this.config.configDir ? `${this.config.configDir}/search-cache-cli.json` : undefined
+    const searchCache = this._searchCache ?? new SearchCache({cacheFilePath})
+
     const client = this._llmClient ?? this._createOpenAIClient()
     type ScoredEntry = {cmd: Command.Loadable; score: number}
-    let scored: ScoredEntry[]
+    let scored: ScoredEntry[] = []
 
-    if (client === null) {
-      scored = this._fuzzySearch(args.query, allCommands)
-    } else {
+    const idToCmd = new Map(allCommands.map((c) => [c.id, c]))
+    const cached = searchCache.get(args.query, flags.limit)
+    let cacheHit = false
+
+    if (cached !== undefined) {
       try {
-        const matchedIds = await samplingSearch(args.query, commandEntries, client)
-        const idToCmd = new Map(allCommands.map((c) => [c.id, c]))
-        scored = matchedIds
+        const cachedIds = JSON.parse(cached) as string[]
+        scored = cachedIds
           .map((id, index) => {
             const cmd = idToCmd.get(id)
             return cmd ? {cmd, score: index} : null
           })
           .filter((entry): entry is ScoredEntry => entry !== null)
-      } catch {
-        // Fall back to fuzzy matching on any LLM error
-        scored = this._fuzzySearch(args.query, allCommands)
+        cacheHit = true
+      } catch (error) {
+        this.warn(
+          `Corrupted search cache entry for query "${args.query}". Error: ${error instanceof Error ? error.message : String(error)}`,
+        )
       }
     }
 
-    scored = scored.slice(0, flags.limit)
+    if (cacheHit) {
+      scored = scored.slice(0, flags.limit)
+    } else {
+      let llmFailed = false
+      if (client === null) {
+        scored = this._fuzzySearch(args.query, allCommands)
+      } else {
+        try {
+          const matchedIds = await samplingSearch(args.query, commandEntries, client)
+          scored = matchedIds
+            .map((id, index) => {
+              const cmd = idToCmd.get(id)
+              return cmd ? {cmd, score: index} : null
+            })
+            .filter((entry): entry is ScoredEntry => entry !== null)
+        } catch (error) {
+          this.warn(
+            `LLM search failed (falling back to fuzzy matching): ${error instanceof Error ? error.message : String(error)}`,
+          )
+          llmFailed = true
+          scored = this._fuzzySearch(args.query, allCommands)
+        }
+      }
+
+      scored = scored.slice(0, flags.limit)
+      if (!llmFailed && scored.length > 0) {
+        searchCache.set(args.query, flags.limit, JSON.stringify(scored.map((e) => e.cmd.id)))
+      }
+    }
 
     const results = scored.map((entry) => {
       const {cmd} = entry
@@ -140,29 +178,7 @@ export default class Search extends Command {
     })
 
     if (!this.jsonEnabled()) {
-      if (results.length === 0) {
-        return results
-      }
-
-      this.log(`Found ${results.length} command${results.length === 1 ? '' : 's'}:\n`)
-
-      for (const {cmd, result} of scored.map((s, i) => ({cmd: s.cmd, result: results[i]}))) {
-        this.log(result.command)
-
-        if (flags.details) {
-          const help = new CommandHelp(cmd, this.config, {maxWidth: process.stdout.columns ?? 80})
-          this.log(help.generate())
-        } else {
-          const raw = cmd.summary ?? cmd.description ?? ''
-          // eslint-disable-next-line unicorn/prefer-string-replace-all
-          const description = raw.replace(/<%=\s*config\.bin\s*%>/g, this.config.bin).split('\n')[0]
-          if (description) {
-            this.log(description)
-          }
-        }
-
-        this.log('')
-      }
+      this._printResults(scored, results, flags)
     }
 
     return results
@@ -203,5 +219,33 @@ export default class Search extends Command {
     return [...hitCount.entries()]
       .sort((a, b) => b[1] - a[1] || a[0] - b[0])
       .map(([idx, hits]) => ({cmd: commands[idx], score: tokens.length - hits}))
+  }
+
+  private _printResults(
+    scored: Array<{cmd: Command.Loadable; score: number}>,
+    results: Array<{command: string; description: string}>,
+    flags: {details: boolean},
+  ): void {
+    if (results.length === 0) return
+
+    this.log(`Found ${results.length} command${results.length === 1 ? '' : 's'}:\n`)
+
+    for (const {cmd, result} of scored.map((s, i) => ({cmd: s.cmd, result: results[i]}))) {
+      this.log(result.command)
+
+      if (flags.details) {
+        const help = new CommandHelp(cmd, this.config, {maxWidth: process.stdout.columns ?? 80})
+        this.log(help.generate())
+      } else {
+        const raw = cmd.summary ?? cmd.description ?? ''
+        // eslint-disable-next-line unicorn/prefer-string-replace-all
+        const description = raw.replace(/<%=\s*config\.bin\s*%>/g, this.config.bin).split('\n')[0]
+        if (description) {
+          this.log(description)
+        }
+      }
+
+      this.log('')
+    }
   }
 }
