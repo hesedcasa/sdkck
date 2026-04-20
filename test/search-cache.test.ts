@@ -52,7 +52,9 @@ describe('SearchCache', () => {
     it('expires entries after the TTL elapses', async () => {
       const cache = new SearchCache({ttlMs: 50})
       cache.set('jira', 5, 'old result')
-      await new Promise((resolve) => { setTimeout(resolve, 80) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 80)
+      })
       expect(cache.get('jira', 5)).to.be.undefined
     })
 
@@ -78,7 +80,9 @@ describe('SearchCache', () => {
       const cachePath = join(tmpDir, 'search-cache.json')
       const cache = new SearchCache({cacheFilePath: cachePath})
       cache.set('jira', 5, 'result')
-      await new Promise((resolve) => { setTimeout(resolve, 50) })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 50)
+      })
       const content = await readFile(cachePath, 'utf8')
       const data = JSON.parse(content)
       expect(data.entries['jira|5']).to.exist
@@ -88,11 +92,14 @@ describe('SearchCache', () => {
     it('loads existing entries from file on construction', async () => {
       const cachePath = join(tmpDir, 'search-cache.json')
       const now = Date.now()
-      await writeFile(cachePath, JSON.stringify({
-        entries: {
-          'jira|5': {output: 'restored', timestamp: now},
-        },
-      }))
+      await writeFile(
+        cachePath,
+        JSON.stringify({
+          entries: {
+            'jira|5': {output: 'restored', timestamp: now},
+          },
+        }),
+      )
       const cache = new SearchCache({cacheFilePath: cachePath})
       expect(cache.get('jira', 5)).to.equal('restored')
     })
@@ -100,11 +107,14 @@ describe('SearchCache', () => {
     it('ignores expired entries when loading from file', async () => {
       const cachePath = join(tmpDir, 'search-cache.json')
       const oldTimestamp = Date.now() - 100_000
-      await writeFile(cachePath, JSON.stringify({
-        entries: {
-          'jira|5': {output: 'expired', timestamp: oldTimestamp},
-        },
-      }))
+      await writeFile(
+        cachePath,
+        JSON.stringify({
+          entries: {
+            'jira|5': {output: 'expired', timestamp: oldTimestamp},
+          },
+        }),
+      )
       const cache = new SearchCache({cacheFilePath: cachePath, ttlMs: 1000})
       expect(cache.get('jira', 5)).to.be.undefined
     })

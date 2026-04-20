@@ -66,7 +66,9 @@ export class SearchCache {
       }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        console.error(`[search-cache] Failed to load cache from "${this.filePath}": ${error instanceof Error ? error.message : String(error)}`)
+        console.error(
+          `Failed to load cache from "${this.filePath}": ${error instanceof Error ? error.message : String(error)}`,
+        )
       }
     }
   }
@@ -91,7 +93,9 @@ export class SearchCache {
       await mkdir(dirname(this.filePath!), {recursive: true})
       await writeFile(this.filePath!, json, 'utf8')
     } catch (error) {
-      console.error(`[search-cache] Failed to persist cache to "${this.filePath}": ${error instanceof Error ? error.message : String(error)}`)
+      console.error(
+        `Failed to persist cache to "${this.filePath}": ${error instanceof Error ? error.message : String(error)}`,
+      )
     }
   }
 }

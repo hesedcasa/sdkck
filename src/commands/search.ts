@@ -122,7 +122,9 @@ export default class Search extends Command {
           .filter((entry): entry is ScoredEntry => entry !== null)
         cacheHit = true
       } catch (error) {
-        this.warn(`Corrupted search cache entry for query "${args.query}" — running live search. Error: ${error instanceof Error ? error.message : String(error)}`)
+        this.warn(
+          `Corrupted search cache entry for query "${args.query}". Error: ${error instanceof Error ? error.message : String(error)}`,
+        )
       }
     }
 
@@ -142,7 +144,9 @@ export default class Search extends Command {
             })
             .filter((entry): entry is ScoredEntry => entry !== null)
         } catch (error) {
-          this.warn(`LLM search failed (falling back to fuzzy matching): ${error instanceof Error ? error.message : String(error)}`)
+          this.warn(
+            `LLM search failed (falling back to fuzzy matching): ${error instanceof Error ? error.message : String(error)}`,
+          )
           llmFailed = true
           scored = this._fuzzySearch(args.query, allCommands)
         }
@@ -174,29 +178,7 @@ export default class Search extends Command {
     })
 
     if (!this.jsonEnabled()) {
-      if (results.length === 0) {
-        return results
-      }
-
-      this.log(`Found ${results.length} command${results.length === 1 ? '' : 's'}:\n`)
-
-      for (const {cmd, result} of scored.map((s, i) => ({cmd: s.cmd, result: results[i]}))) {
-        this.log(result.command)
-
-        if (flags.details) {
-          const help = new CommandHelp(cmd, this.config, {maxWidth: process.stdout.columns ?? 80})
-          this.log(help.generate())
-        } else {
-          const raw = cmd.summary ?? cmd.description ?? ''
-          // eslint-disable-next-line unicorn/prefer-string-replace-all
-          const description = raw.replace(/<%=\s*config\.bin\s*%>/g, this.config.bin).split('\n')[0]
-          if (description) {
-            this.log(description)
-          }
-        }
-
-        this.log('')
-      }
+      this._printResults(scored, results, flags)
     }
 
     return results
@@ -237,5 +219,33 @@ export default class Search extends Command {
     return [...hitCount.entries()]
       .sort((a, b) => b[1] - a[1] || a[0] - b[0])
       .map(([idx, hits]) => ({cmd: commands[idx], score: tokens.length - hits}))
+  }
+
+  private _printResults(
+    scored: Array<{cmd: Command.Loadable; score: number}>,
+    results: Array<{command: string; description: string}>,
+    flags: {details: boolean},
+  ): void {
+    if (results.length === 0) return
+
+    this.log(`Found ${results.length} command${results.length === 1 ? '' : 's'}:\n`)
+
+    for (const {cmd, result} of scored.map((s, i) => ({cmd: s.cmd, result: results[i]}))) {
+      this.log(result.command)
+
+      if (flags.details) {
+        const help = new CommandHelp(cmd, this.config, {maxWidth: process.stdout.columns ?? 80})
+        this.log(help.generate())
+      } else {
+        const raw = cmd.summary ?? cmd.description ?? ''
+        // eslint-disable-next-line unicorn/prefer-string-replace-all
+        const description = raw.replace(/<%=\s*config\.bin\s*%>/g, this.config.bin).split('\n')[0]
+        if (description) {
+          this.log(description)
+        }
+      }
+
+      this.log('')
+    }
   }
 }

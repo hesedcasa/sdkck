@@ -256,8 +256,10 @@ describe('search', () => {
 
       const cache = new SearchCache()
       // Inject a corrupted entry directly into the private map
-      ;(cache as unknown as {cache: Map<string, {output: string; timestamp: number}>})
-        .cache.set('updt|5', {output: 'not-json-at-all{{{', timestamp: Date.now()})
+      ;(cache as unknown as {cache: Map<string, {output: string; timestamp: number}>}).cache.set('updt|5', {
+        output: 'not-json-at-all{{{',
+        timestamp: Date.now(),
+      })
       cmd._searchCache = cache
 
       // No LLM — fuzzy search will find 'update' for 'updt'
