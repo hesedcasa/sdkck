@@ -87,6 +87,8 @@ export default class Search extends Command {
   }
   // Exposed for testing — inject a mock client to exercise the LLM search path
   _llmClient: null | SamplingClient = null
+  // Exposed for testing — inject a pre-populated cache to exercise the cache hit path
+  _searchCache: null | SearchCache = null
 
   async run(): Promise<Array<{command: string; description: string}>> {
     const {args, flags} = await this.parse(Search)
@@ -99,7 +101,7 @@ export default class Search extends Command {
     }))
 
     const cacheFilePath = this.config.configDir ? `${this.config.configDir}/search-cache-cli.json` : undefined
-    const searchCache = new SearchCache({cacheFilePath})
+    const searchCache = this._searchCache ?? new SearchCache({cacheFilePath})
 
     const client = this._llmClient ?? this._createOpenAIClient()
     type ScoredEntry = {cmd: Command.Loadable; score: number}

@@ -1,6 +1,7 @@
 import {expect} from 'chai'
 
 import Search from '../../src/commands/search.js'
+import {SearchCache} from '../../src/search-cache.js'
 
 type MockCommand = {
   description?: string
@@ -222,6 +223,63 @@ describe('search', () => {
       const {cmd} = makeSearch(['e'])
       const result = await cmd.run()
       expect(result.length).to.be.at.most(5)
+    })
+  })
+
+  describe('search cache', () => {
+    it('returns cached results without calling the LLM', async () => {
+      const {cmd} = makeSearch(['jira'])
+
+      const cache = new SearchCache()
+      cache.set('jira', 5, JSON.stringify(['help']))
+      cmd._searchCache = cache
+
+      let llmCalled = false
+      cmd._llmClient = {
+        chat: {
+          completions: {
+            async create() {
+              llmCalled = true
+              return {choices: [{message: {content: '["help"]'}}]}
+            },
+          },
+        },
+      }
+
+      const result = await cmd.run()
+      expect(llmCalled).to.be.false
+      expect(result.some((r) => r.command === 'help')).to.be.true
+    })
+
+    it('falls back to live search when cached value is corrupted JSON', async () => {
+      const {cmd} = makeSearch(['updt'])
+
+      const cache = new SearchCache()
+      // Inject a corrupted entry directly into the private map
+      ;(cache as unknown as {cache: Map<string, {output: string; timestamp: number}>})
+        .cache.set('updt|5', {output: 'not-json-at-all{{{', timestamp: Date.now()})
+      cmd._searchCache = cache
+
+      // No LLM — fuzzy search will find 'update' for 'updt'
+      const result = await cmd.run()
+      expect(result.some((r) => r.command.startsWith('update'))).to.be.true
+    })
+
+    it('does not write to cache on a cache hit', async () => {
+      const {cmd} = makeSearch(['help'])
+      const cache = new SearchCache()
+      cache.set('help', 5, JSON.stringify(['help']))
+      cmd._searchCache = cache
+
+      let setCalled = false
+      const originalSet = cache.set.bind(cache)
+      cache.set = (...args: Parameters<typeof cache.set>) => {
+        setCalled = true
+        return originalSet(...args)
+      }
+
+      await cmd.run()
+      expect(setCalled).to.be.false
     })
   })
 })
