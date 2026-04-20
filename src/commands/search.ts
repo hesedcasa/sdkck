@@ -119,8 +119,8 @@ export default class Search extends Command {
           })
           .filter((entry): entry is ScoredEntry => entry !== null)
         cacheHit = true
-      } catch {
-        // corrupted cache entry — fall through to live search
+      } catch (error) {
+        this.warn(`Corrupted search cache entry for query "${args.query}" — running live search. Error: ${error instanceof Error ? error.message : String(error)}`)
       }
     }
 
