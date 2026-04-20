@@ -124,7 +124,10 @@ export default class Search extends Command {
       }
     }
 
-    if (!cacheHit) {
+    if (cacheHit) {
+      scored = scored.slice(0, flags.limit)
+    } else {
+      let llmFailed = false
       if (client === null) {
         scored = this._fuzzySearch(args.query, allCommands)
       } else {
@@ -136,16 +139,17 @@ export default class Search extends Command {
               return cmd ? {cmd, score: index} : null
             })
             .filter((entry): entry is ScoredEntry => entry !== null)
-        } catch {
-          // Fall back to fuzzy matching on any LLM error
+        } catch (error) {
+          this.warn(`LLM search failed (falling back to fuzzy matching): ${error instanceof Error ? error.message : String(error)}`)
+          llmFailed = true
           scored = this._fuzzySearch(args.query, allCommands)
         }
       }
-    }
 
-    scored = scored.slice(0, flags.limit)
-    if (!cacheHit) {
-      searchCache.set(args.query, flags.limit, JSON.stringify(scored.map((e) => e.cmd.id)))
+      scored = scored.slice(0, flags.limit)
+      if (!llmFailed && scored.length > 0) {
+        searchCache.set(args.query, flags.limit, JSON.stringify(scored.map((e) => e.cmd.id)))
+      }
     }
 
     const results = scored.map((entry) => {
