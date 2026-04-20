@@ -43,6 +43,7 @@ export class SearchCache {
   }
 
   set(query: string, limit: number | undefined, output: string): void {
+    if (!output) return
     const key = this.key(query, limit)
     this.cache.set(key, {output, timestamp: Date.now()})
     this.persist()

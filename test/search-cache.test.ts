@@ -40,6 +40,12 @@ describe('SearchCache', () => {
       cache.set('  JIRA   Issue  ', 5, 'normalized')
       expect(cache.get('jira issue', 5)).to.equal('normalized')
     })
+
+    it('ignores set() calls with empty output', () => {
+      const cache = new SearchCache()
+      cache.set('jira', 5, '')
+      expect(cache.get('jira', 5)).to.be.undefined
+    })
   })
 
   describe('TTL expiration', () => {
