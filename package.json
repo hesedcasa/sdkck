@@ -18,7 +18,7 @@
     "@oclif/plugin-update": "^4.7.19",
     "@oclif/plugin-version": "^2.2.36",
     "@scalar/openapi-parser": "^0.25.6",
-    "@scalar/postman-to-openapi": "^0.6.0",
+    "@scalar/postman-to-openapi": "^0.7.5",
     "@scalar/types": "^0.9.1",
     "graphql": "^16.13.2",
     "js-yaml": "^4.1.1",
