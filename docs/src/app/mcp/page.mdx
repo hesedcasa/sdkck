@@ -28,6 +28,15 @@ For manual setup, add to `.mcp.json`:
 }
 ```
 
+### Streamable HTTP
+
+Starts an HTTP server at `http://127.0.0.1:<port>/mcp` using the [MCP Streamable HTTP transport](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http). Useful for remote clients or multi-session setups.
+
+```bash
+sdkck mcp start --transport http
+sdkck mcp start --transport http --port 3001
+```
+
 ## Exposed tools
 
 The MCP server exposes two tools: `search_tools` and `run_command`.
@@ -36,7 +45,7 @@ The MCP server exposes two tools: `search_tools` and `run_command`.
 
 A deliberate design choice: Sidekick exposes a single semantic-search entry point rather than registering every underlying command as an individual MCP tool. Loading hundreds of tool definitions upfront consumes significant context and degrades model tool-selection accuracy, so Sidekick follows the progressive tool-discovery pattern described in Anthropic's [Advanced Tool Use](https://www.anthropic.com/engineering/advanced-tool-use) guidance — returning only the small set of commands relevant to the current query, which the agent then invokes via `run_command`.
 
-The tool delegates to the `search` command with MCP sampling support, so ranking is performed by the connected client's LLM rather than a hard-coded model. It accepts a `query` (required) and an optional `limit` (default 5). Its advertised description includes a deduplicated keyword index built from every command's ID, summary, and description so clients can route queries accurately without enumerating the full tool surface.
+The tool delegates to the `search` command. It accepts a `query` (required) and an optional `limit` (default 5). Its advertised description includes a deduplicated keyword index built from every command's ID, summary, and description so clients can route queries accurately without enumerating the full tool surface.
 
 ### `run_command`
 
@@ -64,7 +73,7 @@ A typical interaction walks through the two tools in sequence. Suppose the user 
 }
 ```
 
-The server returns a shortlist of candidate commands, ranked by the client's LLM via MCP sampling:
+The server returns a shortlist of candidate commands:
 
 ```json
 [
