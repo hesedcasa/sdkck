@@ -195,7 +195,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.17.0 linux-x64 node-v20.20.2
+sdkck/0.18.0 linux-x64 node-v20.20.2
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -277,7 +277,7 @@ EXAMPLES
   $ sdkck api auth petstore --show
 ```
 
-_See code: [src/commands/api/auth.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/api/auth.ts)_
+_See code: [src/commands/api/auth.ts](https://github.com/hesedcasa/sdkck/blob/v0.18.0/src/commands/api/auth.ts)_
 
 ## `sdkck api call NAME OPERATIONID`
 
@@ -312,7 +312,7 @@ EXAMPLES
   $ sdkck api call petstore listPets --query limit=10 --header X-Trace=abc
 ```
 
-_See code: [src/commands/api/call.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/api/call.ts)_
+_See code: [src/commands/api/call.ts](https://github.com/hesedcasa/sdkck/blob/v0.18.0/src/commands/api/call.ts)_
 
 ## `sdkck api config NAME`
 
@@ -344,7 +344,7 @@ EXAMPLES
   $ sdkck api config petstore --title "My Petstore" --description "A pet store API"
 ```
 
-_See code: [src/commands/api/config.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/api/config.ts)_
+_See code: [src/commands/api/config.ts](https://github.com/hesedcasa/sdkck/blob/v0.18.0/src/commands/api/config.ts)_
 
 ## `sdkck api import SOURCE`
 
@@ -395,7 +395,7 @@ EXAMPLES
   $ sdkck api import ./api.yaml --auth-type basic --username user --password pass
 ```
 
-_See code: [src/commands/api/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/api/import.ts)_
+_See code: [src/commands/api/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.18.0/src/commands/api/import.ts)_
 
 ## `sdkck api list [NAME]`
 
@@ -417,7 +417,7 @@ EXAMPLES
   $ sdkck api list petstore
 ```
 
-_See code: [src/commands/api/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/api/list.ts)_
+_See code: [src/commands/api/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.18.0/src/commands/api/list.ts)_
 
 ## `sdkck api remove NAME`
 
@@ -437,7 +437,7 @@ EXAMPLES
   $ sdkck api remove petstore
 ```
 
-_See code: [src/commands/api/remove.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/api/remove.ts)_
+_See code: [src/commands/api/remove.ts](https://github.com/hesedcasa/sdkck/blob/v0.18.0/src/commands/api/remove.ts)_
 
 ## `sdkck commands`
 
@@ -490,20 +490,29 @@ _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/6.2.44
 
 ## `sdkck mcp start`
 
-Start an MCP server over stdio, exposing all CLI commands as tools
+Start an MCP server exposing all CLI commands as tools
 
 ```
 USAGE
-  $ sdkck mcp start
+  $ sdkck mcp start [--port <value>] [--transport stdio|http]
+
+FLAGS
+  --port=<value>        [default: 3000] Port to listen on (HTTP transport only)
+  --transport=<option>  [default: stdio] Transport to use
+                        <options: stdio|http>
 
 DESCRIPTION
-  Start an MCP server over stdio, exposing all CLI commands as tools
+  Start an MCP server exposing all CLI commands as tools
 
 EXAMPLES
   $ sdkck mcp start
+
+  $ sdkck mcp start --transport http
+
+  $ sdkck mcp start --transport http --port 3001
 ```
 
-_See code: [src/commands/mcp/start.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/mcp/start.ts)_
+_See code: [src/commands/mcp/start.ts](https://github.com/hesedcasa/sdkck/blob/v0.18.0/src/commands/mcp/start.ts)_
 
 ## `sdkck permission allow PATTERN`
 
@@ -530,7 +539,7 @@ EXAMPLES
   $ sdkck permission allow "jira issue create"
 ```
 
-_See code: [src/commands/permission/allow.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/permission/allow.ts)_
+_See code: [src/commands/permission/allow.ts](https://github.com/hesedcasa/sdkck/blob/v0.18.0/src/commands/permission/allow.ts)_
 
 ## `sdkck permission disallow PATTERN`
 
@@ -557,7 +566,7 @@ EXAMPLES
   $ sdkck permission disallow "jira issue create"
 ```
 
-_See code: [src/commands/permission/disallow.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/permission/disallow.ts)_
+_See code: [src/commands/permission/disallow.ts](https://github.com/hesedcasa/sdkck/blob/v0.18.0/src/commands/permission/disallow.ts)_
 
 ## `sdkck permission export FILE`
 
@@ -577,7 +586,7 @@ EXAMPLES
   $ sdkck permission export permission.json
 ```
 
-_See code: [src/commands/permission/export.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/permission/export.ts)_
+_See code: [src/commands/permission/export.ts](https://github.com/hesedcasa/sdkck/blob/v0.18.0/src/commands/permission/export.ts)_
 
 ## `sdkck permission import FILE`
 
@@ -597,7 +606,7 @@ EXAMPLES
   $ sdkck permission import permission.json
 ```
 
-_See code: [src/commands/permission/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/permission/import.ts)_
+_See code: [src/commands/permission/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.18.0/src/commands/permission/import.ts)_
 
 ## `sdkck permission list`
 
@@ -614,7 +623,7 @@ EXAMPLES
   $ sdkck permission list
 ```
 
-_See code: [src/commands/permission/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/permission/list.ts)_
+_See code: [src/commands/permission/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.18.0/src/commands/permission/list.ts)_
 
 ## `sdkck permission reset`
 
@@ -636,7 +645,7 @@ EXAMPLES
   $ sdkck permission reset --confirm
 ```
 
-_See code: [src/commands/permission/reset.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/permission/reset.ts)_
+_See code: [src/commands/permission/reset.ts](https://github.com/hesedcasa/sdkck/blob/v0.18.0/src/commands/permission/reset.ts)_
 
 ## `sdkck plugins`
 
@@ -659,7 +668,7 @@ EXAMPLES
   $ sdkck plugins
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.59/src/commands/plugins/index.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.64/src/commands/plugins/index.ts)_
 
 ## `sdkck plugins add PLUGIN`
 
@@ -733,7 +742,7 @@ EXAMPLES
   $ sdkck plugins inspect myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.59/src/commands/plugins/inspect.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.64/src/commands/plugins/inspect.ts)_
 
 ## `sdkck plugins install PLUGIN`
 
@@ -782,7 +791,7 @@ EXAMPLES
     $ sdkck plugins install someuser/someplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.59/src/commands/plugins/install.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.64/src/commands/plugins/install.ts)_
 
 ## `sdkck plugins link PATH`
 
@@ -813,7 +822,7 @@ EXAMPLES
   $ sdkck plugins link myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.59/src/commands/plugins/link.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.64/src/commands/plugins/link.ts)_
 
 ## `sdkck plugins remove [PLUGIN]`
 
@@ -854,7 +863,7 @@ FLAGS
   --reinstall  Reinstall all plugins after uninstalling.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.59/src/commands/plugins/reset.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.64/src/commands/plugins/reset.ts)_
 
 ## `sdkck plugins uninstall [PLUGIN]`
 
@@ -882,7 +891,7 @@ EXAMPLES
   $ sdkck plugins uninstall myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.59/src/commands/plugins/uninstall.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.64/src/commands/plugins/uninstall.ts)_
 
 ## `sdkck plugins unlink [PLUGIN]`
 
@@ -926,7 +935,7 @@ DESCRIPTION
   Update installed plugins.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.59/src/commands/plugins/update.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.64/src/commands/plugins/update.ts)_
 
 ## `sdkck search QUERY`
 
@@ -957,7 +966,7 @@ EXAMPLES
   $ sdkck search "update jira" --details
 ```
 
-_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.17.0/src/commands/search.ts)_
+_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.18.0/src/commands/search.ts)_
 
 ## `sdkck update [CHANNEL]`
 
@@ -995,7 +1004,7 @@ EXAMPLES
     $ sdkck update --available
 ```
 
-_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/4.7.31/src/commands/update.ts)_
+_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/4.7.35/src/commands/update.ts)_
 
 ## `sdkck version`
 
