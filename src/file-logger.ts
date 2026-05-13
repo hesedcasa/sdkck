@@ -1,26 +1,26 @@
-import {appendFileSync, mkdirSync} from 'node:fs'
+import {mkdirSync} from 'node:fs'
 import {dirname, join} from 'node:path'
+import pino from 'pino'
 
-let logFile: string | undefined
-let logDirEnsured = false
+let logger: pino.Logger | undefined
 
 export function initFileLogger(configDir: string): void {
-  logFile = join(configDir, 'logs', 'sdkck.log')
-  logDirEnsured = false
-}
-
-function ensureLogDir(): void {
-  if (logDirEnsured || !logFile) return
+  const logFile = join(configDir, 'logs', 'sdkck.log')
   mkdirSync(dirname(logFile), {recursive: true})
-  logDirEnsured = true
+  logger = pino(
+    {
+      level: 'warn',
+      timestamp: pino.stdTimeFunctions.isoTime,
+      formatters: {
+        bindings: () => ({}),
+        level: (label) => ({level: label}),
+      },
+    },
+    pino.destination({dest: logFile, sync: true}),
+  )
 }
 
 export function fileLog(level: 'warn' | 'error', message: string): void {
-  if (!logFile) return
-  try {
-    ensureLogDir()
-    appendFileSync(logFile, JSON.stringify({ts: new Date().toISOString(), level, message}) + '\n', 'utf8')
-  } catch {
-    // Never throw from the logger
-  }
+  if (!logger) return
+  logger[level](message)
 }

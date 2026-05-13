@@ -18,7 +18,7 @@ function makeOpts(configDir: string): HookOpts {
   }
 }
 
-async function readLogEntries(logDir: string): Promise<{level: string; message: string; ts: string}[]> {
+async function readLogEntries(logDir: string): Promise<{level: string; msg: string; time: string}[]> {
   const raw = await readFile(join(logDir, 'logs', 'sdkck.log'), 'utf8')
   return raw
     .trim()
@@ -43,15 +43,15 @@ describe('file-logger', () => {
     const entries = await readLogEntries(tmpDir)
     expect(entries).to.have.length(1)
     expect(entries[0].level).to.equal('warn')
-    expect(entries[0].message).to.equal('something odd')
-    expect(entries[0].ts).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
+    expect(entries[0].msg).to.equal('something odd')
+    expect(entries[0].time).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
   })
 
   it('writes an error entry', async () => {
     fileLog('error', 'something broke')
     const entries = await readLogEntries(tmpDir)
     expect(entries[0].level).to.equal('error')
-    expect(entries[0].message).to.equal('something broke')
+    expect(entries[0].msg).to.equal('something broke')
   })
 
   it('appends multiple entries in order', async () => {
@@ -60,7 +60,7 @@ describe('file-logger', () => {
     fileLog('error', 'third')
     const entries = await readLogEntries(tmpDir)
     expect(entries).to.have.length(3)
-    expect(entries.map((e) => e.message)).to.deep.equal(['first', 'second', 'third'])
+    expect(entries.map((e) => e.msg)).to.deep.equal(['first', 'second', 'third'])
   })
 })
 
@@ -97,7 +97,7 @@ describe('init/setup-file-logging hook', () => {
     const entries = await readLogEntries(tmpDir)
     expect(entries).to.have.length(1)
     expect(entries[0].level).to.equal('warn')
-    expect(entries[0].message).to.equal('watch out')
+    expect(entries[0].msg).to.equal('watch out')
   })
 
   it('logs console.error calls to the log file', async () => {
@@ -106,7 +106,7 @@ describe('init/setup-file-logging hook', () => {
     const entries = await readLogEntries(tmpDir)
     expect(entries).to.have.length(1)
     expect(entries[0].level).to.equal('error')
-    expect(entries[0].message).to.equal('something failed')
+    expect(entries[0].msg).to.equal('something failed')
   })
 
   it('still calls the original console.warn after patching', async () => {
@@ -131,7 +131,7 @@ describe('init/setup-file-logging hook', () => {
     await hook.call({} as never, makeOpts(tmpDir))
     console.error('part1', 'part2', 'part3')
     const entries = await readLogEntries(tmpDir)
-    expect(entries[0].message).to.equal('part1 part2 part3')
+    expect(entries[0].msg).to.equal('part1 part2 part3')
   })
 
   it('patches Command.prototype.warn to log warnings before delegating', async () => {
@@ -146,7 +146,7 @@ describe('init/setup-file-logging hook', () => {
     const entries = await readLogEntries(tmpDir)
     expect(entries).to.have.length(1)
     expect(entries[0].level).to.equal('warn')
-    expect(entries[0].message).to.equal('command warning')
+    expect(entries[0].msg).to.equal('command warning')
   })
 
   it('patches Command.prototype.error to log errors before throwing', async () => {
@@ -168,6 +168,6 @@ describe('init/setup-file-logging hook', () => {
     const entries = await readLogEntries(tmpDir)
     expect(entries).to.have.length(1)
     expect(entries[0].level).to.equal('error')
-    expect(entries[0].message).to.equal('command error')
+    expect(entries[0].msg).to.equal('command error')
   })
 })
