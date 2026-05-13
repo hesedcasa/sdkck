@@ -99,6 +99,7 @@
     },
     "hooks": {
       "init": [
+        "./dist/hooks/init/setup-file-logging",
         "./dist/hooks/init/register-api-commands",
         "./dist/hooks/init/apply-permission"
       ],
