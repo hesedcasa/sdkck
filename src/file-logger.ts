@@ -9,18 +9,18 @@ export function initFileLogger(configDir: string): void {
   mkdirSync(dirname(logFile), {recursive: true})
   logger = pino(
     {
-      level: 'warn',
-      timestamp: pino.stdTimeFunctions.isoTime,
       formatters: {
         bindings: () => ({}),
         level: (label) => ({level: label}),
       },
+      level: 'warn',
+      timestamp: pino.stdTimeFunctions.isoTime,
     },
     pino.destination({dest: logFile, sync: true}),
   )
 }
 
-export function fileLog(level: 'warn' | 'error', message: string): void {
+export function fileLog(level: 'error' | 'warn', message: string): void {
   if (!logger) return
   logger[level](message)
 }
