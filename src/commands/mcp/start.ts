@@ -8,8 +8,13 @@ export default class McpStart extends Command {
     '<%= config.bin %> mcp start',
     '<%= config.bin %> mcp start --transport http',
     '<%= config.bin %> mcp start --transport http --port 3001',
+    '<%= config.bin %> mcp start --transport http --host 0.0.0.0',
   ]
   static flags = {
+    host: Flags.string({
+      default: '127.0.0.1',
+      description: 'IP address to listen on (HTTP transport only)',
+    }),
     port: Flags.integer({
       default: 3000,
       description: 'Port to listen on (HTTP transport only)',
@@ -23,6 +28,6 @@ export default class McpStart extends Command {
 
   async run(): Promise<void> {
     const {flags} = await this.parse(McpStart)
-    await startMcpServer(this.config, {port: flags.port, transport: flags.transport})
+    await startMcpServer(this.config, {host: flags.host, port: flags.port, transport: flags.transport})
   }
 }
