@@ -281,8 +281,8 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
   return mcpServer
 }
 
-export async function startMcpServer(config: Config, options: {port?: number; transport?: string} = {}): Promise<void> {
-  const {port = 3000, transport = 'stdio'} = options
+export async function startMcpServer(config: Config, options: {host?: string; port?: number; transport?: string} = {}): Promise<void> {
+  const {host = '127.0.0.1', port = 3000, transport = 'stdio'} = options
   const server = await createMcpServer(config)
 
   if (transport === 'http') {
@@ -381,9 +381,9 @@ export async function startMcpServer(config: Config, options: {port?: number; tr
 
     await new Promise<void>((resolve, reject) => {
       httpServer.on('error', reject)
-      httpServer.listen(port, '127.0.0.1', resolve)
+      httpServer.listen(port, host, resolve)
     })
-    process.stderr.write(`MCP server listening on http://127.0.0.1:${port}\n`)
+    process.stderr.write(`MCP server listening on http://${host}:${port}\n`)
     process.stderr.write(`  Endpoint: /mcp\n`)
 
     await new Promise<void>((_, reject) => {
