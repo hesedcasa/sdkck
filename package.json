@@ -1,7 +1,7 @@
 {
   "name": "sdkck",
   "description": "Agentic CLI that provides multiple tools via plugins",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "author": "Hesed",
   "bin": {
     "sdkck": "./bin/run.js"

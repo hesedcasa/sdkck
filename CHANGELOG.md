@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.0](https://github.com/hesedcasa/sdkck/compare/v0.19.0...v0.20.0) (2026-05-13)
+
+
+### 🎉 Features
+
+* add local file logging for all warnings and errors ([#106](https://github.com/hesedcasa/sdkck/issues/106)) ([8c2199e](https://github.com/hesedcasa/sdkck/commit/8c2199ecc3f63dc2ef696a870b7a8335c57ef90c))
+
 ## [0.19.0](https://github.com/hesedcasa/sdkck/compare/v0.18.0...v0.19.0) (2026-05-13)
 
 
