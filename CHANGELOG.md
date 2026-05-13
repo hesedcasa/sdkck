@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.0](https://github.com/hesedcasa/sdkck/compare/v0.18.0...v0.19.0) (2026-05-13)
+
+
+### 🎉 Features
+
+* **mcp:** add --host flag to mcp start for HTTP transport ([#104](https://github.com/hesedcasa/sdkck/issues/104)) ([16f5142](https://github.com/hesedcasa/sdkck/commit/16f5142aaabc8b24073b1f65367850bfb5f511d9))
+
 ## [0.18.0](https://github.com/hesedcasa/sdkck/compare/v0.17.0...v0.18.0) (2026-05-13)
 
 
