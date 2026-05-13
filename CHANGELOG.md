@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.0](https://github.com/hesedcasa/sdkck/compare/v0.17.0...v0.18.0) (2026-05-13)
+
+
+### 🎉 Features
+
+* **mcp:** add HTTP transport and remove sampling from search tool ([#102](https://github.com/hesedcasa/sdkck/issues/102)) ([1487208](https://github.com/hesedcasa/sdkck/commit/1487208c79da5a71718a9e9f4d74dbde2c41d027))
+
 ## [0.17.0](https://github.com/hesedcasa/sdkck/compare/v0.16.0...v0.17.0) (2026-04-20)
 
 
