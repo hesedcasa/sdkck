@@ -5,8 +5,12 @@ import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js'
 // eslint-disable-next-line import/no-unresolved
 import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js'
 // eslint-disable-next-line import/no-unresolved
-import {CallToolRequestSchema, ListToolsRequestSchema} from '@modelcontextprotocol/sdk/types.js'
+import {StreamableHTTPServerTransport} from '@modelcontextprotocol/sdk/server/streamableHttp.js'
+// eslint-disable-next-line import/no-unresolved
+import {CallToolRequestSchema, isInitializeRequest, ListToolsRequestSchema} from '@modelcontextprotocol/sdk/types.js'
 import {Command, toConfiguredId} from '@oclif/core'
+import {randomUUID} from 'node:crypto'
+import * as http from 'node:http'
 
 import {SearchCache} from './search-cache.js'
 
@@ -45,70 +49,17 @@ export function buildArgv(cmd: Command.Loadable, toolArgs: Record<string, unknow
   return argv
 }
 
-// ─── MCP sampling adapter ────────────────────────────────────────────────────
-
-/**
- * Structural interface matching the SamplingClient shape used by the search
- * command. Wraps MCP sampling (server.createMessage) so the connected client's
- * LLM performs command ranking instead of a hard-coded OpenAI call.
- */
-interface SamplingClient {
-  chat: {
-    completions: {
-      create(params: {
-        max_tokens?: number
-        messages: Array<{content: string; role: string}>
-        model: string
-      }): Promise<{choices: Array<{message: {content: null | string}}>}>
-    }
-  }
-}
-
-function createSamplingAdapter(server: McpServer): SamplingClient {
-  return {
-    chat: {
-      completions: {
-        async create(params) {
-          let systemPrompt: string | undefined
-          const mcpMessages: Array<{content: {text: string; type: 'text'}; role: 'assistant' | 'user'}> = []
-
-          for (const msg of params.messages) {
-            if (msg.role === 'system') {
-              systemPrompt = msg.content
-            } else {
-              mcpMessages.push({
-                content: {text: msg.content, type: 'text'},
-                role: msg.role as 'assistant' | 'user',
-              })
-            }
-          }
-
-          const result = await server.server.createMessage({
-            maxTokens: params.max_tokens ?? 1024,
-            messages: mcpMessages,
-            ...(systemPrompt ? {systemPrompt} : {}),
-          })
-
-          const text = result.content.type === 'text' ? result.content.text : ''
-          return {choices: [{message: {content: text}}]}
-        },
-      },
-    },
-  }
-}
-
 // ─── Command execution helper ────────────────────────────────────────────────
 
 async function runCommand(
   cmd: Command.Loadable,
   argv: string[],
   config: Config,
-  samplingClient?: SamplingClient,
 ): Promise<{error?: string; output: string}> {
   try {
     const CmdClass = await cmd.load()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const instance = new (CmdClass as any)(argv, config) as Command & {_llmClient?: SamplingClient}
+    const instance = new (CmdClass as any)(argv, config) as Command
 
     const lines: string[] = []
     instance.log = (msg = '') => {
@@ -124,10 +75,6 @@ async function runCommand(
     instance.warn = (msg: Error | string) => {
       lines.push(`Warning: ${String(msg)}`)
       return String(msg)
-    }
-
-    if (samplingClient) {
-      instance._llmClient = samplingClient
     }
 
     const result = await instance.run()
@@ -258,14 +205,11 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
         inputSchema: {
           properties: {
             args: {
-              description:
-                'Command arguments as key-value pairs. ' +
-                'Positional args use their parameter name as the key. ' +
-                'Flags use their flag name (without --).',
+              description: 'Command arguments as key-value pairs (e.g. {"issueId":"PROJ-123"})',
               type: 'object',
             },
             commandId: {
-              description: 'The command ID to run (e.g. "api import", "permission list")',
+              description: 'The command ID to run (e.g. "jira issue get")',
               type: 'string',
             },
           },
@@ -296,8 +240,7 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
       const argv = [query]
       if (limit !== undefined) argv.push('--limit', String(limit))
 
-      const samplingClient = createSamplingAdapter(mcpServer)
-      const {error, output} = await runCommand(searchCmd, argv, config, samplingClient)
+      const {error, output} = await runCommand(searchCmd, argv, config)
       if (error) {
         return {content: [{text: error, type: 'text' as const}], isError: true}
       }
@@ -338,8 +281,117 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
   return mcpServer
 }
 
-export async function startMcpServer(config: Config): Promise<void> {
+export async function startMcpServer(config: Config, options: {port?: number; transport?: string} = {}): Promise<void> {
+  const {port = 3000, transport = 'stdio'} = options
   const server = await createMcpServer(config)
-  const transport = new StdioServerTransport()
-  await server.connect(transport)
+
+  if (transport === 'http') {
+    const transports = new Map<string, StreamableHTTPServerTransport>()
+
+    const httpServer = http.createServer(async (req, res) => {
+      const url = new URL(req.url ?? '/', `http://${req.headers.host}`)
+
+      if (url.pathname !== '/mcp') {
+        res.writeHead(404).end('Not found')
+        return
+      }
+
+      const sessionId = req.headers['mcp-session-id'] as string | undefined
+
+      if (req.method === 'GET') {
+        if (!sessionId || !transports.has(sessionId)) {
+          res.writeHead(400).end('Invalid or missing session ID')
+          return
+        }
+
+        await transports.get(sessionId)!.handleRequest(req, res)
+        return
+      }
+
+      if (req.method === 'POST') {
+        if (sessionId && transports.has(sessionId)) {
+          await transports.get(sessionId)!.handleRequest(req, res)
+          return
+        }
+
+        // New session — only accept initialize requests
+        let body: unknown
+        try {
+          body = await new Promise<unknown>((resolve, reject) => {
+            let raw = ''
+            req.on('data', (chunk: string) => {
+              raw += chunk
+            })
+            req.on('end', () => {
+              try {
+                resolve(JSON.parse(raw))
+              } catch {
+                reject(new Error('Invalid JSON'))
+              }
+            })
+            req.on('error', reject)
+          })
+        } catch {
+          res.writeHead(400).end('Invalid JSON')
+          return
+        }
+
+        if (!isInitializeRequest(body)) {
+          res.writeHead(400).end(
+            JSON.stringify({
+              error: {code: -32_000, message: 'Bad Request: expected initialize'},
+              id: null,
+              jsonrpc: '2.0',
+            }),
+          )
+          return
+        }
+
+        const mcpTransport = new StreamableHTTPServerTransport({
+          onsessioninitialized(sid) {
+            transports.set(sid, mcpTransport)
+          },
+          sessionIdGenerator: () => randomUUID(),
+        })
+
+        // eslint-disable-next-line unicorn/prefer-add-event-listener
+        mcpTransport.onclose = () => {
+          if (mcpTransport.sessionId) transports.delete(mcpTransport.sessionId)
+        }
+
+        const mcpServerInstance = await createMcpServer(config)
+        await mcpServerInstance.connect(mcpTransport)
+        await mcpTransport.handleRequest(req, res, body)
+        return
+      }
+
+      if (req.method === 'DELETE') {
+        if (!sessionId || !transports.has(sessionId)) {
+          res.writeHead(400).end('Invalid or missing session ID')
+          return
+        }
+
+        await transports.get(sessionId)!.close()
+        res.writeHead(200).end()
+        return
+      }
+
+      res.writeHead(405).end('Method not allowed')
+    })
+
+    await new Promise<void>((resolve, reject) => {
+      httpServer.on('error', reject)
+      httpServer.listen(port, '127.0.0.1', resolve)
+    })
+    process.stderr.write(`MCP server listening on http://127.0.0.1:${port}\n`)
+    process.stderr.write(`  Endpoint: /mcp\n`)
+
+    await new Promise<void>((_, reject) => {
+      httpServer.on('error', reject)
+    })
+    return
+  }
+
+  const stdioTransport = new StdioServerTransport()
+  await server.connect(stdioTransport)
 }
