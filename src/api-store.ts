@@ -1,13 +1,14 @@
 import {dereference} from '@scalar/openapi-parser'
 import {load as yamlLoad} from 'js-yaml'
 import {existsSync} from 'node:fs'
-import {mkdir, readdir, readFile, unlink, writeFile} from 'node:fs/promises'
+import {readdir, readFile, unlink, writeFile} from 'node:fs/promises'
 import http from 'node:http'
 import https from 'node:https'
 import {join} from 'node:path'
 
 import type {PostmanCollection} from './postman-converter.js'
 
+import {decryptString, encryptString, loadOrCreateKey} from './config-crypto.js'
 import {isPostmanCollection, postmanToOpenApi} from './postman-converter.js'
 
 // ─── OpenAPI types ────────────────────────────────────────────────────────────
@@ -159,11 +160,12 @@ export async function readStore(configDir: string): Promise<ApiStore> {
   const specFiles = files.filter((f) => /^(api|openapi)-.+\.json$/.test(f))
   specFiles.sort((a, b) => (a.startsWith('api-') ? -1 : b.startsWith('api-') ? 1 : 0))
 
+  const key = loadOrCreateKey(configDir)
   const loaded = await Promise.all(
     specFiles.map(async (file) => {
       try {
         const raw = await readFile(join(configDir, file), 'utf8')
-        return JSON.parse(raw) as StoredSpec
+        return JSON.parse(decryptString(raw, key)) as StoredSpec
       } catch (error) {
         console.error(`Failed to load spec file "${file}": ${(error as Error).message}`)
         return null
@@ -179,13 +181,11 @@ export async function readStore(configDir: string): Promise<ApiStore> {
 }
 
 export async function writeStore(configDir: string, store: ApiStore): Promise<void> {
-  if (!existsSync(configDir)) {
-    await mkdir(configDir, {recursive: true})
-  }
+  const key = loadOrCreateKey(configDir)
 
   await Promise.all(
     Object.entries(store.specs).map(async ([name, spec]) => {
-      await writeFile(specFilePath(configDir, name), JSON.stringify(spec, null, 2), 'utf8')
+      await writeFile(specFilePath(configDir, name), encryptString(JSON.stringify(spec, null, 2), key), 'utf8')
       // Remove any stale legacy file so readStore sees a single source of truth.
       await unlink(legacySpecFilePath(configDir, name)).catch((error: NodeJS.ErrnoException) => {
         if (error.code !== 'ENOENT') {

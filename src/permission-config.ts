@@ -1,8 +1,9 @@
-import {existsSync} from 'node:fs'
-import {mkdir, readFile, writeFile} from 'node:fs/promises'
+import {readFile, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
-export interface PermissionRule {
+import {decryptString, encryptString, loadOrCreateKey} from './config-crypto.js'
+
+interface PermissionRule {
   pattern: string
 }
 
@@ -18,19 +19,17 @@ export async function readPermissionConfig(configDir: string | undefined): Promi
   if (!configDir) return {rules: []}
   const filePath = configFilePath(configDir)
   try {
+    const key = loadOrCreateKey(configDir)
     const content = await readFile(filePath, 'utf8')
-    return JSON.parse(content) as PermissionConfig
+    return JSON.parse(decryptString(content, key)) as PermissionConfig
   } catch {
     return {rules: []}
   }
 }
 
 export async function writePermissionConfig(configDir: string, config: PermissionConfig): Promise<void> {
-  if (!existsSync(configDir)) {
-    await mkdir(configDir, {recursive: true})
-  }
-
-  await writeFile(configFilePath(configDir), JSON.stringify(config, null, 2), 'utf8')
+  const key = loadOrCreateKey(configDir)
+  await writeFile(configFilePath(configDir), encryptString(JSON.stringify(config, null, 2), key), 'utf8')
 }
 
 /**

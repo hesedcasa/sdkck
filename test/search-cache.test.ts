@@ -1,6 +1,6 @@
 import {expect} from 'chai'
 import {mkdtempSync, rmSync} from 'node:fs'
-import {readFile, writeFile} from 'node:fs/promises'
+import {writeFile} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
@@ -76,17 +76,15 @@ describe('SearchCache', () => {
       rmSync(tmpDir, {force: true, recursive: true})
     })
 
-    it('writes cache entries to file', async () => {
+    it('writes cache entries to file and round-trips correctly', async () => {
       const cachePath = join(tmpDir, 'search-cache.json')
       const cache = new SearchCache({cacheFilePath: cachePath})
       cache.set('jira', 5, 'result')
       await new Promise((resolve) => {
         setTimeout(resolve, 50)
       })
-      const content = await readFile(cachePath, 'utf8')
-      const data = JSON.parse(content)
-      expect(data.entries['jira|5']).to.exist
-      expect(data.entries['jira|5'].output).to.equal('result')
+      const cache2 = new SearchCache({cacheFilePath: cachePath})
+      expect(cache2.get('jira', 5)).to.equal('result')
     })
 
     it('loads existing entries from file on construction', async () => {
