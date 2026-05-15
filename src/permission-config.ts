@@ -68,3 +68,17 @@ export function matchesPattern(commandId: string, pattern: string): boolean {
 
   return false
 }
+
+/**
+ * Returns true if a command id is allowed by the given permission config.
+ * First matching rule wins. Commands with no matching rule are allowed.
+ */
+export function isCommandAllowed(commandId: string, config: PermissionConfig): boolean {
+  for (const rule of config.rules) {
+    if (matchesPattern(commandId, rule.pattern)) {
+      return rule.action === 'allow'
+    }
+  }
+
+  return true
+}
