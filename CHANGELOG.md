@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.0](https://github.com/hesedcasa/sdkck/compare/v0.21.1...v0.22.0) (2026-05-15)
+
+
+### 🎉 Features
+
+* **mcp:** add Bearer token auth for HTTP transport ([#115](https://github.com/hesedcasa/sdkck/issues/115)) ([59aad55](https://github.com/hesedcasa/sdkck/commit/59aad5575d547fcb175ee3ce31875dcfbc860d12))
+
 ## [0.21.1](https://github.com/hesedcasa/sdkck/compare/v0.21.0...v0.21.1) (2026-05-15)
 
 
