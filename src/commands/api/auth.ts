@@ -56,7 +56,6 @@ export default class ApiAuth extends Command {
       required: false,
     }),
   }
-  static sensitive = true
 
   async run(): Promise<void> {
     const {args, flags} = await this.parse(ApiAuth)

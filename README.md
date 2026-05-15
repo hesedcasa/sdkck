@@ -79,26 +79,6 @@ One CLI to search, connect, and command every tool in your stack. Zero context w
 
 - Fine-grained control over which commands plugins can execute. Allow, disallow, import, and export permission rules. Perfect for enterprise environments and shared agent setups.
 
-### Programmatic API
-
-`sdkck` exposes a typed programmatic API for oclif plugins that ship alongside it. Other plugins can enumerate and invoke commands without re-implementing permission and sensitive-command filtering.
-
-```ts
-import {sdkck} from 'sdkck'
-
-// Inside a Command class in another oclif plugin:
-const cmds = await sdkck.commands.list(this.config)
-// → Array<CommandInfo> — hidden, disallowed, and sensitive commands excluded by default
-
-const {output, error} = await sdkck.commands.run(this.config, 'api:list', {json: true})
-```
-
-**Policy gates.** `run()` refuses to execute sensitive commands (like `api:auth`) and commands blocked by the permission allowlist. Pass `{allowSensitive: true}` or `{allowDisallowed: true}` to override. Policy denial throws `SdkckExecutionError` with a typed `.code`; runtime errors from the command itself are returned in `result.error`.
-
-**Sensitive classification.** A command is sensitive if its class declares `static sensitive = true`, or if any colon-separated segment of its id is in the built-in denylist (`auth`, `login`, `logout`, `credentials`, `secret`, `token`, …). Set `static sensitive = false` to override the pattern fallback.
-
-See `docs/superpowers/specs/2026-05-15-internal-commands-api-design.md` for the full spec.
-
 ## Why Sidekick?
 
 AI agents waste most of their context window loading tool schemas they'll never use.

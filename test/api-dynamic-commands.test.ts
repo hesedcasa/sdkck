@@ -231,13 +231,6 @@ describe('api-dynamic-commands', () => {
       expect(ic2._commands.size).to.equal(0)
       expect(ic2._topics.size).to.equal(0)
     })
-
-    it('marks generated command classes with static __sdkckDynamic = true', async () => {
-      const entry = ic._commands.get('petstore:listPets')
-      expect(entry).to.exist
-      const CmdClass = (await entry!.load()) as unknown as {__sdkckDynamic?: boolean}
-      expect(CmdClass.__sdkckDynamic).to.equal(true)
-    })
   })
 
   // ─── DynamicOperationCommand execution ───────────────────────────────────────

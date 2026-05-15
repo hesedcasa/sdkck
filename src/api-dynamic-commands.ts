@@ -199,7 +199,6 @@ function createOperationCommand(
   const capturedBodyParamFlagNames = bodyParamFlagNames
 
   class DynamicOperationCommand extends Command {
-    static __sdkckDynamic = true
     // Cast required: dynamicArgs is built at runtime so TypeScript cannot verify the exact shape
     static args = dynamicArgs as typeof Command.args
     static description = opDescription

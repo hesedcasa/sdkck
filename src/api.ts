@@ -30,7 +30,6 @@ export interface CommandInfo {
   flags: CommandFlag[]
   hidden: boolean
   id: string
-  isDynamic: boolean
   isPermitted: boolean
   isSensitive: boolean
   pluginName?: string
@@ -140,9 +139,9 @@ async function toCommandInfo(
   permittedSeparator: string,
   permissionConfig: Awaited<ReturnType<typeof readPermissionConfig>>,
 ): Promise<CommandInfo | undefined> {
-  let CmdClass: undefined | {__sdkckDynamic?: boolean; sensitive?: boolean;}
+  let CmdClass: undefined | {sensitive?: boolean;}
   try {
-    CmdClass = (await loadable.load()) as unknown as {__sdkckDynamic?: boolean; sensitive?: boolean;}
+    CmdClass = (await loadable.load()) as unknown as {sensitive?: boolean;}
   } catch (error) {
     fileLog(
       'error',
@@ -156,7 +155,6 @@ async function toCommandInfo(
   const normalizedForPermission = id.replaceAll(':', permittedSeparator)
   const isPermitted = isCommandAllowed(normalizedForPermission, permissionConfig)
   const isSensitive = isSensitiveCommand(id, CmdClass)
-  const isDynamic = (CmdClass as {__sdkckDynamic?: boolean}).__sdkckDynamic === true
   const topic = id.includes(':') ? id.split(':')[0] : undefined
 
   const info: CommandInfo = {
@@ -167,7 +165,6 @@ async function toCommandInfo(
     flags: Object.freeze(mapFlags(loadable.flags as Record<string, unknown> | undefined)) as unknown as CommandFlag[],
     hidden: Boolean(loadable.hidden),
     id,
-    isDynamic,
     isPermitted,
     isSensitive,
     pluginName: loadable.pluginName,

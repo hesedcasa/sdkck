@@ -134,7 +134,6 @@ describe('sdkck.commands.list', () => {
     expect(apiList?.topic).to.equal('api')
     expect(apiList?.isSensitive).to.be.false
     expect(apiList?.isPermitted).to.be.true
-    expect(apiList?.isDynamic).to.be.false
   })
 
   it('excludes hidden commands by default; includeHidden returns them', async () => {
@@ -187,16 +186,6 @@ describe('sdkck.commands.list', () => {
 
     const result = await sdkck.commands.list(cfg, {topic: 'api'})
     expect(result.map((c) => c.id)).to.deep.equal(['api:list', 'api:remove'])
-  })
-
-  it('marks dynamic commands with isDynamic=true', async () => {
-    const cfg = makeConfig(
-      [cmd({id: 'petstore:getPet', staticProps: {__sdkckDynamic: true}})],
-      configDir,
-    )
-
-    const all = await sdkck.commands.list(cfg)
-    expect(all[0].isDynamic).to.be.true
   })
 
   it('does not crash when a single command fails to load', async () => {
