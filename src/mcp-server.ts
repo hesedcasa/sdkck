@@ -12,6 +12,7 @@ import {randomUUID} from 'node:crypto'
 import * as http from 'node:http'
 
 import {sdkck, SdkckExecutionError} from './api.js'
+import {checkBearerToken, readMcpAuth} from './mcp-auth.js'
 import {isCommandAllowed, readPermissionConfig} from './permission-config.js'
 import {SearchCache} from './search-cache.js'
 
@@ -223,6 +224,7 @@ export async function startMcpServer(config: Config, options: {host?: string; po
 
   if (transport === 'http') {
     const transports = new Map<string, StreamableHTTPServerTransport>()
+    const token = config.configDir ? await readMcpAuth(config.configDir) : null
 
     const httpServer = http.createServer(async (req, res) => {
       const url = new URL(req.url ?? '/', `http://${req.headers.host}`)
@@ -231,6 +233,8 @@ export async function startMcpServer(config: Config, options: {host?: string; po
         res.writeHead(404).end('Not found')
         return
       }
+
+      if (token && !checkBearerToken(req, res, token)) return
 
       const sessionId = req.headers['mcp-session-id'] as string | undefined
 
@@ -321,6 +325,7 @@ export async function startMcpServer(config: Config, options: {host?: string; po
     })
     process.stderr.write(`MCP server listening on http://${host}:${port}\n`)
     process.stderr.write(`  Endpoint: /mcp\n`)
+    if (token) process.stderr.write(`  Authentication: Bearer token required\n`)
 
     await new Promise<void>((_, reject) => {
       httpServer.on('error', reject)
