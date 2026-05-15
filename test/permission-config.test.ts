@@ -61,26 +61,16 @@ describe('permission-config', () => {
 
     it('disallows when first matching rule is disallow', () => {
       const config: PermissionConfig = {
-        rules: [{action: 'disallow', pattern: 'jira *'}],
+        rules: [{pattern: 'jira *'}],
       }
       expect(isCommandAllowed('jira issue', config)).to.be.false
-    })
-
-    it('allows when first matching rule is allow', () => {
-      const config: PermissionConfig = {
-        rules: [
-          {action: 'allow', pattern: 'jira issue'},
-          {action: 'disallow', pattern: 'jira *'},
-        ],
-      }
-      expect(isCommandAllowed('jira issue', config)).to.be.true
     })
 
     it('first match wins — ignores later rules', () => {
       const config: PermissionConfig = {
         rules: [
-          {action: 'disallow', pattern: '*'},
-          {action: 'allow', pattern: 'jira issue'},
+          {pattern: '*'},
+          {pattern: 'jira issue'},
         ],
       }
       expect(isCommandAllowed('jira issue', config)).to.be.false
@@ -88,7 +78,7 @@ describe('permission-config', () => {
 
     it('returns true for an unmatched command id', () => {
       const config: PermissionConfig = {
-        rules: [{action: 'disallow', pattern: 'mysql *'}],
+        rules: [{pattern: 'mysql *'}],
       }
       expect(isCommandAllowed('jira issue', config)).to.be.true
     })

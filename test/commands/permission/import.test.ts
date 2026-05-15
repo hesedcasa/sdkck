@@ -34,8 +34,8 @@ describe('permission import', () => {
 
   it('imports rules from a valid JSON file', async () => {
     const rules = [
-      {action: 'allow', pattern: 'jira'},
-      {action: 'disallow', pattern: 'mysql'},
+      {pattern: 'jira'},
+      {pattern: 'mysql'},
     ]
     const inFile = join(tmpDir, 'input.json')
     await writeFile(inFile, JSON.stringify({rules}), 'utf8')
@@ -50,7 +50,7 @@ describe('permission import', () => {
 
   it('imports a single rule with correct singular message', async () => {
     const inFile = join(tmpDir, 'input.json')
-    await writeFile(inFile, JSON.stringify({rules: [{action: 'allow', pattern: '*'}]}), 'utf8')
+    await writeFile(inFile, JSON.stringify({rules: [{pattern: '*'}]}), 'utf8')
 
     const {cmd, output} = makeImport([inFile], tmpDir)
     await cmd.run()
@@ -99,9 +99,9 @@ describe('permission import', () => {
     expect(threw).to.be.true
   })
 
-  it('throws when a rule has an invalid action', async () => {
-    const inFile = join(tmpDir, 'badaction.json')
-    await writeFile(inFile, JSON.stringify({rules: [{action: 'unknown', pattern: 'jira'}]}), 'utf8')
+  it('throws when a rule has no pattern', async () => {
+    const inFile = join(tmpDir, 'badpattern.json')
+    await writeFile(inFile, JSON.stringify({rules: [{notAPattern: 'jira'}]}), 'utf8')
     const {cmd} = makeImport([inFile], tmpDir)
     let threw = false
     try {

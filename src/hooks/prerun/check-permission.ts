@@ -17,11 +17,7 @@ const hook: Hook<'prerun'> = async function ({Command, config}) {
   const normalizedId = Command.id.replaceAll(':', config.topicSeparator)
   for (const rule of permissionConfig.rules) {
     if (matchesPattern(normalizedId, rule.pattern)) {
-      if (rule.action === 'disallow') {
-        throw new Errors.CLIError(`Command "${normalizedId}" is not permitted.`)
-      }
-
-      return
+      throw new Errors.CLIError(`Command "${normalizedId}" is not permitted.`)
     }
   }
 }

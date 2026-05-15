@@ -39,17 +39,8 @@ describe('permission list', () => {
     expect(output()).to.contain('No permission rules configured.')
   })
 
-  it('lists allow rules', async () => {
-    await writePermissionConfig(tmpDir, {rules: [{action: 'allow', pattern: 'jira'}]})
-    const {cmd, output} = makeList(tmpDir)
-    await cmd.run()
-
-    expect(output()).to.contain('allow')
-    expect(output()).to.contain('jira')
-  })
-
   it('lists disallow rules', async () => {
-    await writePermissionConfig(tmpDir, {rules: [{action: 'disallow', pattern: 'mysql *'}]})
+    await writePermissionConfig(tmpDir, {rules: [{pattern: 'mysql *'}]})
     const {cmd, output} = makeList(tmpDir)
     await cmd.run()
 
@@ -60,8 +51,8 @@ describe('permission list', () => {
   it('shows the rule count', async () => {
     await writePermissionConfig(tmpDir, {
       rules: [
-        {action: 'allow', pattern: 'jira'},
-        {action: 'disallow', pattern: 'mysql'},
+        {pattern: 'jira'},
+        {pattern: 'mysql'},
       ],
     })
     const {cmd, output} = makeList(tmpDir)
@@ -71,7 +62,7 @@ describe('permission list', () => {
   })
 
   it('shows singular "rule" for a single entry', async () => {
-    await writePermissionConfig(tmpDir, {rules: [{action: 'allow', pattern: '*'}]})
+    await writePermissionConfig(tmpDir, {rules: [{pattern: '*'}]})
     const {cmd, output} = makeList(tmpDir)
     await cmd.run()
 

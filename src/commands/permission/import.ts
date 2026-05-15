@@ -37,10 +37,8 @@ export default class PermissionImport extends Command {
     }
 
     for (const [i, rule] of config.rules.entries()) {
-      if (typeof rule.pattern !== 'string' || (rule.action !== 'allow' && rule.action !== 'disallow')) {
-        this.error(
-          `Rule at index ${i} is invalid. Each rule must have a string "pattern" and an "action" of "allow" or "disallow".`,
-        )
+      if (typeof rule.pattern !== 'string') {
+        this.error(`Rule at index ${i} is invalid. Each rule must have a string "pattern".`)
       }
     }
 

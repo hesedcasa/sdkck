@@ -2,10 +2,7 @@ import {existsSync} from 'node:fs'
 import {mkdir, readFile, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
-type RuleAction = 'allow' | 'disallow'
-
-interface PermissionRule {
-  action: RuleAction
+export interface PermissionRule {
   pattern: string
 }
 
@@ -17,7 +14,8 @@ function configFilePath(configDir: string): string {
   return join(configDir, 'permission.json')
 }
 
-export async function readPermissionConfig(configDir: string): Promise<PermissionConfig> {
+export async function readPermissionConfig(configDir: string | undefined): Promise<PermissionConfig> {
+  if (!configDir) return {rules: []}
   const filePath = configFilePath(configDir)
   try {
     const content = await readFile(filePath, 'utf8')
@@ -71,14 +69,8 @@ export function matchesPattern(commandId: string, pattern: string): boolean {
 
 /**
  * Returns true if a command id is allowed by the given permission config.
- * First matching rule wins. Commands with no matching rule are allowed.
+ * A command is blocked if any rule pattern matches it. Unmatched commands are allowed.
  */
 export function isCommandAllowed(commandId: string, config: PermissionConfig): boolean {
-  for (const rule of config.rules) {
-    if (matchesPattern(commandId, rule.pattern)) {
-      return rule.action === 'allow'
-    }
-  }
-
-  return true
+  return !config.rules.some((rule) => matchesPattern(commandId, rule.pattern))
 }

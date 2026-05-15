@@ -24,15 +24,13 @@ export default class PermissionDisallow extends Command {
 
     const config = await readPermissionConfig(this.config.configDir)
 
-    const exists = config.rules.some((r) => r.pattern === pattern && r.action === 'disallow')
+    const exists = config.rules.some((r) => r.pattern === pattern)
     if (exists) {
       this.log(`Pattern "${pattern}" is already in the disallow list.`)
       return
     }
 
-    // Remove any conflicting allow rule for the same pattern
-    config.rules = config.rules.filter((r) => !(r.pattern === pattern && r.action === 'allow'))
-    config.rules.push({action: 'disallow', pattern})
+    config.rules.push({pattern})
 
     await writePermissionConfig(this.config.configDir, config)
     this.log(`Added disallow rule for "${pattern}".`)

@@ -38,7 +38,7 @@ describe('permission disallow', () => {
 
     expect(output()).to.contain('Added disallow rule for "jira".')
     const saved = await readPermissionConfig(tmpDir)
-    expect(saved.rules).to.deep.equal([{action: 'disallow', pattern: 'jira'}])
+    expect(saved.rules).to.deep.equal([{pattern: 'jira'}])
   })
 
   it('adds a disallow rule with wildcard pattern', async () => {
@@ -46,11 +46,11 @@ describe('permission disallow', () => {
     await cmd.run()
 
     const saved = await readPermissionConfig(tmpDir)
-    expect(saved.rules).to.deep.equal([{action: 'disallow', pattern: 'jira *'}])
+    expect(saved.rules).to.deep.equal([{pattern: 'jira *'}])
   })
 
   it('does not duplicate an existing disallow rule', async () => {
-    await writePermissionConfig(tmpDir, {rules: [{action: 'disallow', pattern: 'jira'}]})
+    await writePermissionConfig(tmpDir, {rules: [{pattern: 'jira'}]})
     const {cmd, output} = makeDisallow(['jira'], tmpDir)
     await cmd.run()
 
@@ -59,17 +59,8 @@ describe('permission disallow', () => {
     expect(saved.rules).to.have.length(1)
   })
 
-  it('removes a conflicting allow rule when adding disallow', async () => {
-    await writePermissionConfig(tmpDir, {rules: [{action: 'allow', pattern: 'jira'}]})
-    const {cmd} = makeDisallow(['jira'], tmpDir)
-    await cmd.run()
-
-    const saved = await readPermissionConfig(tmpDir)
-    expect(saved.rules).to.deep.equal([{action: 'disallow', pattern: 'jira'}])
-  })
-
   it('preserves unrelated rules when adding a new one', async () => {
-    await writePermissionConfig(tmpDir, {rules: [{action: 'disallow', pattern: 'mysql'}]})
+    await writePermissionConfig(tmpDir, {rules: [{pattern: 'mysql'}]})
     const {cmd} = makeDisallow(['jira'], tmpDir)
     await cmd.run()
 
