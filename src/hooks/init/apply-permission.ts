@@ -1,6 +1,6 @@
 import {Errors, Hook} from '@oclif/core'
 
-import {matchesPattern, readPermissionConfig} from '../../permission-config.js'
+import {isCommandAllowed, readPermissionConfig} from '../../permission-config.js'
 
 /**
  * Hides disallowed commands from `sdkck help` and `sdkck commands` by setting
@@ -32,27 +32,15 @@ const hook: Hook<'init'> = async function (opts) {
 
   for (const [id, command] of internalCommands) {
     const normalizedId = id.replaceAll(':', opts.config.topicSeparator)
-    for (const rule of permissionConfig.rules) {
-      if (matchesPattern(normalizedId, rule.pattern)) {
-        if (rule.action === 'disallow') {
-          command.hidden = true
-        }
-
-        break
-      }
+    if (!isCommandAllowed(normalizedId, permissionConfig)) {
+      command.hidden = true
     }
   }
 
   for (const [id, topic] of internalTopics) {
     const normalizedId = id.replaceAll(':', opts.config.topicSeparator)
-    for (const rule of permissionConfig.rules) {
-      if (matchesPattern(normalizedId, rule.pattern)) {
-        if (rule.action === 'disallow') {
-          topic.hidden = true
-        }
-
-        break
-      }
+    if (!isCommandAllowed(normalizedId, permissionConfig)) {
+      topic.hidden = true
     }
   }
 
@@ -60,17 +48,9 @@ const hook: Hook<'init'> = async function (opts) {
   // reaches its --help display or runCommand path. Print the message directly
   // and use Errors.exit() so oclif's debug-mode error handler never sees it
   // (which would dump a noisy stack trace).
-  if (invokedId) {
-    for (const rule of permissionConfig.rules) {
-      if (matchesPattern(invokedId, rule.pattern)) {
-        if (rule.action === 'disallow') {
-          process.stderr.write(`Command "${invokedId}" is not permitted.\n`)
-          Errors.exit(2)
-        }
-
-        break
-      }
-    }
+  if (invokedId && !isCommandAllowed(invokedId, permissionConfig)) {
+    process.stderr.write(`Command "${invokedId}" is not permitted.\n`)
+    Errors.exit(2)
   }
 }
 
