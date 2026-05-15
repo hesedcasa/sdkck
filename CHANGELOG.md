@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.1](https://github.com/hesedcasa/sdkck/compare/v0.21.0...v0.21.1) (2026-05-15)
+
+
+### ♻️ Chores
+
+* **permission:** simplify to disallow-only rules, remove sensitive classification ([#113](https://github.com/hesedcasa/sdkck/issues/113)) ([ca27117](https://github.com/hesedcasa/sdkck/commit/ca27117c95b2688d331c879a21813fbe25ec9c67))
+
 ## [0.21.0](https://github.com/hesedcasa/sdkck/compare/v0.20.0...v0.21.0) (2026-05-15)
 
 
