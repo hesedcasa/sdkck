@@ -129,12 +129,12 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
               description: 'Command arguments as key-value pairs (e.g. {"issueId":"PROJ-123"})',
               type: 'object',
             },
-            command: {
+            commandId: {
               description: 'The command ID to run (e.g. "jira issue get")',
               type: 'string',
             },
           },
-          required: ['command'],
+          required: ['commandId'],
           type: 'object',
         },
         name: 'run_command',
@@ -174,9 +174,9 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
     }
 
     if (name === 'run_command') {
-      const {args: cmdArgs = {}, command: commandId} = (request.params.arguments ?? {}) as {
+      const {args: cmdArgs = {}, commandId = ''} = (request.params.arguments ?? {}) as {
         args?: Record<string, unknown>
-        command: string
+        commandId: string
       }
 
       try {
