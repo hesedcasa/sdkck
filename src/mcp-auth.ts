@@ -1,13 +1,14 @@
+import type {IncomingMessage, ServerResponse} from 'node:http'
+
 import {existsSync} from 'node:fs'
 import {mkdir, readFile, unlink, writeFile} from 'node:fs/promises'
-import type {IncomingMessage, ServerResponse} from 'node:http'
 import {join} from 'node:path'
 
 function authFilePath(configDir: string): string {
   return join(configDir, 'mcp-auth.json')
 }
 
-export async function readMcpAuth(configDir: string): Promise<string | null> {
+export async function readMcpAuth(configDir: string): Promise<null | string> {
   try {
     const content = await readFile(authFilePath(configDir), 'utf8')
     return (JSON.parse(content) as {token: string}).token
@@ -33,7 +34,7 @@ export async function deleteMcpAuth(configDir: string): Promise<void> {
 }
 
 export function checkBearerToken(req: IncomingMessage, res: ServerResponse, token: string): boolean {
-  if (req.headers['authorization'] === `Bearer ${token}`) return true
+  if (req.headers.authorization === `Bearer ${token}`) return true
   res.writeHead(401, {'WWW-Authenticate': 'Bearer'})
   res.end('Unauthorized')
   return false

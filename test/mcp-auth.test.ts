@@ -1,10 +1,36 @@
+import type {IncomingMessage, ServerResponse} from 'node:http'
+
 import {expect} from 'chai'
 import {mkdtemp, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
-import type {IncomingMessage, ServerResponse} from 'node:http'
 
 import {checkBearerToken, deleteMcpAuth, readMcpAuth, writeMcpAuth} from '../src/mcp-auth.js'
+
+function makeReq(authorization?: string): IncomingMessage {
+  return {headers: authorization ? {authorization} : {}} as unknown as IncomingMessage
+}
+
+function makeRes() {
+  let statusCodeVal: null | number = null
+  let endedVal = false
+  let wwwAuthVal: null | string = null
+  const res = {
+    end() { endedVal = true },
+    setHeader() {},
+    writeHead(code: number, headers?: Record<string, string>) {
+      statusCodeVal = code
+      if (headers?.['WWW-Authenticate']) wwwAuthVal = headers['WWW-Authenticate']
+      return res
+    },
+  } as unknown as ServerResponse
+  return {
+    get ended() { return endedVal },
+    res,
+    get statusCode() { return statusCodeVal },
+    get wwwAuth() { return wwwAuthVal },
+  }
+}
 
 describe('mcp-auth', () => {
   let tmpDir: string
@@ -58,31 +84,6 @@ describe('mcp-auth', () => {
   // ─── checkBearerToken ───────────────────────────────────────────────────────
 
   describe('checkBearerToken', () => {
-    function makeReq(authorization?: string): IncomingMessage {
-      return {headers: authorization ? {authorization} : {}} as unknown as IncomingMessage
-    }
-
-    function makeRes() {
-      let statusCodeVal: number | null = null
-      let endedVal = false
-      let wwwAuthVal: string | null = null
-      const res = {
-        end: () => { endedVal = true },
-        setHeader: () => {},
-        writeHead: (code: number, headers?: Record<string, string>) => {
-          statusCodeVal = code
-          if (headers?.['WWW-Authenticate']) wwwAuthVal = headers['WWW-Authenticate']
-          return res
-        },
-      } as unknown as ServerResponse
-      return {
-        get ended() { return endedVal },
-        get statusCode() { return statusCodeVal },
-        get wwwAuth() { return wwwAuthVal },
-        res,
-      }
-    }
-
     it('returns true for a valid token', () => {
       const mock = makeRes()
       const result = checkBearerToken(makeReq('Bearer correcttoken'), mock.res, 'correcttoken')
