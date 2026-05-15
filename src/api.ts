@@ -306,15 +306,17 @@ export const sdkck = {
         )
       }
 
-      const permissionConfig = await readPermissionConfig(config.configDir)
-      const separator = config.topicSeparator ?? ' '
-      const normalizedForPermission = loadable.id.replaceAll(':', separator)
-      if (!options.allowDisallowed && !isCommandAllowed(normalizedForPermission, permissionConfig)) {
-        throw new SdkckExecutionError(
-          'permission_denied',
-          loadable.id,
-          `Command "${loadable.id}" is blocked by the permission allowlist. Pass {allowDisallowed: true} to run it.`,
-        )
+      if (!options.allowDisallowed) {
+        const permissionConfig = await readPermissionConfig(config.configDir)
+        const separator = config.topicSeparator ?? ' '
+        const normalizedForPermission = loadable.id.replaceAll(':', separator)
+        if (!isCommandAllowed(normalizedForPermission, permissionConfig)) {
+          throw new SdkckExecutionError(
+            'permission_denied',
+            loadable.id,
+            `Command "${loadable.id}" is blocked by the permission allowlist. Pass {allowDisallowed: true} to run it.`,
+          )
+        }
       }
 
       const argv = buildArgv(loadable, args)

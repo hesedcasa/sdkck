@@ -8,96 +8,17 @@ import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js'
 import {StreamableHTTPServerTransport} from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 // eslint-disable-next-line import/no-unresolved
 import {CallToolRequestSchema, isInitializeRequest, ListToolsRequestSchema} from '@modelcontextprotocol/sdk/types.js'
-import {Command, toConfiguredId} from '@oclif/core'
 import {randomUUID} from 'node:crypto'
 import * as http from 'node:http'
 
+import {sdkck, SdkckExecutionError} from './api.js'
 import {SearchCache} from './search-cache.js'
-
-// ─── Argv builder ────────────────────────────────────────────────────────────
-
-// ts-prune-ignore-next
-export function buildArgv(cmd: Command.Loadable, toolArgs: Record<string, unknown>): string[] {
-  const argv: string[] = []
-
-  // Positional args in definition order
-  for (const name of Object.keys(cmd.args ?? {})) {
-    const value = toolArgs[name]
-    if (value !== undefined && value !== null) {
-      argv.push(String(value))
-    }
-  }
-
-  // Named flags
-  for (const [name, flag] of Object.entries(cmd.flags ?? {})) {
-    if (name === 'json') continue
-    const value = toolArgs[name]
-    if (value === undefined || value === null) continue
-
-    const f = flag as {type: string}
-    if (f.type === 'boolean') {
-      if (value === true) argv.push(`--${name}`)
-    } else if (Array.isArray(value)) {
-      for (const v of value) {
-        argv.push(`--${name}`, String(v))
-      }
-    } else {
-      argv.push(`--${name}`, String(value))
-    }
-  }
-
-  return argv
-}
-
-// ─── Command execution helper ────────────────────────────────────────────────
-
-async function runCommand(
-  cmd: Command.Loadable,
-  argv: string[],
-  config: Config,
-): Promise<{error?: string; output: string}> {
-  try {
-    const CmdClass = await cmd.load()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const instance = new (CmdClass as any)(argv, config) as Command
-
-    const lines: string[] = []
-    instance.log = (msg = '') => {
-      lines.push(String(msg))
-    }
-
-    // logJson writes to process.stdout by default; capture it the same way
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(instance as any).logJson = (json: unknown) => {
-      lines.push(JSON.stringify(json, null, 2))
-    }
-
-    instance.warn = (msg: Error | string) => {
-      lines.push(`Warning: ${String(msg)}`)
-      return String(msg)
-    }
-
-    const result = await instance.run()
-    const output = result === null || result === undefined ? lines.join('\n') : JSON.stringify(result, null, 2)
-    return {output: output || '(no output)'}
-  } catch (error) {
-    return {error: error instanceof Error ? error.message : String(error), output: ''}
-  }
-}
 
 // ─── Server factory ──────────────────────────────────────────────────────────
 
 // ts-prune-ignore-next
 export async function createMcpServer(config: Config): Promise<McpServer> {
   const mcpServer = new McpServer({name: 'sdkck', version: config.version ?? '0.0.0'}, {capabilities: {tools: {}}})
-
-  // Build command lookup for run_command
-  const commandById = new Map(config.commands.map((c) => [c.id, c]))
-  // Also index by display name (space-separated) for convenience
-  for (const c of config.commands) {
-    const displayId = toConfiguredId(c.id, config)
-    if (displayId !== c.id) commandById.set(displayId, c)
-  }
 
   const searchCmd = config.commands.find((c) => c.id === 'search')
 
@@ -208,12 +129,12 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
               description: 'Command arguments as key-value pairs (e.g. {"issueId":"PROJ-123"})',
               type: 'object',
             },
-            commandId: {
+            command: {
               description: 'The command ID to run (e.g. "jira issue get")',
               type: 'string',
             },
           },
-          required: ['commandId'],
+          required: ['command'],
           type: 'object',
         },
         name: 'run_command',
@@ -237,10 +158,13 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
         return {content: [{text: cached, type: 'text' as const}]}
       }
 
-      const argv = [query]
-      if (limit !== undefined) argv.push('--limit', String(limit))
+      const searchArgs: Record<string, unknown> = {query}
+      if (limit !== undefined) searchArgs.limit = limit
 
-      const {error, output} = await runCommand(searchCmd, argv, config)
+      const {error, output} = await sdkck.commands.run(config, 'search', searchArgs, {
+        allowDisallowed: true,
+        allowSensitive: true,
+      })
       if (error) {
         return {content: [{text: error, type: 'text' as const}], isError: true}
       }
@@ -250,29 +174,37 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
     }
 
     if (name === 'run_command') {
-      const commandId = (toolArgs?.commandId as string) ?? ''
-      // Try exact match, then try colon-separated form (space→colon)
-      const cmd = commandById.get(commandId) ?? commandById.get(commandId.replaceAll(' ', ':'))
-      if (!cmd) {
+      const {args: cmdArgs = {}, command: commandId} = (request.params.arguments ?? {}) as {
+        args?: Record<string, unknown>
+        command: string
+      }
+
+      try {
+        const result = await sdkck.commands.run(config, commandId, cmdArgs, {
+          allowDisallowed: true,
+          allowSensitive: true,
+        })
+
         return {
           content: [
             {
-              text: `Unknown command: "${commandId}". Use the "search" tool to find available commands.`,
-              type: 'text' as const,
+              text: result.error ? `Error: ${result.error}\n${result.output}` : result.output,
+              type: 'text',
             },
           ],
-          isError: true,
+          ...(result.error ? {isError: true} : {}),
         }
+      } catch (error) {
+        const msg =
+          error instanceof SdkckExecutionError
+            ? error.code === 'command_not_found'
+              ? `Unknown command: "${commandId}". Use the "search_tools" tool to find available commands.`
+              : error.message
+            : error instanceof Error
+              ? error.message
+              : String(error)
+        return {content: [{text: msg, type: 'text' as const}], isError: true}
       }
-
-      const cmdArgs = (toolArgs?.args as Record<string, unknown>) ?? {}
-      const argv = buildArgv(cmd, cmdArgs)
-      const {error, output} = await runCommand(cmd, argv, config)
-      if (error) {
-        return {content: [{text: error, type: 'text' as const}], isError: true}
-      }
-
-      return {content: [{text: output, type: 'text' as const}]}
     }
 
     return {content: [{text: `Unknown tool: ${name}`, type: 'text' as const}], isError: true}

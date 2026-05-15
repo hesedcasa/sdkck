@@ -7,7 +7,7 @@ import {Client} from '@modelcontextprotocol/sdk/client/index.js'
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js'
 import {expect} from 'chai'
 
-import {buildArgv, createMcpServer} from '../src/mcp-server.js'
+import {createMcpServer} from '../src/mcp-server.js'
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -109,46 +109,6 @@ function cmdThatThrows(base: Command.Loadable, message: string): Command.Loadabl
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('mcp-server', () => {
-  describe('buildArgv', () => {
-    it('places positional args before flags', () => {
-      const argv = buildArgv(SEARCH_CMD, {details: true, limit: '3', query: 'jira'})
-      expect(argv[0]).to.equal('jira')
-      expect(argv).to.include('--limit')
-      expect(argv).to.include('--details')
-    })
-
-    it('builds correct argv for string args and flags', () => {
-      const argv = buildArgv(IMPORT_CMD, {name: 'my-api', source: './spec.json'})
-      expect(argv).to.deep.equal(['./spec.json', '--name', 'my-api'])
-    })
-
-    it('adds boolean flags without values', () => {
-      const argv = buildArgv(SEARCH_CMD, {details: true, query: 'test'})
-      expect(argv).to.include('--details')
-      expect(argv).to.not.include('true')
-    })
-
-    it('skips boolean flags that are false', () => {
-      const argv = buildArgv(SEARCH_CMD, {details: false, query: 'test'})
-      expect(argv).to.not.include('--details')
-    })
-
-    it('expands array values into repeated flags', () => {
-      const argv = buildArgv(PETSTORE_CMD, {header: ['X-A=1', 'X-B=2']})
-      expect(argv).to.deep.equal(['--header', 'X-A=1', '--header', 'X-B=2'])
-    })
-
-    it('skips null and undefined values', () => {
-      const argv = buildArgv(SEARCH_CMD, {details: null, limit: undefined, query: 'test'})
-      expect(argv).to.deep.equal(['test'])
-    })
-
-    it('returns empty argv for empty toolArgs', () => {
-      const argv = buildArgv(SEARCH_CMD, {})
-      expect(argv).to.deep.equal([])
-    })
-  })
-
   describe('createMcpServer', () => {
     it('creates a server without throwing', async () => {
       const config = makeMockConfig(ALL_COMMANDS)
@@ -171,7 +131,7 @@ describe('mcp-server', () => {
     it('returns isError for an unknown command', async () => {
       const client = await makeClient(ALL_COMMANDS)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = (await client.callTool({arguments: {commandId: 'no such command'}, name: 'run_command'})) as any
+      const result = (await client.callTool({arguments: {command: 'no such command'}, name: 'run_command'})) as any
       expect(result.isError).to.be.true
       const {text} = result.content[0] as {text: string}
       expect(text).to.include('Unknown command')
@@ -183,7 +143,7 @@ describe('mcp-server', () => {
       const client = await makeClient([executable, SEARCH_CMD])
       // 'api import' is the display form of 'api:import'
       const result = (await client.callTool({
-        arguments: {args: {source: './spec.json'}, commandId: 'api import'},
+        arguments: {args: {source: './spec.json'}, command: 'api import'},
         name: 'run_command',
       })) as any // eslint-disable-line @typescript-eslint/no-explicit-any
       expect(result.isError).to.be.undefined
@@ -196,7 +156,7 @@ describe('mcp-server', () => {
       const client = await makeClient([executable, SEARCH_CMD])
       // 'api:import' is the canonical id stored in the map
       const result = (await client.callTool({
-        arguments: {args: {source: './spec.json'}, commandId: 'api:import'},
+        arguments: {args: {source: './spec.json'}, command: 'api:import'},
         name: 'run_command',
       })) as any // eslint-disable-line @typescript-eslint/no-explicit-any
       expect(result.isError).to.be.undefined
@@ -227,7 +187,7 @@ describe('mcp-server', () => {
       } as never as Command.Loadable
       const client = await makeClient([loadable, SEARCH_CMD])
       await client.callTool({
-        arguments: {args: {name: 'my-api', source: './api.json'}, commandId: 'api import'},
+        arguments: {args: {name: 'my-api', source: './api.json'}, command: 'api import'},
         name: 'run_command',
       })
       expect(capturedArgv).to.deep.equal(['./api.json', '--name', 'my-api'])
@@ -237,7 +197,7 @@ describe('mcp-server', () => {
       const failing = cmdThatThrows(IMPORT_CMD, 'something went wrong')
       const client = await makeClient([failing, SEARCH_CMD])
       const result = (await client.callTool({
-        arguments: {args: {source: './bad.json'}, commandId: 'api import'},
+        arguments: {args: {source: './bad.json'}, command: 'api import'},
         name: 'run_command',
       })) as any // eslint-disable-line @typescript-eslint/no-explicit-any
       expect(result.isError).to.be.true
@@ -249,7 +209,7 @@ describe('mcp-server', () => {
       const executable = cmdWithOutput(PETSTORE_CMD, 'all pets')
       const client = await makeClient([executable, SEARCH_CMD])
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = (await client.callTool({arguments: {commandId: 'petstore listPets'}, name: 'run_command'})) as any
+      const result = (await client.callTool({arguments: {command: 'petstore listPets'}, name: 'run_command'})) as any
       expect(result.isError).to.be.undefined
       const {text} = result.content[0] as {text: string}
       expect(text).to.include('all pets')
