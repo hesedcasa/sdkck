@@ -179,6 +179,80 @@ async function toCommandInfo(
   return Object.freeze(info)
 }
 
+// ─── Argv builder ────────────────────────────────────────────────────────────
+
+function buildArgv(loadable: Command.Loadable, args: Record<string, unknown>): string[] {
+  const argv: string[] = []
+
+  for (const name of Object.keys(loadable.args ?? {})) {
+    const value = args[name]
+    if (value !== undefined && value !== null) argv.push(String(value))
+  }
+
+  for (const [name, flag] of Object.entries(loadable.flags ?? {})) {
+    if (name === 'json') continue
+    const value = args[name]
+    if (value === undefined || value === null) continue
+
+    const f = flag as {type: string}
+    if (f.type === 'boolean') {
+      if (value === true) argv.push(`--${name}`)
+    } else if (Array.isArray(value)) {
+      for (const v of value) argv.push(`--${name}`, String(v))
+    } else {
+      argv.push(`--${name}`, String(value))
+    }
+  }
+
+  return argv
+}
+
+// ─── Command resolution ─────────────────────────────────────────────────────
+
+function resolveCommand(
+  config: Config,
+  id: string,
+): Command.Loadable | undefined {
+  const colonId = id.replaceAll(' ', ':')
+  return config.commands.find((c) => c.id === colonId)
+}
+
+// ─── Execution ───────────────────────────────────────────────────────────────
+
+async function executeCommand(
+  loadable: Command.Loadable,
+  argv: string[],
+  config: Config,
+): Promise<RunCommandResult> {
+  try {
+    const CmdClass = await loadable.load()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const instance = new (CmdClass as any)(argv, config) as Command
+
+    const lines: string[] = []
+    instance.log = (msg = '') => {
+      lines.push(String(msg))
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(instance as any).logJson = (json: unknown) => {
+      lines.push(JSON.stringify(json, null, 2))
+    }
+
+    instance.warn = (msg: Error | string) => {
+      lines.push(`Warning: ${String(msg)}`)
+      return String(msg)
+    }
+
+    const result = await instance.run()
+    const output =
+      result === null || result === undefined ? lines.join('\n') : JSON.stringify(result, null, 2)
+    return {output: output || '(no output)'}
+  } catch (error) {
+    return {error: error instanceof Error ? error.message : String(error), output: ''}
+  }
+}
+
 // ─── Public surface ──────────────────────────────────────────────────────────
 
 export const sdkck = {
@@ -209,6 +283,42 @@ export const sdkck = {
 
       results.sort((a, b) => a.displayId.localeCompare(b.displayId))
       return Object.freeze(results)
+    },
+
+    async run(
+      config: Config,
+      id: string,
+      args: Record<string, unknown> = {},
+      options: RunCommandOptions = {},
+    ): Promise<RunCommandResult> {
+      const loadable = resolveCommand(config, id)
+      if (!loadable) {
+        throw new SdkckExecutionError('command_not_found', id, `Command "${id}" not found.`)
+      }
+
+      const CmdClass = (await loadable.load()) as unknown as {sensitive?: boolean}
+
+      if (!options.allowSensitive && isSensitiveCommand(loadable.id, CmdClass)) {
+        throw new SdkckExecutionError(
+          'sensitive_denied',
+          loadable.id,
+          `Command "${loadable.id}" is classified as sensitive. Pass {allowSensitive: true} to run it.`,
+        )
+      }
+
+      const permissionConfig = await readPermissionConfig(config.configDir)
+      const separator = config.topicSeparator ?? ' '
+      const normalizedForPermission = loadable.id.replaceAll(':', separator)
+      if (!options.allowDisallowed && !isCommandAllowed(normalizedForPermission, permissionConfig)) {
+        throw new SdkckExecutionError(
+          'permission_denied',
+          loadable.id,
+          `Command "${loadable.id}" is blocked by the permission allowlist. Pass {allowDisallowed: true} to run it.`,
+        )
+      }
+
+      const argv = buildArgv(loadable, args)
+      return executeCommand(loadable, argv, config)
     },
   },
 } as const
