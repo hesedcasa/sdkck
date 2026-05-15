@@ -12,6 +12,7 @@ import {randomUUID} from 'node:crypto'
 import * as http from 'node:http'
 
 import {sdkck, SdkckExecutionError} from './api.js'
+import {isCommandAllowed, readPermissionConfig} from './permission-config.js'
 import {SearchCache} from './search-cache.js'
 
 // ─── Server factory ──────────────────────────────────────────────────────────
@@ -24,6 +25,8 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
 
   const cacheFilePath = config.configDir ? `${config.configDir}/search-cache-mcp.json` : undefined
   const searchCache = new SearchCache({cacheFilePath})
+
+  const permissionConfig = config.configDir ? await readPermissionConfig(config.configDir) : {rules: []}
 
   // Build a deduplicated keyword list from each command's ID parts (topics,
   // subcommands) and its summary/description so the search_tools tool
@@ -93,6 +96,8 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
   }
 
   for (const c of config.commands) {
+    const commandId = c.id.replaceAll(':', ' ')
+    if (!isCommandAllowed(commandId, permissionConfig)) continue
     for (const part of c.id.split(':')) addWord(part)
     const text = `${c.summary ?? ''} ${c.description ?? ''}`
     for (const raw of text.split(/[^a-zA-Z0-9-]+/)) addWord(raw)
@@ -133,6 +138,10 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
               description: 'The command ID to run (e.g. "jira issue get")',
               type: 'string',
             },
+            flags: {
+              description: 'Flag arguments as key-value pairs (e.g. {"limit":10,"verbose":true})',
+              type: 'object',
+            },
           },
           required: ['commandId'],
           type: 'object',
@@ -161,10 +170,7 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
       const searchArgs: Record<string, unknown> = {query}
       if (limit !== undefined) searchArgs.limit = limit
 
-      const {error, output} = await sdkck.commands.run(config, 'search', searchArgs, {
-        allowDisallowed: true,
-        allowSensitive: true,
-      })
+      const {error, output} = await sdkck.commands.run(config, 'search', searchArgs)
       if (error) {
         return {content: [{text: error, type: 'text' as const}], isError: true}
       }
@@ -174,16 +180,14 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
     }
 
     if (name === 'run_command') {
-      const {args: cmdArgs = {}, commandId = ''} = (request.params.arguments ?? {}) as {
+      const {args: cmdArgs = {}, commandId = '', flags: cmdFlags = {}} = (request.params.arguments ?? {}) as {
         args?: Record<string, unknown>
         commandId: string
+        flags?: Record<string, unknown>
       }
 
       try {
-        const result = await sdkck.commands.run(config, commandId, cmdArgs, {
-          allowDisallowed: true,
-          allowSensitive: true,
-        })
+        const result = await sdkck.commands.run(config, commandId, {...cmdArgs, ...cmdFlags})
 
         return {
           content: [

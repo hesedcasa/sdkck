@@ -90,7 +90,7 @@ export default class Search extends Command {
   // Exposed for testing — inject a pre-populated cache to exercise the cache hit path
   _searchCache: null | SearchCache = null
 
-  async run(): Promise<Array<{command: string; description: string}>> {
+  async run(): Promise<Array<{args: Array<Record<string, {description: string; required: boolean; type: string}>>; command: string; commandId: string; description: string; flags: Array<Record<string, {description: string; required: boolean; type: string}>>}>> {
     const {args, flags} = await this.parse(Search)
     const allCommands = this.config.commands.filter((c) => !c.hidden && c.pluginName !== '@oclif/plugin-plugins')
     const commandEntries: CommandEntry[] = allCommands.map((c) => ({
@@ -162,18 +162,31 @@ export default class Search extends Command {
       const {cmd} = entry
       const configuredId = toConfiguredId(cmd.id, this.config)
       const usageOverride = cmd.usage
-      const argList = Object.values(cmd.args ?? {})
-        .filter((a) => !a.hidden)
-        .map((a) => (a.required ? `<${a.name}>` : `[${a.name}]`))
-        .join(' ')
+      const visibleArgs = Object.values(cmd.args ?? {}).filter((a) => !a.hidden)
+      const argList = visibleArgs.map((a) => (a.required ? `<${a.name}>` : `[${a.name}]`)).join(' ')
       const usage = usageOverride
         ? Array.isArray(usageOverride)
           ? usageOverride.join('\n')
           : usageOverride
         : [configuredId, argList].filter(Boolean).join(' ')
+      const args = visibleArgs.map((a) => ({
+        [a.name]: {description: a.description ?? '', required: a.required ?? false, type: 'string'},
+      }))
+      const flags = Object.values(cmd.flags ?? {})
+        .filter((f) => !f.hidden)
+        .map((f) => ({
+          [f.name]: {
+            description: f.summary ?? f.description ?? '',
+            required: f.required ?? false,
+            type: f.type === 'boolean' ? 'boolean' : 'string',
+          },
+        }))
       return {
+        args,
         command: usage,
+        commandId: configuredId,
         description: cmd.summary ?? cmd.description ?? '',
+        flags,
       }
     })
 
@@ -223,7 +236,7 @@ export default class Search extends Command {
 
   private _printResults(
     scored: Array<{cmd: Command.Loadable; score: number}>,
-    results: Array<{command: string; description: string}>,
+    results: Array<{[key: string]: unknown; command: string; description: string}>,
     flags: {details: boolean},
   ): void {
     if (results.length === 0) return

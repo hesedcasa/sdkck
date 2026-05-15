@@ -18,8 +18,7 @@ export default class PermissionList extends Command {
     this.log(`${config.rules.length} rule${config.rules.length === 1 ? '' : 's'}:\n`)
 
     for (const rule of config.rules) {
-      const indicator = rule.action === 'allow' ? '✓ allow   ' : '✗ disallow'
-      this.log(`  ${indicator}  ${rule.pattern}`)
+      this.log(`  ✗ disallow  ${rule.pattern}`)
     }
   }
 }

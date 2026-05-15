@@ -42,8 +42,8 @@ describe('permission reset', () => {
   it('clears all rules when --confirm is passed', async () => {
     await writePermissionConfig(tmpDir, {
       rules: [
-        {action: 'allow', pattern: 'jira'},
-        {action: 'disallow', pattern: 'mysql'},
+        {pattern: 'jira'},
+        {pattern: 'mysql'},
       ],
     })
 
@@ -56,7 +56,7 @@ describe('permission reset', () => {
   })
 
   it('cancels when the prompt response is not "yes"', async () => {
-    await writePermissionConfig(tmpDir, {rules: [{action: 'allow', pattern: 'jira'}]})
+    await writePermissionConfig(tmpDir, {rules: [{pattern: 'jira'}]})
 
     const {cmd, output} = makeReset([], tmpDir)
     // Override prompt to return a non-confirming answer
@@ -69,7 +69,7 @@ describe('permission reset', () => {
   })
 
   it('proceeds when the prompt response is "yes"', async () => {
-    await writePermissionConfig(tmpDir, {rules: [{action: 'allow', pattern: 'jira'}]})
+    await writePermissionConfig(tmpDir, {rules: [{pattern: 'jira'}]})
 
     const {cmd, output} = makeReset([], tmpDir)
     cmd._prompt = async () => 'yes'

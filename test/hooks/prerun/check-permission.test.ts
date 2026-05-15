@@ -34,20 +34,14 @@ describe('prerun/check-permission hook', () => {
     await hook.call({} as never, opts) // should not throw
   })
 
-  it('does nothing when the command matches an allow rule', async () => {
-    await writePermissionConfig(tmpDir, {rules: [{action: 'allow', pattern: 'jira'}]})
-    const opts = makeOpts(tmpDir, 'jira issue')
-    await hook.call({} as never, opts) // should not throw
-  })
-
   it('does nothing when no rule matches (default allow)', async () => {
-    await writePermissionConfig(tmpDir, {rules: [{action: 'disallow', pattern: 'mysql'}]})
+    await writePermissionConfig(tmpDir, {rules: [{pattern: 'mysql'}]})
     const opts = makeOpts(tmpDir, 'jira issue')
     await hook.call({} as never, opts) // should not throw
   })
 
   it('throws CLIError when a command matches a disallow rule', async () => {
-    await writePermissionConfig(tmpDir, {rules: [{action: 'disallow', pattern: 'mysql'}]})
+    await writePermissionConfig(tmpDir, {rules: [{pattern: 'mysql'}]})
     const opts = makeOpts(tmpDir, 'mysql query')
     try {
       await hook.call({} as never, opts)
@@ -59,7 +53,7 @@ describe('prerun/check-permission hook', () => {
   })
 
   it('throws for a command matching a wildcard disallow rule', async () => {
-    await writePermissionConfig(tmpDir, {rules: [{action: 'disallow', pattern: 'jira *'}]})
+    await writePermissionConfig(tmpDir, {rules: [{pattern: 'jira *'}]})
     const opts = makeOpts(tmpDir, 'jira issue create')
     try {
       await hook.call({} as never, opts)
@@ -69,25 +63,8 @@ describe('prerun/check-permission hook', () => {
     }
   })
 
-  it('first matching rule wins — allow before disallow', async () => {
-    await writePermissionConfig(tmpDir, {
-      rules: [
-        {action: 'allow', pattern: 'jira issue'},
-        {action: 'disallow', pattern: 'jira'},
-      ],
-    })
-    // 'jira issue' matches allow first → no throw
-    const opts = makeOpts(tmpDir, 'jira issue')
-    await hook.call({} as never, opts)
-  })
-
-  it('throws when disallow * is set and no earlier allow matches', async () => {
-    await writePermissionConfig(tmpDir, {
-      rules: [
-        {action: 'allow', pattern: 'help'},
-        {action: 'disallow', pattern: '*'},
-      ],
-    })
+  it('throws when disallow * blocks all commands', async () => {
+    await writePermissionConfig(tmpDir, {rules: [{pattern: '*'}]})
     const opts = makeOpts(tmpDir, 'mysql query')
     try {
       await hook.call({} as never, opts)
@@ -98,7 +75,7 @@ describe('prerun/check-permission hook', () => {
   })
 
   it('blocks a colon-separated command ID (as stored by external plugins)', async () => {
-    await writePermissionConfig(tmpDir, {rules: [{action: 'disallow', pattern: 'jira'}]})
+    await writePermissionConfig(tmpDir, {rules: [{pattern: 'jira'}]})
     const opts = makeOpts(tmpDir, 'jira:issue:assign')
     try {
       await hook.call({} as never, opts)

@@ -14,7 +14,6 @@ interface CmdSpec {
   body: (instance: {argv: string[]; log(msg?: string): void}) => Promise<unknown> | unknown
   flags?: Record<string, unknown>
   id: string
-  staticProps?: Record<string, unknown>
 }
 
 function makeCmd(spec: CmdSpec): Command.Loadable {
@@ -32,10 +31,6 @@ function makeCmd(spec: CmdSpec): Command.Loadable {
     async run() {
       return spec.body(this as {argv: string[]; log(msg?: string): void})
     }
-  }
-
-  for (const [k, v] of Object.entries(spec.staticProps ?? {})) {
-    ;(Klass as unknown as Record<string, unknown>)[k] = v
   }
 
   return {
@@ -102,32 +97,8 @@ describe('sdkck.commands.run', () => {
     }
   })
 
-  it('blocks sensitive commands by default', async () => {
-    const cfg = makeConfig(
-      [makeCmd({body(i) { i.log('ran') }, id: 'api:auth', staticProps: {sensitive: true}})],
-      configDir,
-    )
-
-    try {
-      await sdkck.commands.run(cfg, 'api:auth')
-      expect.fail('expected throw')
-    } catch (error) {
-      expect((error as SdkckExecutionError).code).to.equal('sensitive_denied')
-    }
-  })
-
-  it('allows sensitive commands with allowSensitive: true', async () => {
-    const cfg = makeConfig(
-      [makeCmd({body(i) { i.log('ran') }, id: 'api:auth', staticProps: {sensitive: true}})],
-      configDir,
-    )
-
-    const result = await sdkck.commands.run(cfg, 'api:auth', {}, {allowSensitive: true})
-    expect(result.output).to.equal('ran')
-  })
-
-  it('blocks disallowed commands by default', async () => {
-    await writePermissionConfig(configDir, {rules: [{action: 'disallow', pattern: 'api list'}]})
+  it('blocks disallowed commands', async () => {
+    await writePermissionConfig(configDir, {rules: [{pattern: 'api list'}]})
     const cfg = makeConfig(
       [makeCmd({body(i) { i.log('ran') }, id: 'api:list'})],
       configDir,
@@ -139,17 +110,6 @@ describe('sdkck.commands.run', () => {
     } catch (error) {
       expect((error as SdkckExecutionError).code).to.equal('permission_denied')
     }
-  })
-
-  it('allows disallowed commands with allowDisallowed: true', async () => {
-    await writePermissionConfig(configDir, {rules: [{action: 'disallow', pattern: 'api list'}]})
-    const cfg = makeConfig(
-      [makeCmd({body(i) { i.log('ran') }, id: 'api:list'})],
-      configDir,
-    )
-
-    const result = await sdkck.commands.run(cfg, 'api:list', {}, {allowDisallowed: true})
-    expect(result.output).to.equal('ran')
   })
 
   it('returns {error} on runtime failure (does not throw)', async () => {

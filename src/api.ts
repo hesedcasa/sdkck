@@ -3,7 +3,6 @@ import type {Config} from '@oclif/core/interfaces'
 
 import {toConfiguredId} from '@oclif/core'
 
-import {fileLog} from './file-logger.js'
 import {isCommandAllowed, readPermissionConfig} from './permission-config.js'
 
 // ─── Public types ────────────────────────────────────────────────────────────
@@ -31,7 +30,6 @@ export interface CommandInfo {
   hidden: boolean
   id: string
   isPermitted: boolean
-  isSensitive: boolean
   pluginName?: string
   pluginType?: 'core' | 'jit' | 'link' | 'user'
   summary?: string
@@ -41,21 +39,17 @@ export interface CommandInfo {
 export interface ListCommandsOptions {
   includeDisallowed?: boolean
   includeHidden?: boolean
-  includeSensitive?: boolean
   topic?: string
 }
 
-export interface RunCommandOptions {
-  allowDisallowed?: boolean
-  allowSensitive?: boolean
-}
+export type RunCommandOptions = Record<string, never>
 
 export interface RunCommandResult {
   error?: string
   output: string
 }
 
-export type SdkckExecutionDenialCode = 'command_not_found' | 'permission_denied' | 'sensitive_denied'
+export type SdkckExecutionDenialCode = 'command_not_found' | 'permission_denied'
 
 export class SdkckExecutionError extends Error {
   code: SdkckExecutionDenialCode
@@ -67,42 +61,6 @@ export class SdkckExecutionError extends Error {
     this.code = code
     this.commandId = commandId
   }
-}
-
-// ─── Sensitive classification ────────────────────────────────────────────────
-
-export const SENSITIVE_SEGMENTS: ReadonlySet<string> = new Set([
-  'auth',
-  'credential',
-  'credentials',
-  'login',
-  'logout',
-  'secret',
-  'secrets',
-  'token',
-  'tokens',
-])
-
-/**
- * Classifies a command as sensitive.
- *
- * Precedence:
- *   1. If the class has `static sensitive` defined (boolean), that wins.
- *   2. Otherwise, return true iff any colon-separated segment of the id
- *      matches SENSITIVE_SEGMENTS (case-insensitive).
- */
-export function isSensitiveCommand(
-  commandId: string,
-  CmdClass: typeof Command | {sensitive?: boolean},
-): boolean {
-  const explicit = (CmdClass as {sensitive?: boolean}).sensitive
-  if (typeof explicit === 'boolean') return explicit
-
-  for (const segment of commandId.split(':')) {
-    if (SENSITIVE_SEGMENTS.has(segment.toLowerCase())) return true
-  }
-
-  return false
 }
 
 // ─── Internal helpers ────────────────────────────────────────────────────────
@@ -133,28 +91,16 @@ function mapFlags(rawFlags: Record<string, unknown> | undefined): CommandFlag[] 
   })
 }
 
-async function toCommandInfo(
+function toCommandInfo(
   loadable: Command.Loadable,
   config: Config,
   permittedSeparator: string,
   permissionConfig: Awaited<ReturnType<typeof readPermissionConfig>>,
-): Promise<CommandInfo | undefined> {
-  let CmdClass: undefined | {sensitive?: boolean;}
-  try {
-    CmdClass = (await loadable.load()) as unknown as {sensitive?: boolean;}
-  } catch (error) {
-    fileLog(
-      'error',
-      `sdkck.commands.list: failed to load ${loadable.id}: ${error instanceof Error ? error.message : String(error)}`,
-    )
-    return undefined
-  }
-
+): CommandInfo {
   const {id} = loadable
   const displayId = toConfiguredId(id, config)
   const normalizedForPermission = id.replaceAll(':', permittedSeparator)
   const isPermitted = isCommandAllowed(normalizedForPermission, permissionConfig)
-  const isSensitive = isSensitiveCommand(id, CmdClass)
   const topic = id.includes(':') ? id.split(':')[0] : undefined
 
   const info: CommandInfo = {
@@ -166,7 +112,6 @@ async function toCommandInfo(
     hidden: Boolean(loadable.hidden),
     id,
     isPermitted,
-    isSensitive,
     pluginName: loadable.pluginName,
     pluginType: loadable.pluginType as CommandInfo['pluginType'],
     summary: loadable.summary,
@@ -264,17 +209,11 @@ export const sdkck = {
           )
         : config.commands
 
-      const settled = await Promise.allSettled(
-        candidates.map((loadable) => toCommandInfo(loadable, config, separator, permissionConfig)),
-      )
-
       const results: CommandInfo[] = []
-      for (const outcome of settled) {
-        if (outcome.status === 'rejected' || !outcome.value) continue
-        const info = outcome.value
+      for (const loadable of candidates) {
+        const info = toCommandInfo(loadable, config, separator, permissionConfig)
         if (!opts.includeHidden && info.hidden) continue
         if (!opts.includeDisallowed && !info.isPermitted) continue
-        if (!opts.includeSensitive && info.isSensitive) continue
         results.push(info)
       }
 
@@ -286,34 +225,21 @@ export const sdkck = {
       config: Config,
       id: string,
       args: Record<string, unknown> = {},
-      options: RunCommandOptions = {},
     ): Promise<RunCommandResult> {
       const loadable = resolveCommand(config, id)
       if (!loadable) {
         throw new SdkckExecutionError('command_not_found', id, `Command "${id}" not found.`)
       }
 
-      const CmdClass = (await loadable.load()) as unknown as {sensitive?: boolean}
-
-      if (!options.allowSensitive && isSensitiveCommand(loadable.id, CmdClass)) {
+      const permissionConfig = await readPermissionConfig(config.configDir)
+      const separator = config.topicSeparator ?? ' '
+      const normalizedForPermission = loadable.id.replaceAll(':', separator)
+      if (!isCommandAllowed(normalizedForPermission, permissionConfig)) {
         throw new SdkckExecutionError(
-          'sensitive_denied',
+          'permission_denied',
           loadable.id,
-          `Command "${loadable.id}" is classified as sensitive. Pass {allowSensitive: true} to run it.`,
+          `Command "${normalizedForPermission}" is blocked by the permission list.`,
         )
-      }
-
-      if (!options.allowDisallowed) {
-        const permissionConfig = await readPermissionConfig(config.configDir)
-        const separator = config.topicSeparator ?? ' '
-        const normalizedForPermission = loadable.id.replaceAll(':', separator)
-        if (!isCommandAllowed(normalizedForPermission, permissionConfig)) {
-          throw new SdkckExecutionError(
-            'permission_denied',
-            loadable.id,
-            `Command "${loadable.id}" is blocked by the permission allowlist. Pass {allowDisallowed: true} to run it.`,
-          )
-        }
       }
 
       const argv = buildArgv(loadable, args)
