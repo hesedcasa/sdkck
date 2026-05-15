@@ -9,4 +9,6 @@ export type {
   SdkckExecutionDenialCode,
 } from './api.js'
 
+export {decryptFile, decryptString, encryptFile, encryptString, loadOrCreateKey} from './config-crypto.js'
+
 export {run} from '@oclif/core'
