@@ -27,15 +27,15 @@ that logic and can't accidentally bypass it.
 import {sdkck} from 'sdkck'
 
 // inside a command/hook in another oclif plugin:
-const cmds = sdkck.commands.list(this.config)
+const cmds = await sdkck.commands.list(this.config)
 // → Array<CommandInfo>
 
 const result = await sdkck.commands.run(this.config, 'api:list', {json: true})
 // → {output: string, error?: string}
 ```
 
-`sdkck` is a named export from the package root (`dist/index.js`). The
-`.commands` namespace exposes two functions today: `list` and `run`.
+`sdkck` is a named export from the package root (`dist/index.js`). Its only
+populated namespace today is `.commands`, which exposes two functions: `list` and `run`.
 
 ## Public Types
 
