@@ -7,15 +7,14 @@
 ## Goal
 
 Expose a small, stable, typed programmatic API that lets other oclif plugins
-loaded into `sdkck` enumerate the commands available at runtime. The API hides
-oclif's internal types from consumers and applies sdkck-specific filtering
-(permission allowlist, sensitive-command denylist) so plugins don't have to
-re-implement that logic.
+loaded into `sdkck` enumerate **and execute** the commands available at
+runtime. The API hides oclif's internal types from consumers and applies
+sdkck-specific filtering (permission allowlist, sensitive-command denylist)
+at both enumeration and execution time, so plugins don't have to re-implement
+that logic and can't accidentally bypass it.
 
 ## Non-Goals
 
-- Running commands programmatically — namespace reserved (`sdkck.commands.run`)
-  but not implemented in this spec.
 - Searching commands — namespace reserved (`sdkck.commands.search`) but not
   implemented.
 - Lifecycle event subscriptions.
@@ -30,10 +29,13 @@ import {sdkck} from 'sdkck'
 // inside a command/hook in another oclif plugin:
 const cmds = sdkck.commands.list(this.config)
 // → Array<CommandInfo>
+
+const result = await sdkck.commands.run(this.config, 'api:list', {json: true})
+// → {output: string, error?: string}
 ```
 
-`sdkck` is a named export from the package root (`dist/index.js`). Its only
-populated namespace today is `.commands`, which exposes one function: `list`.
+`sdkck` is a named export from the package root (`dist/index.js`). The
+`.commands` namespace exposes two functions today: `list` and `run`.
 
 ## Public Types
 
@@ -87,20 +89,50 @@ export interface ListCommandsOptions {
   /** Restrict to a single topic (first id segment). */
   topic?: string
 }
+
+export interface RunCommandOptions {
+  /** Allow execution of commands classified as sensitive. Default: false. */
+  allowSensitive?: boolean
+  /** Allow execution of commands blocked by the permission allowlist. Default: false. */
+  allowDisallowed?: boolean
+}
+
+export interface RunCommandResult {
+  /** Captured stdout (log + logJson + warn output) as a single string. */
+  output: string
+  /** Runtime error message if the command threw. Undefined on success. */
+  error?: string
+}
+
+export type SdkckExecutionDenialCode = 'permission_denied' | 'sensitive_denied' | 'command_not_found'
+
+export class SdkckExecutionError extends Error {
+  code: SdkckExecutionDenialCode
+  commandId: string
+}
 ```
 
-All returned objects are deeply frozen (`Object.freeze`) so consumers cannot
-mutate sdkck's internal state through them.
+`CommandInfo` objects returned by `list()` are deeply frozen
+(`Object.freeze`) so consumers cannot mutate sdkck's internal state through
+them. `RunCommandResult` is not frozen — it's a fresh per-call value the
+caller owns.
 
 ## Module Layout
 
-- **New:** `src/api.ts` — defines `CommandInfo`, `ListCommandsOptions`, the
-  `sdkck` object, and the `list()` implementation. Internal helpers:
+- **New:** `src/api.ts` — defines the public types, the `sdkck` object, and
+  the `list()` + `run()` implementations. Internal helpers:
   `toCommandInfo(cmd, config, ctx)`, `isSensitiveCommand(cmd)`,
-  `SENSITIVE_SEGMENTS` constant.
+  `SENSITIVE_SEGMENTS` constant, `resolveCommand(config, id)`,
+  `buildArgv(cmd, args)`, `executeCommand(cmd, argv, config)`.
 - **Modified:** `src/index.ts` — adds `export {sdkck} from './api.js'` and
-  re-exports the types `CommandInfo`, `CommandArg`, `CommandFlag`,
-  `ListCommandsOptions`.
+  re-exports the public types (`CommandInfo`, `CommandArg`, `CommandFlag`,
+  `ListCommandsOptions`, `RunCommandOptions`, `RunCommandResult`,
+  `SdkckExecutionError`).
+- **Modified:** `src/mcp-server.ts` — `buildArgv` and the local `runCommand`
+  helper are removed; the MCP `run_command` tool calls
+  `sdkck.commands.run(config, id, args, {allowSensitive: true, allowDisallowed: true})`
+  to preserve current MCP behavior (MCP intentionally does not enforce the
+  sdkck policy gates — that's the caller's responsibility there).
 - **Modified:** `src/api-dynamic-commands.ts` — when generating dynamic
   commands, attach a stable marker `static __sdkckDynamic = true` on the
   generated class so `list()` can detect them without string-matching ids.
@@ -163,6 +195,56 @@ stored OpenAPI operations. We add `static __sdkckDynamic = true` to each
 generated class. `list()` checks `(CmdClass as any).__sdkckDynamic === true`
 to set `CommandInfo.isDynamic`.
 
+## Execution API (`sdkck.commands.run`)
+
+```ts
+sdkck.commands.run(
+  config: Config,
+  id: string,
+  args?: Record<string, unknown>,
+  options?: RunCommandOptions,
+): Promise<RunCommandResult>
+```
+
+**Id resolution.** `id` accepts both colon (`api:import`) and space
+(`api import`) forms — same convenience the MCP server offers today. If no
+command matches, throws `SdkckExecutionError({code: 'command_not_found'})`.
+
+**Argument shape.** `args` is the same shape MCP's `run_command` tool uses —
+a flat record where keys map to positional args first, then named flags.
+`buildArgv` (moved from `mcp-server.ts` into `api.ts`) handles the
+conversion. This keeps one canonical args→argv translation in the codebase.
+
+**Policy gates (run before execution):**
+
+1. If the command is classified `isSensitive` and `allowSensitive !== true`,
+   throw `SdkckExecutionError({code: 'sensitive_denied'})`.
+2. If the command is blocked by the permission allowlist and
+   `allowDisallowed !== true`, throw
+   `SdkckExecutionError({code: 'permission_denied'})`.
+
+These gates are stricter than `list()` filtering: a plugin that knows a
+command id and calls `run()` directly still hits the same enforcement, so
+sensitive commands are protected even if the plugin never enumerated them.
+
+**Execution and output capture.** The implementation is the same approach
+already used by `src/mcp-server.ts`: load the command class, instantiate
+`new CmdClass(argv, config)`, override `instance.log`, `instance.logJson`,
+and `instance.warn` to push into a local buffer, then `await instance.run()`.
+The function returns `{output}` on success or `{output, error}` if the
+command threw at runtime. `output` includes anything emitted via `log`/
+`logJson`/`warn` plus the JSON-serialized return value (if any), matching
+the MCP server's current behavior.
+
+**Throw vs return.** Policy denial throws (`SdkckExecutionError`); runtime
+errors are captured into the `error` field. Rationale: policy denial is a
+programming/configuration issue the caller should notice loudly; runtime
+errors are expected outcomes a caller may want to handle inline.
+
+**Concurrency.** `log`/`logJson`/`warn` are overridden on the per-call
+instance, not on `process.stdout`, so concurrent `run()` calls don't
+interfere.
+
 ## Filtering Order
 
 For each entry in `config.commands`:
@@ -189,14 +271,18 @@ plugin signature, but that's out of scope here.
 
 ## Error Handling
 
-`list()` is read-only and side-effect free. If a single command fails to load
-(e.g. corrupted JIT install), the error is caught, logged via the existing
-`file-logger`, and that one command is omitted from the result. The function
-never throws.
+- **`list()`** is read-only and side-effect free. If a single command fails
+  to load (e.g. corrupted JIT install), the error is caught, logged via the
+  existing `file-logger`, and that one command is omitted from the result.
+  The function never throws.
+- **`run()`** throws `SdkckExecutionError` for policy denial
+  (`sensitive_denied`, `permission_denied`) and unknown ids
+  (`command_not_found`). Runtime errors from the command itself are caught
+  and returned in `RunCommandResult.error`.
 
 ## Tests
 
-`test/api.test.ts`:
+`test/api.test.ts` — for `sdkck.commands.list`:
 
 - Returns expected entries for a stub config with 3 commands.
 - `includeHidden: false` hides hidden commands; `true` includes them and they
@@ -216,11 +302,33 @@ never throws.
   returned.
 - Returned objects are frozen (mutating throws in strict mode).
 
+`test/api-run.test.ts` — for `sdkck.commands.run`:
+
+- Runs a stub command and captures `log` output into `result.output`.
+- Accepts both `"api:list"` and `"api list"` id forms.
+- Throws `SdkckExecutionError({code: 'command_not_found'})` for an unknown id.
+- Throws `SdkckExecutionError({code: 'sensitive_denied'})` for a sensitive
+  command without `allowSensitive: true`.
+- Runs a sensitive command when `allowSensitive: true`.
+- Throws `SdkckExecutionError({code: 'permission_denied'})` for a disallowed
+  command without `allowDisallowed: true`.
+- Runs a disallowed command when `allowDisallowed: true`.
+- A command that throws at runtime returns `{output, error}` (does not
+  throw).
+- `args: {flag: true}` produces `--flag` in argv; `args: {name: 'x'}` on a
+  positional-args command produces `['x']`.
+- A command's JSON return value is serialized into `output`.
+- Two concurrent `run()` calls do not interleave each other's output.
+
+`test/mcp-server.test.ts` (existing) — update assertions to verify the MCP
+`run_command` tool now goes through `sdkck.commands.run` (still returns the
+same shape).
+
 ## Documentation
 
 Add a short section to the project README under "Built-in Features" titled
-"Programmatic API" with a one-paragraph description and the `import {sdkck}`
-example. No new doc file.
+"Programmatic API" covering both `list()` and `run()`, with the
+`import {sdkck}` example and a note on policy gates. No new doc file.
 
 ## Open Questions
 
