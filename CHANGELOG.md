@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.0](https://github.com/hesedcasa/sdkck/compare/v0.20.0...v0.21.0) (2026-05-15)
+
+
+### 🎉 Features
+
+* **api:** add programmatic commands API (sdkck.commands.list + run) ([#110](https://github.com/hesedcasa/sdkck/issues/110)) ([fef7e44](https://github.com/hesedcasa/sdkck/commit/fef7e44d583213f67e6bbd87f53c3ad3910bb06c))
+
 ## [0.20.0](https://github.com/hesedcasa/sdkck/compare/v0.19.0...v0.20.0) (2026-05-13)
 
 
