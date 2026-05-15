@@ -2,8 +2,6 @@ import {readFileSync} from 'node:fs'
 import {mkdir, writeFile} from 'node:fs/promises'
 import {dirname} from 'node:path'
 
-import {decryptString, encryptString, loadOrCreateKey} from './config-crypto.js'
-
 interface CacheEntry {
   output: string
   timestamp: number
@@ -59,8 +57,7 @@ export class SearchCache {
   private loadFromFile(): void {
     try {
       const raw = readFileSync(this.filePath!, 'utf8')
-      const encKey = loadOrCreateKey(dirname(this.filePath!))
-      const data: CacheFile = JSON.parse(decryptString(raw, encKey))
+      const data: CacheFile = JSON.parse(raw)
       const now = Date.now()
       for (const [key, entry] of Object.entries(data.entries)) {
         if (now - entry.timestamp <= this.ttlMs) {
@@ -94,8 +91,7 @@ export class SearchCache {
       const data: CacheFile = {entries: Object.fromEntries(this.cache)}
       const json = JSON.stringify(data, null, 2)
       await mkdir(dirname(this.filePath!), {recursive: true})
-      const encKey = loadOrCreateKey(dirname(this.filePath!))
-      await writeFile(this.filePath!, encryptString(json, encKey), 'utf8')
+      await writeFile(this.filePath!, json, 'utf8')
     } catch (error) {
       console.error(
         `Failed to persist cache to "${this.filePath}": ${error instanceof Error ? error.message : String(error)}`,
