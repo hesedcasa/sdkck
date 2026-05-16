@@ -7,6 +7,9 @@
     "sdkck": "./bin/run.js"
   },
   "bugs": "https://github.com/hesedcasa/sdkck/issues",
+  "workspaces": [
+    "packages/*"
+  ],
   "dependencies": {
     "@leeoniya/ufuzzy": "^1.0.19",
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -111,6 +114,7 @@
   "repository": "hesedcasa/sdkck",
   "scripts": {
     "build": "shx rm -rf dist && tsc -b",
+    "build:all": "npm run build --workspaces && npm run build",
     "lint": "eslint",
     "postpack": "shx rm -f oclif.manifest.json",
     "posttest": "npm run lint",
