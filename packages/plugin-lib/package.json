@@ -1,0 +1,36 @@
+{
+  "name": "@hesed/plugin-lib",
+  "version": "1.0.0",
+  "description": "Shared utilities for Hesed oclif plugins",
+  "author": "Hesed",
+  "dependencies": {
+    "@toon-format/toon": "^2.1.0",
+    "fs-extra": "^11.3.3"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^25",
+    "shx": "^0.4.0",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "./dist"
+  ],
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "type": "module",
+  "repository": "hesedcasa/sdkck",
+  "scripts": {
+    "build": "shx rm -rf dist tsconfig.tsbuildinfo && tsc -b"
+  },
+  "types": "dist/index.d.ts"
+}
