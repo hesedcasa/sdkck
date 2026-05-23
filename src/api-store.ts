@@ -150,11 +150,15 @@ function legacySpecFilePath(configDir: string, name: string): string {
 // ─── Migration ────────────────────────────────────────────────────────────────
 
 // Profiles were originally stored as AuthScheme directly; now they are StoredProfile.
-function migrateProfiles(raw: Record<string, unknown>): Record<string, StoredProfile> {
+// specBaseUrl is supplied so that legacy profiles without a stored baseUrl inherit the spec's URL,
+// ensuring applyActivateProfile can always reset spec.baseUrl when switching profiles.
+function migrateProfiles(raw: Record<string, unknown>, specBaseUrl: string): Record<string, StoredProfile> {
   const result: Record<string, StoredProfile> = {}
   for (const [name, value] of Object.entries(raw)) {
     const v = value as Record<string, unknown>
-    result[name] = 'auth' in v ? (v as unknown as StoredProfile) : {auth: v as unknown as AuthScheme}
+    const profile: StoredProfile = 'auth' in v ? (v as unknown as StoredProfile) : {auth: v as unknown as AuthScheme}
+    if (!profile.baseUrl && specBaseUrl) profile.baseUrl = specBaseUrl
+    result[name] = profile
   }
 
   return result
@@ -197,7 +201,7 @@ export async function readStore(configDir: string): Promise<ApiStore> {
       try {
         const raw = await readFile(join(configDir, file), 'utf8')
         const spec = JSON.parse(raw) as StoredSpec
-        if (spec.authProfiles) spec.authProfiles = migrateProfiles(spec.authProfiles as unknown as Record<string, unknown>)
+        if (spec.authProfiles) spec.authProfiles = migrateProfiles(spec.authProfiles as unknown as Record<string, unknown>, spec.baseUrl ?? '')
         migrateAuthToDefaultProfile(spec)
         return spec
       } catch (error) {

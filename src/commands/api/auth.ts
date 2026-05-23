@@ -122,7 +122,7 @@ export default class ApiAuth extends Command {
         this.log(`Profile "${flags.profile}" for "${args.name}":`)
         this.log(formatProfile(profile))
       } else {
-        this.log(formatCurrentAuth(args.name, spec.activeProfile, profiles))
+        this.log(formatCurrentAuth(args.name, spec.activeProfile, profiles, spec.auth))
       }
 
       return
@@ -299,9 +299,12 @@ function formatCurrentAuth(
   name: string,
   activeProfile: string | undefined,
   profiles: Record<string, StoredProfile>,
+  fallbackAuth: AuthScheme,
 ): string {
   const activeLabel = activeProfile ? ` (profile: ${activeProfile})` : ''
-  const lines = [`Auth for "${name}"${activeLabel}:`, formatProfile(profiles[activeProfile ?? ''])]
+  const activeData = activeProfile ? profiles[activeProfile] : undefined
+  const authDisplay = activeData ? formatProfile(activeData) : formatAuth(fallbackAuth)
+  const lines = [`Auth for "${name}"${activeLabel}:`, authDisplay]
 
   if (Object.keys(profiles).length > 0) {
     lines.push('\nProfiles:')
