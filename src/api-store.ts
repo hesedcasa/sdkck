@@ -84,6 +84,11 @@ export type AuthScheme =
   | {scheme: 'bearer'; token: string; type: 'http'}
   | {type: 'none'}
 
+export interface StoredProfile {
+  auth: AuthScheme
+  baseUrl?: string
+}
+
 interface BodyParam {
   description?: string
   required: boolean
@@ -112,8 +117,10 @@ export interface StoredOperation {
   rawBodyContentType?: string
 }
 
-interface StoredSpec {
+export interface StoredSpec {
+  activeProfile?: string
   auth: AuthScheme
+  authProfiles?: Record<string, StoredProfile>
   baseUrl: string
   description: string
   insecure?: boolean
@@ -140,6 +147,36 @@ function legacySpecFilePath(configDir: string, name: string): string {
   return join(configDir, `openapi-${name}.json`)
 }
 
+// ─── Migration ────────────────────────────────────────────────────────────────
+
+// Profiles were originally stored as AuthScheme directly; now they are StoredProfile.
+// specBaseUrl is supplied so that legacy profiles without a stored baseUrl inherit the spec's URL,
+// ensuring applyActivateProfile can always reset spec.baseUrl when switching profiles.
+function migrateProfiles(raw: Record<string, unknown>, specBaseUrl: string): Record<string, StoredProfile> {
+  const result: Record<string, StoredProfile> = {}
+  for (const [name, value] of Object.entries(raw)) {
+    const v = value as Record<string, unknown>
+    const profile: StoredProfile = 'auth' in v ? (v as unknown as StoredProfile) : {auth: v as unknown as AuthScheme}
+    if (!profile.baseUrl && specBaseUrl) profile.baseUrl = specBaseUrl
+    result[name] = profile
+  }
+
+  return result
+}
+
+// Specs saved before the profile system had auth stored only in spec.auth with no authProfiles.
+// Migrates to a "default" profile only when the spec has never been touched by the profile system
+// (authProfiles was absent in JSON) and has meaningful non-none auth to preserve.
+// Always ensures spec.auth is set to prevent crashes on specs with a missing auth field.
+function migrateAuthToDefaultProfile(spec: StoredSpec): void {
+  spec.auth ??= {type: 'none'}
+  if (spec.authProfiles !== undefined) return  // already managed by profile system
+  if (spec.auth.type === 'none') return         // nothing meaningful to migrate
+  const baseUrl = spec.baseUrl || undefined
+  spec.authProfiles = {default: {auth: spec.auth, ...(baseUrl && {baseUrl})}}
+  spec.activeProfile = 'default'
+}
+
 // ─── Read / write ─────────────────────────────────────────────────────────────
 
 export async function readStore(configDir: string): Promise<ApiStore> {
@@ -163,7 +200,10 @@ export async function readStore(configDir: string): Promise<ApiStore> {
     specFiles.map(async (file) => {
       try {
         const raw = await readFile(join(configDir, file), 'utf8')
-        return JSON.parse(raw) as StoredSpec
+        const spec = JSON.parse(raw) as StoredSpec
+        if (spec.authProfiles) spec.authProfiles = migrateProfiles(spec.authProfiles as unknown as Record<string, unknown>, spec.baseUrl ?? '')
+        migrateAuthToDefaultProfile(spec)
+        return spec
       } catch (error) {
         console.error(`Failed to load spec file "${file}": ${(error as Error).message}`)
         return null
