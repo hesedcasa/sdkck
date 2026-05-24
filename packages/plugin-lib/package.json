@@ -4,6 +4,8 @@
   "description": "Shared utilities for Hesed oclif plugins",
   "author": "Hesed",
   "dependencies": {
+    "@inquirer/prompts": "^8.2.0",
+    "@oclif/core": "^4",
     "@toon-format/toon": "^2.1.0",
     "fs-extra": "^11.3.3"
   },
