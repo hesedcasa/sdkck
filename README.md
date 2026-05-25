@@ -195,7 +195,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.24.0 linux-x64 node-v22.22.3
+sdkck/0.25.0 linux-x64 node-v22.22.3
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -215,6 +215,11 @@ USAGE
 * [`sdkck api remove NAME`](#sdkck-api-remove-name)
 * [`sdkck commands`](#sdkck-commands)
 * [`sdkck help [COMMAND]`](#sdkck-help-command)
+* [`sdkck mcp client add NAME`](#sdkck-mcp-client-add-name)
+* [`sdkck mcp client auth NAME`](#sdkck-mcp-client-auth-name)
+* [`sdkck mcp client list`](#sdkck-mcp-client-list)
+* [`sdkck mcp client refresh [NAME]`](#sdkck-mcp-client-refresh-name)
+* [`sdkck mcp client remove NAME`](#sdkck-mcp-client-remove-name)
 * [`sdkck mcp start`](#sdkck-mcp-start)
 * [`sdkck mcp token delete`](#sdkck-mcp-token-delete)
 * [`sdkck mcp token generate`](#sdkck-mcp-token-generate)
@@ -282,7 +287,7 @@ EXAMPLES
   $ sdkck api auth petstore --type bearer --token sk-prod -p prod --base-url https://api.prod.example.com
 ```
 
-_See code: [src/commands/api/auth.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/api/auth.ts)_
+_See code: [src/commands/api/auth.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/api/auth.ts)_
 
 ## `sdkck api call NAME OPERATIONID`
 
@@ -317,7 +322,7 @@ EXAMPLES
   $ sdkck api call petstore listPets --query limit=10 --header X-Trace=abc
 ```
 
-_See code: [src/commands/api/call.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/api/call.ts)_
+_See code: [src/commands/api/call.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/api/call.ts)_
 
 ## `sdkck api config NAME`
 
@@ -349,7 +354,7 @@ EXAMPLES
   $ sdkck api config petstore --title "My Petstore" --description "A pet store API"
 ```
 
-_See code: [src/commands/api/config.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/api/config.ts)_
+_See code: [src/commands/api/config.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/api/config.ts)_
 
 ## `sdkck api import SOURCE`
 
@@ -400,7 +405,7 @@ EXAMPLES
   $ sdkck api import ./api.yaml --auth-type basic --username user --password pass
 ```
 
-_See code: [src/commands/api/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/api/import.ts)_
+_See code: [src/commands/api/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/api/import.ts)_
 
 ## `sdkck api list [NAME]`
 
@@ -422,7 +427,7 @@ EXAMPLES
   $ sdkck api list petstore
 ```
 
-_See code: [src/commands/api/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/api/list.ts)_
+_See code: [src/commands/api/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/api/list.ts)_
 
 ## `sdkck api profile NAME`
 
@@ -453,7 +458,7 @@ EXAMPLES
   $ sdkck api profile petstore --delete dev
 ```
 
-_See code: [src/commands/api/profile.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/api/profile.ts)_
+_See code: [src/commands/api/profile.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/api/profile.ts)_
 
 ## `sdkck api remove NAME`
 
@@ -473,7 +478,7 @@ EXAMPLES
   $ sdkck api remove petstore
 ```
 
-_See code: [src/commands/api/remove.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/api/remove.ts)_
+_See code: [src/commands/api/remove.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/api/remove.ts)_
 
 ## `sdkck commands`
 
@@ -502,7 +507,7 @@ DESCRIPTION
   List all sdkck commands.
 ```
 
-_See code: [@oclif/plugin-commands](https://github.com/oclif/plugin-commands/blob/4.1.45/src/commands/commands.ts)_
+_See code: [@oclif/plugin-commands](https://github.com/oclif/plugin-commands/blob/4.1.55/src/commands/commands.ts)_
 
 ## `sdkck help [COMMAND]`
 
@@ -522,7 +527,124 @@ DESCRIPTION
   Display help for sdkck.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/6.2.44/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/6.2.49/src/commands/help.ts)_
+
+## `sdkck mcp client add NAME`
+
+Add an MCP server and register its tools as native CLI commands
+
+```
+USAGE
+  $ sdkck mcp client add NAME [--args <value>...] [-c <value>] [--env <value>...] [--header <value>...] [-u <value>]
+
+ARGUMENTS
+  NAME  Name for the MCP server
+
+FLAGS
+  -c, --command=<value>    Command to run the MCP server (stdio transport)
+  -u, --url=<value>        URL of the MCP server (http transport)
+      --args=<value>...    Argument to pass to the server command (repeatable)
+      --env=<value>...     Environment variable for the server process as KEY=VALUE (repeatable)
+      --header=<value>...  HTTP header for the MCP server as Key=Value (repeatable)
+
+DESCRIPTION
+  Add an MCP server and register its tools as native CLI commands
+
+EXAMPLES
+  $ sdkck mcp client add github --command npx --args @modelcontextprotocol/server-github
+
+  $ sdkck mcp client add myserver --command ./bin/server.js --args start --env API_KEY=abc123
+
+  $ sdkck mcp client add remote --url http://localhost:3000/mcp
+
+  $ sdkck mcp client add remote --url https://api.example.com/mcp --header Authorization="Bearer token"
+```
+
+_See code: [src/commands/mcp/client/add.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/mcp/client/add.ts)_
+
+## `sdkck mcp client auth NAME`
+
+Re-authenticate an HTTP MCP server via OAuth browser flow
+
+```
+USAGE
+  $ sdkck mcp client auth NAME
+
+ARGUMENTS
+  NAME  Name of the MCP server to re-authenticate
+
+DESCRIPTION
+  Re-authenticate an HTTP MCP server via OAuth browser flow
+
+EXAMPLES
+  $ sdkck mcp client auth browserstack-remote
+```
+
+_See code: [src/commands/mcp/client/auth.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/mcp/client/auth.ts)_
+
+## `sdkck mcp client list`
+
+List configured MCP servers and their cached tools
+
+```
+USAGE
+  $ sdkck mcp client list [-t]
+
+FLAGS
+  -t, --tools  Show individual tools for each server
+
+DESCRIPTION
+  List configured MCP servers and their cached tools
+
+EXAMPLES
+  $ sdkck mcp client list
+
+  $ sdkck mcp client list --tools
+```
+
+_See code: [src/commands/mcp/client/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/mcp/client/list.ts)_
+
+## `sdkck mcp client refresh [NAME]`
+
+Refresh the cached tool list for one or all MCP servers
+
+```
+USAGE
+  $ sdkck mcp client refresh [NAME]
+
+ARGUMENTS
+  [NAME]  Name of the MCP server to refresh (refreshes all if omitted)
+
+DESCRIPTION
+  Refresh the cached tool list for one or all MCP servers
+
+EXAMPLES
+  $ sdkck mcp client refresh
+
+  $ sdkck mcp client refresh github
+```
+
+_See code: [src/commands/mcp/client/refresh.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/mcp/client/refresh.ts)_
+
+## `sdkck mcp client remove NAME`
+
+Remove a configured MCP server and its cached tools
+
+```
+USAGE
+  $ sdkck mcp client remove NAME
+
+ARGUMENTS
+  NAME  Name of the MCP server to remove
+
+DESCRIPTION
+  Remove a configured MCP server and its cached tools
+
+EXAMPLES
+  $ sdkck mcp client remove github
+```
+
+_See code: [src/commands/mcp/client/remove.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/mcp/client/remove.ts)_
 
 ## `sdkck mcp start`
 
@@ -551,7 +673,7 @@ EXAMPLES
   $ sdkck mcp start --transport http --host 0.0.0.0
 ```
 
-_See code: [src/commands/mcp/start.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/mcp/start.ts)_
+_See code: [src/commands/mcp/start.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/mcp/start.ts)_
 
 ## `sdkck mcp token delete`
 
@@ -568,7 +690,7 @@ EXAMPLES
   $ sdkck mcp token delete
 ```
 
-_See code: [src/commands/mcp/token/delete.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/mcp/token/delete.ts)_
+_See code: [src/commands/mcp/token/delete.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/mcp/token/delete.ts)_
 
 ## `sdkck mcp token generate`
 
@@ -585,7 +707,7 @@ EXAMPLES
   $ sdkck mcp token generate
 ```
 
-_See code: [src/commands/mcp/token/generate.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/mcp/token/generate.ts)_
+_See code: [src/commands/mcp/token/generate.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/mcp/token/generate.ts)_
 
 ## `sdkck mcp token show`
 
@@ -602,7 +724,7 @@ EXAMPLES
   $ sdkck mcp token show
 ```
 
-_See code: [src/commands/mcp/token/show.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/mcp/token/show.ts)_
+_See code: [src/commands/mcp/token/show.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/mcp/token/show.ts)_
 
 ## `sdkck permission disallow PATTERN`
 
@@ -629,7 +751,7 @@ EXAMPLES
   $ sdkck permission disallow "jira issue create"
 ```
 
-_See code: [src/commands/permission/disallow.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/permission/disallow.ts)_
+_See code: [src/commands/permission/disallow.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/permission/disallow.ts)_
 
 ## `sdkck permission export FILE`
 
@@ -649,7 +771,7 @@ EXAMPLES
   $ sdkck permission export permission.json
 ```
 
-_See code: [src/commands/permission/export.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/permission/export.ts)_
+_See code: [src/commands/permission/export.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/permission/export.ts)_
 
 ## `sdkck permission import FILE`
 
@@ -669,7 +791,7 @@ EXAMPLES
   $ sdkck permission import permission.json
 ```
 
-_See code: [src/commands/permission/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/permission/import.ts)_
+_See code: [src/commands/permission/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/permission/import.ts)_
 
 ## `sdkck permission list`
 
@@ -686,7 +808,7 @@ EXAMPLES
   $ sdkck permission list
 ```
 
-_See code: [src/commands/permission/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/permission/list.ts)_
+_See code: [src/commands/permission/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/permission/list.ts)_
 
 ## `sdkck permission reset`
 
@@ -708,7 +830,7 @@ EXAMPLES
   $ sdkck permission reset --confirm
 ```
 
-_See code: [src/commands/permission/reset.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/permission/reset.ts)_
+_See code: [src/commands/permission/reset.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/permission/reset.ts)_
 
 ## `sdkck plugins`
 
@@ -731,7 +853,7 @@ EXAMPLES
   $ sdkck plugins
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.64/src/commands/plugins/index.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.69/src/commands/plugins/index.ts)_
 
 ## `sdkck plugins add PLUGIN`
 
@@ -805,7 +927,7 @@ EXAMPLES
   $ sdkck plugins inspect myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.64/src/commands/plugins/inspect.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.69/src/commands/plugins/inspect.ts)_
 
 ## `sdkck plugins install PLUGIN`
 
@@ -854,7 +976,7 @@ EXAMPLES
     $ sdkck plugins install someuser/someplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.64/src/commands/plugins/install.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.69/src/commands/plugins/install.ts)_
 
 ## `sdkck plugins link PATH`
 
@@ -885,7 +1007,7 @@ EXAMPLES
   $ sdkck plugins link myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.64/src/commands/plugins/link.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.69/src/commands/plugins/link.ts)_
 
 ## `sdkck plugins remove [PLUGIN]`
 
@@ -926,7 +1048,7 @@ FLAGS
   --reinstall  Reinstall all plugins after uninstalling.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.64/src/commands/plugins/reset.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.69/src/commands/plugins/reset.ts)_
 
 ## `sdkck plugins uninstall [PLUGIN]`
 
@@ -954,7 +1076,7 @@ EXAMPLES
   $ sdkck plugins uninstall myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.64/src/commands/plugins/uninstall.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.69/src/commands/plugins/uninstall.ts)_
 
 ## `sdkck plugins unlink [PLUGIN]`
 
@@ -998,7 +1120,7 @@ DESCRIPTION
   Update installed plugins.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.64/src/commands/plugins/update.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.69/src/commands/plugins/update.ts)_
 
 ## `sdkck search QUERY`
 
@@ -1029,7 +1151,7 @@ EXAMPLES
   $ sdkck search "update jira" --details
 ```
 
-_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/search.ts)_
+_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.25.0/src/commands/search.ts)_
 
 ## `sdkck update [CHANNEL]`
 
@@ -1067,7 +1189,7 @@ EXAMPLES
     $ sdkck update --available
 ```
 
-_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/4.7.35/src/commands/update.ts)_
+_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/4.7.42/src/commands/update.ts)_
 
 ## `sdkck version`
 
