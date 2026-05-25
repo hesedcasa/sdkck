@@ -10,7 +10,7 @@ export default class McpClientAuth extends Command {
   }
   static description = 'Re-authenticate an HTTP MCP server via OAuth browser flow'
   static examples = ['<%= config.bin %> mcp client auth browserstack-remote']
-// Injectable for tests
+  // Injectable for tests
   _discoverTools: typeof discoverTools = discoverTools
 
   async run(): Promise<void> {

@@ -1,7 +1,11 @@
 /* eslint-disable camelcase */
 import type {OAuthClientProvider} from '@modelcontextprotocol/sdk/client/auth.js'
 import type {StreamableHTTPClientTransport} from '@modelcontextprotocol/sdk/client/streamableHttp.js'
-import type {OAuthClientInformationFull, OAuthClientMetadata, OAuthTokens} from '@modelcontextprotocol/sdk/shared/auth.js'
+import type {
+  OAuthClientInformationFull,
+  OAuthClientMetadata,
+  OAuthTokens,
+} from '@modelcontextprotocol/sdk/shared/auth.js'
 
 import {spawn} from 'node:child_process'
 import {mkdir, readFile, unlink, writeFile} from 'node:fs/promises'
@@ -73,8 +77,8 @@ export class CliOAuthProvider implements OAuthClientProvider {
   private _codeVerifier: string | undefined = undefined
   private _completedFlow = false
   private _configDir: string
-private _serverName: string
-private _transport: StreamableHTTPClientTransport | undefined = undefined
+  private _serverName: string
+  private _transport: StreamableHTTPClientTransport | undefined = undefined
 
   constructor(configDir: string, serverName: string) {
     this._configDir = configDir

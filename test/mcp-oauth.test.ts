@@ -155,7 +155,11 @@ describe('mcp-oauth', () => {
 
     it('saveTokens() does not clobber existing clientInfo', async () => {
       const provider = new CliOAuthProvider(tmpDir, 'srv')
-      await provider.saveClientInformation({client_id: 'cid-abc', redirect_uris: [], token_endpoint_auth_method: 'none'})
+      await provider.saveClientInformation({
+        client_id: 'cid-abc',
+        redirect_uris: [],
+        token_endpoint_auth_method: 'none',
+      })
       await provider.saveTokens({access_token: 'at', token_type: 'bearer'})
       const info = await provider.clientInformation()
       expect(info?.client_id).to.equal('cid-abc')

@@ -10,14 +10,14 @@ export default class ApiProfile extends Command {
       required: true,
     }),
   }
-static description = 'Manage auth profiles for an imported API spec'
-static examples = [
+  static description = 'Manage auth profiles for an imported API spec'
+  static examples = [
     '<%= config.bin %> api profile petstore',
     '<%= config.bin %> api profile petstore --show dev',
     '<%= config.bin %> api profile petstore --use prod',
     '<%= config.bin %> api profile petstore --delete dev',
   ]
-static flags = {
+  static flags = {
     delete: Flags.string({
       description: 'Delete a named profile',
       required: false,

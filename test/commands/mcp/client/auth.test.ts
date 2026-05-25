@@ -8,10 +8,7 @@ import McpClientAuth from '../../../../src/commands/mcp/client/auth.js'
 import {type McpToolSchema, writeServerFile} from '../../../../src/mcp-client-store.js'
 import {readOAuthState, writeOAuthState} from '../../../../src/mcp-oauth.js'
 
-function makeAuth(
-  configDir: string,
-  discoverToolsStub: () => Promise<McpToolSchema[]>,
-): McpClientAuth {
+function makeAuth(configDir: string, discoverToolsStub: () => Promise<McpToolSchema[]>): McpClientAuth {
   const config = {
     bin: 'sdkck',
     configDir,
