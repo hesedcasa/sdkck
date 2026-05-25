@@ -1,0 +1,128 @@
+# MCP Client
+
+Connect to any external MCP server and use its tools as native CLI commands — with tab completion, `--help`, and full argument support.
+
+## Add a server
+
+Point Sidekick at an MCP server once. It connects, discovers every available tool, and caches the schemas locally.
+
+### stdio (subprocess)
+
+```bash
+# npx-based server (e.g. the official GitHub MCP server)
+sdkck mcp client add github --command npx --args @modelcontextprotocol/server-github
+
+# Local script with arguments and environment variables
+sdkck mcp client add myserver \
+  --command ./bin/server.js \
+  --args start \
+  --env API_KEY=sk-... \
+  --env LOG_LEVEL=info
+```
+
+### HTTP (remote)
+
+```bash
+# Unauthenticated
+sdkck mcp client add remote --url http://localhost:3000/mcp
+
+# With a Bearer token in the Authorization header
+sdkck mcp client add remote \
+  --url https://api.example.com/mcp \
+  --header "Authorization=Bearer sk-..."
+```
+
+| Flag | Description |
+|------|-------------|
+| `--command`, `-c` | Command to launch the server (stdio transport) |
+| `--args` | Argument to pass to the command (repeatable) |
+| `--env` | Environment variable as `KEY=VALUE` (repeatable) |
+| `--url`, `-u` | URL of the MCP server (HTTP transport) |
+| `--header` | HTTP header as `Key=Value` (repeatable) |
+
+## Use tools as native commands
+
+After adding a server every tool is immediately available as `sdkck <serverName> <toolName>`:
+
+```bash
+# Discover what tools a server exposes
+sdkck help github
+
+# Use a tool
+sdkck github create_issue "Fix the login bug"
+
+# Get help for a specific tool
+sdkck github create_issue --help
+```
+
+Required string parameters become positional arguments. Optional parameters become `--<name>` flags. Complex types (objects, arrays) accept a JSON string:
+
+```bash
+# Required string param → positional arg
+sdkck github get_file_contents path/to/file.ts
+
+# Optional params → flags
+sdkck github list_issues --state open --limit 20
+
+# Object param → JSON string
+sdkck github create_issue "Title" --labels '["bug","urgent"]'
+
+# Override everything with a raw JSON object (useful for complex schemas)
+sdkck github create_issue --json-args '{"title":"Fix login","labels":["bug"]}'
+```
+
+Tool commands appear in `sdkck help`, `sdkck commands`, and tab completion alongside every other built-in command.
+
+## List servers
+
+```bash
+# Show configured servers
+sdkck mcp client list
+
+# Include individual tool names
+sdkck mcp client list --tools
+```
+
+Example output:
+
+```
+github
+  Transport: stdio (npx @modelcontextprotocol/server-github)
+  Tools: 12
+  Cached at: 5/25/2026, 9:00:00 AM
+
+remote
+  Transport: http (https://api.example.com/mcp)
+  Tools: 5
+  Cached at: 5/25/2026, 9:01:00 AM
+```
+
+## Refresh tools
+
+Tool schemas are cached locally and stay valid for one hour. To pick up new tools after a server update:
+
+```bash
+# Refresh a single server
+sdkck mcp client refresh github
+
+# Refresh all servers
+sdkck mcp client refresh
+```
+
+## Remove a server
+
+```bash
+sdkck mcp client remove github
+```
+
+This deletes the stored config and cached tools. The tool commands disappear from the CLI on the next invocation.
+
+## How it works
+
+Tool discovery and invocation are decoupled:
+
+- **At `add`/`refresh` time** — Sidekick connects to the server, calls `listTools`, and caches the schemas in `~/.config/sdkck/mcp-client-<name>.json`.
+- **At startup** — cached schemas are read from disk and each tool is registered as a native oclif command (no live connection needed).
+- **At invocation time** — Sidekick spawns a fresh connection to the server, calls `tools/call` with the mapped arguments, and prints the result.
+
+This means startup is fast regardless of how many servers are configured, and tool commands work correctly even when a server is temporarily unavailable at start time.

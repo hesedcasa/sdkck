@@ -38,6 +38,7 @@ export const navigation: NavSection[] = [
     items: [
       {href: '/api', name: 'API to Commands'},
       {href: '/mcp', name: 'MCP Server'},
+      {href: '/mcp-client', name: 'MCP Client'},
     ],
     title: 'Integrations',
   },
