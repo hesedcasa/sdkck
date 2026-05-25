@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.0](https://github.com/hesedcasa/sdkck/compare/v0.23.0...v0.24.0) (2026-05-25)
+
+
+### 🎉 Features
+
+* **api:** add profile command for managing named auth profiles ([c356107](https://github.com/hesedcasa/sdkck/commit/c356107b3b8c8ae94e83783174496c890d1e2f27))
+
 ## [0.23.0](https://github.com/hesedcasa/sdkck/compare/v0.22.0...v0.23.0) (2026-05-23)
 
 
