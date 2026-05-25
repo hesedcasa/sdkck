@@ -9,8 +9,13 @@ Point Sidekick at an MCP server once. It connects, discovers every available too
 ### stdio (subprocess)
 
 ```bash
-# npx-based server (e.g. the official GitHub MCP server)
-sdkck mcp client add github --command npx --args @modelcontextprotocol/server-github
+# npx-based server (e.g. the official BrowserStack MCP server)
+sdkck mcp client add browserstack \
+  --command npx \
+  --args -y \
+  --args @browserstack/mcp-server@latest \
+  --env BROWSERSTACK_USERNAME=your_username \
+  --env BROWSERSTACK_ACCESS_KEY=your_access_key
 
 # Local script with arguments and environment variables
 sdkck mcp client add myserver \
@@ -23,13 +28,15 @@ sdkck mcp client add myserver \
 ### HTTP (remote)
 
 ```bash
-# Unauthenticated
-sdkck mcp client add remote --url http://localhost:3000/mcp
-
 # With a Bearer token in the Authorization header
 sdkck mcp client add remote \
   --url https://api.example.com/mcp \
   --header "Authorization=Bearer sk-..."
+
+# OAuth-protected server (e.g. BrowserStack) — no extra flags needed.
+# sdkck opens your browser to authorize, then saves the token automatically.
+sdkck mcp client add browserstack-remote \
+  --url https://mcp.browserstack.com/mcp
 ```
 
 | Flag | Description |
@@ -46,29 +53,29 @@ After adding a server every tool is immediately available as `sdkck <serverName>
 
 ```bash
 # Discover what tools a server exposes
-sdkck help github
+sdkck help browserstack
 
 # Use a tool
-sdkck github create_issue "Fix the login bug"
+sdkck browserstack runBrowserLiveSession "https://example.com"
 
 # Get help for a specific tool
-sdkck github create_issue --help
+sdkck browserstack runBrowserLiveSession --help
 ```
 
 Required string parameters become positional arguments. Optional parameters become `--<name>` flags. Complex types (objects, arrays) accept a JSON string:
 
 ```bash
 # Required string param → positional arg
-sdkck github get_file_contents path/to/file.ts
+sdkck browserstack runBrowserLiveSession https://example.com
 
 # Optional params → flags
-sdkck github list_issues --state open --limit 20
+sdkck browserstack runBrowserLiveSession https://example.com --browser chrome --os Windows
 
 # Object param → JSON string
-sdkck github create_issue "Title" --labels '["bug","urgent"]'
+sdkck browserstack setupBrowserStackAutomateTests "my-project" --config '{"framework":"selenium","language":"javascript"}'
 
 # Override everything with a raw JSON object (useful for complex schemas)
-sdkck github create_issue --json-args '{"title":"Fix login","labels":["bug"]}'
+sdkck browserstack runBrowserLiveSession --json-args '{"url":"https://example.com","browser":"chrome","browserVersion":"latest"}'
 ```
 
 Tool commands appear in `sdkck help`, `sdkck commands`, and tab completion alongside every other built-in command.
@@ -86,9 +93,9 @@ sdkck mcp client list --tools
 Example output:
 
 ```
-github
-  Transport: stdio (npx @modelcontextprotocol/server-github)
-  Tools: 12
+browserstack
+  Transport: stdio (npx -y @browserstack/mcp-server@latest)
+  Tools: 40
   Cached at: 5/25/2026, 9:00:00 AM
 
 remote
@@ -103,7 +110,7 @@ Tool schemas are cached locally and stay valid for one hour. To pick up new tool
 
 ```bash
 # Refresh a single server
-sdkck mcp client refresh github
+sdkck mcp client refresh browserstack
 
 # Refresh all servers
 sdkck mcp client refresh
@@ -112,7 +119,7 @@ sdkck mcp client refresh
 ## Remove a server
 
 ```bash
-sdkck mcp client remove github
+sdkck mcp client remove browserstack
 ```
 
 This deletes the stored config and cached tools. The tool commands disappear from the CLI on the next invocation.
