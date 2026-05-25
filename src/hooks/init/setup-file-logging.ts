@@ -7,7 +7,11 @@ const hook: Hook<'init'> = async function (opts) {
 
   // Tee Command.prototype.warn → log file. Cast away the overloaded types so
   // TypeScript accepts the generic wrapper signature.
-  const originalWarn = Command.prototype.warn as (this: Command, input: Error | string, options?: unknown) => Error | string
+  const originalWarn = Command.prototype.warn as (
+    this: Command,
+    input: Error | string,
+    options?: unknown,
+  ) => Error | string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(Command.prototype as any).warn = function (input: Error | string, options?: unknown): Error | string {
     fileLog('warn', input instanceof Error ? input.message : input)

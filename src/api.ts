@@ -151,21 +151,14 @@ function buildArgv(loadable: Command.Loadable, args: Record<string, unknown>): s
 
 // ─── Command resolution ─────────────────────────────────────────────────────
 
-function resolveCommand(
-  config: Config,
-  id: string,
-): Command.Loadable | undefined {
+function resolveCommand(config: Config, id: string): Command.Loadable | undefined {
   const colonId = id.replaceAll(' ', ':')
   return config.commands.find((c) => c.id === colonId)
 }
 
 // ─── Execution ───────────────────────────────────────────────────────────────
 
-async function executeCommand(
-  loadable: Command.Loadable,
-  argv: string[],
-  config: Config,
-): Promise<RunCommandResult> {
+async function executeCommand(loadable: Command.Loadable, argv: string[], config: Config): Promise<RunCommandResult> {
   try {
     const CmdClass = await loadable.load()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -187,8 +180,7 @@ async function executeCommand(
     }
 
     const result = await instance.run()
-    const output =
-      result === null || result === undefined ? lines.join('\n') : JSON.stringify(result, null, 2)
+    const output = result === null || result === undefined ? lines.join('\n') : JSON.stringify(result, null, 2)
     return {output: output || '(no output)'}
   } catch (error) {
     return {error: error instanceof Error ? error.message : String(error), output: ''}
@@ -204,9 +196,7 @@ export const sdkck = {
       const separator = config.topicSeparator ?? ' '
 
       const candidates = opts.topic
-        ? config.commands.filter(
-            (l) => l.id.startsWith(`${opts.topic}:`) || l.id === opts.topic,
-          )
+        ? config.commands.filter((l) => l.id.startsWith(`${opts.topic}:`) || l.id === opts.topic)
         : config.commands
 
       const results: CommandInfo[] = []
@@ -221,11 +211,7 @@ export const sdkck = {
       return Object.freeze(results)
     },
 
-    async run(
-      config: Config,
-      id: string,
-      args: Record<string, unknown> = {},
-    ): Promise<RunCommandResult> {
+    async run(config: Config, id: string, args: Record<string, unknown> = {}): Promise<RunCommandResult> {
       const loadable = resolveCommand(config, id)
       if (!loadable) {
         throw new SdkckExecutionError('command_not_found', id, `Command "${id}" not found.`)

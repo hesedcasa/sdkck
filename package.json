@@ -30,10 +30,12 @@
     "@oclif/prettier-config": "^0.2.1",
     "@oclif/test": "^4",
     "@types/chai": "^5",
+    "@types/chai-as-promised": "^8.0.2",
     "@types/js-yaml": "^4.0.9",
     "@types/mocha": "^10",
     "@types/node": "^25",
     "chai": "^6",
+    "chai-as-promised": "^8.0.2",
     "eslint": "^9",
     "eslint-config-oclif": "^6",
     "eslint-config-prettier": "^10",
@@ -102,6 +104,7 @@
       "init": [
         "./dist/hooks/init/setup-file-logging",
         "./dist/hooks/init/register-api-commands",
+        "./dist/hooks/init/register-mcp-client-commands",
         "./dist/hooks/init/apply-permission"
       ],
       "jit_plugin_not_installed": "./dist/hooks/jit_plugin_not_installed/jit-install",

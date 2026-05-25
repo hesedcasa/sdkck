@@ -30,7 +30,9 @@ function cmd(o: CmdOverrides): Command.Loadable {
     hidden: o.hidden ?? false,
     id: o.id,
     async load() {
-      return class {async run() {}} as unknown as typeof Command
+      return class {
+        async run() {}
+      } as unknown as typeof Command
     },
     pluginName: o.pluginName ?? 'sdkck',
     pluginType: o.pluginType ?? 'core',
@@ -60,10 +62,7 @@ describe('sdkck.commands.list', () => {
 
   it('returns one entry per command with expected shape', async () => {
     const cfg = makeConfig(
-      [
-        cmd({id: 'api:list', summary: 'List specs'}),
-        cmd({id: 'permission:list', summary: 'List rules'}),
-      ],
+      [cmd({id: 'api:list', summary: 'List specs'}), cmd({id: 'permission:list', summary: 'List rules'})],
       configDir,
     )
 
@@ -79,10 +78,7 @@ describe('sdkck.commands.list', () => {
   })
 
   it('excludes hidden commands by default; includeHidden returns them', async () => {
-    const cfg = makeConfig(
-      [cmd({hidden: false, id: 'a'}), cmd({hidden: true, id: 'b'})],
-      configDir,
-    )
+    const cfg = makeConfig([cmd({hidden: false, id: 'a'}), cmd({hidden: true, id: 'b'})], configDir)
 
     expect((await sdkck.commands.list(cfg)).map((c) => c.id)).to.deep.equal(['a'])
     expect((await sdkck.commands.list(cfg, {includeHidden: true})).map((c) => c.id)).to.deep.equal(['a', 'b'])
@@ -100,10 +96,7 @@ describe('sdkck.commands.list', () => {
   })
 
   it('filters by topic', async () => {
-    const cfg = makeConfig(
-      [cmd({id: 'api:list'}), cmd({id: 'api:remove'}), cmd({id: 'permission:list'})],
-      configDir,
-    )
+    const cfg = makeConfig([cmd({id: 'api:list'}), cmd({id: 'api:remove'}), cmd({id: 'permission:list'})], configDir)
 
     const result = await sdkck.commands.list(cfg, {topic: 'api'})
     expect(result.map((c) => c.id)).to.deep.equal(['api:list', 'api:remove'])
@@ -118,10 +111,7 @@ describe('sdkck.commands.list', () => {
   })
 
   it('sorts results by displayId', async () => {
-    const cfg = makeConfig(
-      [cmd({id: 'z:cmd'}), cmd({id: 'a:cmd'}), cmd({id: 'm:cmd'})],
-      configDir,
-    )
+    const cfg = makeConfig([cmd({id: 'z:cmd'}), cmd({id: 'a:cmd'}), cmd({id: 'm:cmd'})], configDir)
 
     const result = await sdkck.commands.list(cfg)
     expect(result.map((c) => c.displayId)).to.deep.equal(['a cmd', 'm cmd', 'z cmd'])

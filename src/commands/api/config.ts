@@ -49,7 +49,7 @@ export default class ApiConfig extends Command {
     const store = await readStore(this.config.configDir)
     const spec = store.specs[args.name]
     if (!spec) {
-      this.error(`No spec found with name "${args.name}". Run \`api list\` to see available specs.`)
+      this.error(`No spec found with name "${args.name}". Run 'api list' to see available specs.`)
     }
 
     if (flags['base-url'] !== undefined) spec.baseUrl = flags['base-url']

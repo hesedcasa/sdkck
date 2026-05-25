@@ -28,6 +28,7 @@ const PETSTORE_POSTMAN: PostmanCollection = {
       request: {
         body: {
           mode: 'raw' as const,
+          options: {raw: {language: 'json'}},
           raw: '{"name": "Fido", "tag": "dog"}',
         },
         description: 'Create a new pet',

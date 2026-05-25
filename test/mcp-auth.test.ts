@@ -16,7 +16,9 @@ function makeRes() {
   let endedVal = false
   let wwwAuthVal: null | string = null
   const res = {
-    end() { endedVal = true },
+    end() {
+      endedVal = true
+    },
     setHeader() {},
     writeHead(code: number, headers?: Record<string, string>) {
       statusCodeVal = code
@@ -25,10 +27,16 @@ function makeRes() {
     },
   } as unknown as ServerResponse
   return {
-    get ended() { return endedVal },
+    get ended() {
+      return endedVal
+    },
     res,
-    get statusCode() { return statusCodeVal },
-    get wwwAuth() { return wwwAuthVal },
+    get statusCode() {
+      return statusCodeVal
+    },
+    get wwwAuth() {
+      return wwwAuthVal
+    },
   }
 }
 

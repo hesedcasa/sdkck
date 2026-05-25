@@ -3,6 +3,7 @@
 import {Config, flush, handle, run} from '@oclif/core'
 
 import {registerApiCommands} from '../dist/api-dynamic-commands.js'
+import {registerMcpClientCommands} from '../dist/mcp-client-commands.js'
 
 // Patch Config.load so every config instance (including those created inside
 // Command.run) automatically gets the dynamic API commands registered.
@@ -11,6 +12,7 @@ const originalLoad = Config.load.bind(Config)
 Config.load = async (...args) => {
   const config = await originalLoad(...args)
   await registerApiCommands(config).catch(() => {})
+  await registerMcpClientCommands(config).catch(() => {})
   return config
 }
 

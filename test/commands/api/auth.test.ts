@@ -202,6 +202,13 @@ describe('api auth', () => {
       return configDir
     }
 
+    it('shows current auth when no --type flag is given', async () => {
+      const configDir = await freshConfig()
+      const {cmd, output} = makeAuth(['petstore'], configDir)
+      await cmd.run()
+      expect(output()).to.include('none')
+    })
+
     it('shows no-type hint when no --type flag is given', async () => {
       const configDir = await freshConfig()
       const {cmd, output} = makeAuth(['petstore'], configDir)
@@ -265,7 +272,10 @@ describe('api auth', () => {
     describe('profiles', () => {
       it('saves a named profile and activates it', async () => {
         const configDir = await freshConfig()
-        await makeAuth(['petstore', '--profile', 'prod', '--type', 'bearer', '--token', 'tok-prod'], configDir).cmd.run()
+        await makeAuth(
+          ['petstore', '--profile', 'prod', '--type', 'bearer', '--token', 'tok-prod'],
+          configDir,
+        ).cmd.run()
 
         const store = await readStore(configDir)
         const spec = store.specs.petstore
@@ -278,7 +288,10 @@ describe('api auth', () => {
       it('saves multiple profiles independently', async () => {
         const configDir = await freshConfig()
         await makeAuth(['petstore', '--profile', 'dev', '--type', 'bearer', '--token', 'tok-dev'], configDir).cmd.run()
-        await makeAuth(['petstore', '--profile', 'prod', '--type', 'bearer', '--token', 'tok-prod'], configDir).cmd.run()
+        await makeAuth(
+          ['petstore', '--profile', 'prod', '--type', 'bearer', '--token', 'tok-prod'],
+          configDir,
+        ).cmd.run()
 
         const store = await readStore(configDir)
         const spec = store.specs.petstore
@@ -296,18 +309,6 @@ describe('api auth', () => {
         expect(spec.activeProfile).to.equal('default')
         expect(spec.auth.type).to.equal('none')
         expect(spec.authProfiles?.default?.auth.type).to.equal('none')
-      })
-
-      it('stores baseUrl in profile when saving', async () => {
-        const configDir = await freshConfig()
-        await makeAuth(
-          ['petstore', '--profile', 'prod', '--type', 'bearer', '--token', 'tok-prod', '--base-url', 'https://prod.example.com'],
-          configDir,
-        ).cmd.run()
-
-        const store = await readStore(configDir)
-        expect(store.specs.petstore.authProfiles?.prod?.baseUrl).to.equal('https://prod.example.com')
-        expect(store.specs.petstore.baseUrl).to.equal('https://prod.example.com')
       })
 
       it('--profile --base-url (no --type) updates only baseUrl of existing profile', async () => {

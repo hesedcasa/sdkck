@@ -25,7 +25,7 @@ export default class ApiList extends Command {
     if (args.name) {
       const spec = store.specs[args.name]
       if (!spec) {
-        this.error(`No spec found with name "${args.name}". Run \`api list\` to see available specs.`)
+        this.error(`No spec found with name "${args.name}". Run 'api list' to see available specs.`)
       }
 
       this.log(`${spec.title} (${spec.name})`)
@@ -57,7 +57,7 @@ export default class ApiList extends Command {
       }
 
       this.log('')
-      this.log(`Run \`api list <name>\` to see operations for a specific API.`)
+      this.log(`Run 'api list <name>' to see operations for a specific API.`)
     }
   }
 }

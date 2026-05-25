@@ -215,7 +215,7 @@ function createOperationCommand(
       const store = await readStore(this.config.configDir)
       const spec = store.specs[capturedSpecName]
       if (!spec) {
-        this.error(`Spec "${capturedSpecName}" was removed. Run \`api list\` to see available specs.`)
+        this.error(`Spec "${capturedSpecName}" was removed. Run 'api list' to see available specs.`)
       }
 
       const {baseUrl} = spec

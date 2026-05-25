@@ -140,7 +140,7 @@ export default class ApiImport extends Command {
     this.log(`  Base URL  : ${baseUrl || 'none'}`)
     this.log(`  Auth      : ${flags['auth-type'] ?? 'none'}`)
     this.log(`  Operations: ${imported.operations.length}`)
-    this.log(`\nRun \`${this.config.bin} ${nameSlug}\` to see all operations.`)
+    this.log(`\nRun '${this.config.bin} ${nameSlug}' to see all operations.`)
   }
 
   private buildAuth(flags: {

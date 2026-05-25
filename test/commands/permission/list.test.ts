@@ -50,10 +50,7 @@ describe('permission list', () => {
 
   it('shows the rule count', async () => {
     await writePermissionConfig(tmpDir, {
-      rules: [
-        {pattern: 'jira'},
-        {pattern: 'mysql'},
-      ],
+      rules: [{pattern: 'jira'}, {pattern: 'mysql'}],
     })
     const {cmd, output} = makeList(tmpDir)
     await cmd.run()

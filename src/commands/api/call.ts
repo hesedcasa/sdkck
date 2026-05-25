@@ -77,13 +77,13 @@ export default class ApiCall extends Command {
     const store = await readStore(this.config.configDir)
     const spec = store.specs[args.name]
     if (!spec) {
-      this.error(`No spec found with name "${args.name}". Run \`api list\` to see available specs.`)
+      this.error(`No spec found with name "${args.name}". Run 'api list' to see available specs.`)
     }
 
     const operation: StoredOperation | undefined = spec.operations.find((o) => o.operationId === args.operationId)
     if (!operation) {
       this.error(
-        `Operation "${args.operationId}" not found in "${args.name}". Run \`api list ${args.name}\` to see operations.`,
+        `Operation "${args.operationId}" not found in "${args.name}". Run 'api list ${args.name}' to see operations.`,
       )
     }
 
