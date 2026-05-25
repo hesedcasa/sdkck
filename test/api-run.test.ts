@@ -67,7 +67,14 @@ describe('sdkck.commands.run', () => {
 
   it('runs a command and captures log output', async () => {
     const cfg = makeConfig(
-      [makeCmd({body(i) { i.log('hi') }, id: 'hello'})],
+      [
+        makeCmd({
+          body(i) {
+            i.log('hi')
+          },
+          id: 'hello',
+        }),
+      ],
       configDir,
     )
 
@@ -78,7 +85,14 @@ describe('sdkck.commands.run', () => {
 
   it('accepts both colon and space id forms', async () => {
     const cfg = makeConfig(
-      [makeCmd({body(i) { i.log('ok') }, id: 'api:list'})],
+      [
+        makeCmd({
+          body(i) {
+            i.log('ok')
+          },
+          id: 'api:list',
+        }),
+      ],
       configDir,
     )
 
@@ -100,7 +114,14 @@ describe('sdkck.commands.run', () => {
   it('blocks disallowed commands', async () => {
     await writePermissionConfig(configDir, {rules: [{pattern: 'api list'}]})
     const cfg = makeConfig(
-      [makeCmd({body(i) { i.log('ran') }, id: 'api:list'})],
+      [
+        makeCmd({
+          body(i) {
+            i.log('ran')
+          },
+          id: 'api:list',
+        }),
+      ],
       configDir,
     )
 
@@ -114,7 +135,14 @@ describe('sdkck.commands.run', () => {
 
   it('returns {error} on runtime failure (does not throw)', async () => {
     const cfg = makeConfig(
-      [makeCmd({body() { throw new Error('kaboom') }, id: 'boom'})],
+      [
+        makeCmd({
+          body() {
+            throw new Error('kaboom')
+          },
+          id: 'boom',
+        }),
+      ],
       configDir,
     )
 
@@ -143,7 +171,14 @@ describe('sdkck.commands.run', () => {
 
   it('serializes JSON return value into output', async () => {
     const cfg = makeConfig(
-      [makeCmd({body() { return {n: 1, ok: true} }, id: 'data'})],
+      [
+        makeCmd({
+          body() {
+            return {n: 1, ok: true}
+          },
+          id: 'data',
+        }),
+      ],
       configDir,
     )
 
@@ -154,8 +189,21 @@ describe('sdkck.commands.run', () => {
   it('does not interleave output across concurrent runs', async () => {
     const cfg = makeConfig(
       [
-        makeCmd({async body(i) { await new Promise((r) => { setTimeout(r, 5) }); i.log('AAA') }, id: 'a'}),
-        makeCmd({body(i) { i.log('BBB') }, id: 'b'}),
+        makeCmd({
+          async body(i) {
+            await new Promise((r) => {
+              setTimeout(r, 5)
+            })
+            i.log('AAA')
+          },
+          id: 'a',
+        }),
+        makeCmd({
+          body(i) {
+            i.log('BBB')
+          },
+          id: 'b',
+        }),
       ],
       configDir,
     )

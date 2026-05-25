@@ -41,10 +41,7 @@ describe('permission reset', () => {
 
   it('clears all rules when --confirm is passed', async () => {
     await writePermissionConfig(tmpDir, {
-      rules: [
-        {pattern: 'jira'},
-        {pattern: 'mysql'},
-      ],
+      rules: [{pattern: 'jira'}, {pattern: 'mysql'}],
     })
 
     const {cmd, output} = makeReset(['--confirm'], tmpDir)

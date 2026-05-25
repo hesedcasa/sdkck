@@ -68,10 +68,7 @@ describe('permission-config', () => {
 
     it('first match wins — ignores later rules', () => {
       const config: PermissionConfig = {
-        rules: [
-          {pattern: '*'},
-          {pattern: 'jira issue'},
-        ],
+        rules: [{pattern: '*'}, {pattern: 'jira issue'}],
       }
       expect(isCommandAllowed('jira issue', config)).to.be.false
     })

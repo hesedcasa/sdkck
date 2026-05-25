@@ -166,7 +166,7 @@ export default class ApiAuth extends Command {
 
 // ── Exported standalone helpers ────────────────────────────────────────────────
 
-export function buildAuthScheme(flags: {
+function buildAuthScheme(flags: {
   'api-key'?: string
   'api-key-header'?: string
   header?: string[]
@@ -203,7 +203,7 @@ export function buildAuthScheme(flags: {
   }
 }
 
-export function applyDeleteProfile(
+function applyDeleteProfile(
   spec: StoredSpec,
   profiles: Record<string, StoredProfile>,
   profileName: string,
@@ -214,7 +214,7 @@ export function applyDeleteProfile(
   if (spec.activeProfile === profileName) delete spec.activeProfile
 }
 
-export function applyActivateProfile(
+function applyActivateProfile(
   spec: StoredSpec,
   profiles: Record<string, StoredProfile>,
   profileName: string,
@@ -227,7 +227,7 @@ export function applyActivateProfile(
   spec.activeProfile = profileName
 }
 
-export function applyUpdateProfileBaseUrl(
+function applyUpdateProfileBaseUrl(
   spec: StoredSpec,
   profiles: Record<string, StoredProfile>,
   profileName: string,
@@ -239,7 +239,7 @@ export function applyUpdateProfileBaseUrl(
   if (spec.activeProfile === profileName) spec.baseUrl = baseUrl
 }
 
-export function applySaveAuth(
+function applySaveAuth(
   spec: StoredSpec,
   profiles: Record<string, StoredProfile>,
   flags: {'base-url'?: string; profile?: string},

@@ -43,10 +43,7 @@ describe('permission export', () => {
   })
 
   it('exports existing rules to a JSON file', async () => {
-    const rules = [
-      {pattern: 'jira'},
-      {pattern: 'mysql *'},
-    ]
+    const rules = [{pattern: 'jira'}, {pattern: 'mysql *'}]
     await writePermissionConfig(tmpDir, {rules})
 
     const outFile = join(tmpDir, 'out.json')

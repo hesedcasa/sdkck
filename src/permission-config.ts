@@ -2,7 +2,7 @@ import {existsSync} from 'node:fs'
 import {mkdir, readFile, writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 
-export interface PermissionRule {
+interface PermissionRule {
   pattern: string
 }
 

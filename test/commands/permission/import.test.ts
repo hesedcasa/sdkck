@@ -33,10 +33,7 @@ describe('permission import', () => {
   })
 
   it('imports rules from a valid JSON file', async () => {
-    const rules = [
-      {pattern: 'jira'},
-      {pattern: 'mysql'},
-    ]
+    const rules = [{pattern: 'jira'}, {pattern: 'mysql'}]
     const inFile = join(tmpDir, 'input.json')
     await writeFile(inFile, JSON.stringify({rules}), 'utf8')
 

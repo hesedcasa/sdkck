@@ -170,8 +170,8 @@ function migrateProfiles(raw: Record<string, unknown>, specBaseUrl: string): Rec
 // Always ensures spec.auth is set to prevent crashes on specs with a missing auth field.
 function migrateAuthToDefaultProfile(spec: StoredSpec): void {
   spec.auth ??= {type: 'none'}
-  if (spec.authProfiles !== undefined) return  // already managed by profile system
-  if (spec.auth.type === 'none') return         // nothing meaningful to migrate
+  if (spec.authProfiles !== undefined) return // already managed by profile system
+  if (spec.auth.type === 'none') return // nothing meaningful to migrate
   const baseUrl = spec.baseUrl || undefined
   spec.authProfiles = {default: {auth: spec.auth, ...(baseUrl && {baseUrl})}}
   spec.activeProfile = 'default'
@@ -201,7 +201,11 @@ export async function readStore(configDir: string): Promise<ApiStore> {
       try {
         const raw = await readFile(join(configDir, file), 'utf8')
         const spec = JSON.parse(raw) as StoredSpec
-        if (spec.authProfiles) spec.authProfiles = migrateProfiles(spec.authProfiles as unknown as Record<string, unknown>, spec.baseUrl ?? '')
+        if (spec.authProfiles)
+          spec.authProfiles = migrateProfiles(
+            spec.authProfiles as unknown as Record<string, unknown>,
+            spec.baseUrl ?? '',
+          )
         migrateAuthToDefaultProfile(spec)
         return spec
       } catch (error) {

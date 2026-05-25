@@ -90,7 +90,15 @@ export default class Search extends Command {
   // Exposed for testing — inject a pre-populated cache to exercise the cache hit path
   _searchCache: null | SearchCache = null
 
-  async run(): Promise<Array<{args: Array<Record<string, {description: string; required: boolean; type: string}>>; command: string; commandId: string; description: string; flags: Array<Record<string, {description: string; required: boolean; type: string}>>}>> {
+  async run(): Promise<
+    Array<{
+      args: Array<Record<string, {description: string; required: boolean; type: string}>>
+      command: string
+      commandId: string
+      description: string
+      flags: Array<Record<string, {description: string; required: boolean; type: string}>>
+    }>
+  > {
     const {args, flags} = await this.parse(Search)
     const allCommands = this.config.commands.filter((c) => !c.hidden && c.pluginName !== '@oclif/plugin-plugins')
     const commandEntries: CommandEntry[] = allCommands.map((c) => ({

@@ -181,7 +181,11 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
     }
 
     if (name === 'run_command') {
-      const {args: cmdArgs = {}, commandId = '', flags: cmdFlags = {}} = (request.params.arguments ?? {}) as {
+      const {
+        args: cmdArgs = {},
+        commandId = '',
+        flags: cmdFlags = {},
+      } = (request.params.arguments ?? {}) as {
         args?: Record<string, unknown>
         commandId: string
         flags?: Record<string, unknown>
@@ -218,7 +222,10 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
   return mcpServer
 }
 
-export async function startMcpServer(config: Config, options: {host?: string; port?: number; transport?: string} = {}): Promise<void> {
+export async function startMcpServer(
+  config: Config,
+  options: {host?: string; port?: number; transport?: string} = {},
+): Promise<void> {
   const {host = '127.0.0.1', port = 3000, transport = 'stdio'} = options
   const server = await createMcpServer(config)
 
