@@ -195,7 +195,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.23.0 linux-x64 node-v22.22.3
+sdkck/0.24.0 linux-x64 node-v22.22.3
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -211,6 +211,7 @@ USAGE
 * [`sdkck api config NAME`](#sdkck-api-config-name)
 * [`sdkck api import SOURCE`](#sdkck-api-import-source)
 * [`sdkck api list [NAME]`](#sdkck-api-list-name)
+* [`sdkck api profile NAME`](#sdkck-api-profile-name)
 * [`sdkck api remove NAME`](#sdkck-api-remove-name)
 * [`sdkck commands`](#sdkck-commands)
 * [`sdkck help [COMMAND]`](#sdkck-help-command)
@@ -243,9 +244,9 @@ Update the authentication settings for an imported API spec
 
 ```
 USAGE
-  $ sdkck api auth NAME [--api-key <value>] [--api-key-header <value>] [--base-url <value>] [--delete-profile
-    <value>] [--header <value>...] [--password <value>] [-p <value>] [--show] [--token <value>] [--type
-    none|bearer|apikey|basic|custom] [--use <value>] [--username <value>]
+  $ sdkck api auth NAME [--api-key <value>] [--api-key-header <value>] [--base-url <value>] [--header
+    <value>...] [--password <value>] [-p <value>] [--token <value>] [--type none|bearer|apikey|basic|custom] [--username
+    <value>]
 
 ARGUMENTS
   NAME  API name to update authentication for
@@ -255,14 +256,11 @@ FLAGS
       --api-key=<value>         API key value (used with --type apikey)
       --api-key-header=<value>  [default: X-API-Key] Header name for the API key
       --base-url=<value>        Base URL for this profile
-      --delete-profile=<value>  Delete a named auth profile
       --header=<value>...       Custom header in Key=Value format (used with --type custom, repeatable)
       --password=<value>        Password for basic auth
-      --show                    Show the current authentication settings (tokens are redacted)
       --token=<value>           Bearer token
       --type=<option>           Authentication type to configure
                                 <options: none|bearer|apikey|basic|custom>
-      --use=<value>             Activate a named auth profile
       --username=<value>        Username for basic auth
 
 DESCRIPTION
@@ -281,18 +279,10 @@ EXAMPLES
 
   $ sdkck api auth petstore --type none
 
-  $ sdkck api auth petstore --show
-
   $ sdkck api auth petstore --type bearer --token sk-prod -p prod --base-url https://api.prod.example.com
-
-  $ sdkck api auth petstore --use prod
-
-  $ sdkck api auth petstore --show -p dev
-
-  $ sdkck api auth petstore --delete-profile dev
 ```
 
-_See code: [src/commands/api/auth.ts](https://github.com/hesedcasa/sdkck/blob/v0.23.0/src/commands/api/auth.ts)_
+_See code: [src/commands/api/auth.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/api/auth.ts)_
 
 ## `sdkck api call NAME OPERATIONID`
 
@@ -327,7 +317,7 @@ EXAMPLES
   $ sdkck api call petstore listPets --query limit=10 --header X-Trace=abc
 ```
 
-_See code: [src/commands/api/call.ts](https://github.com/hesedcasa/sdkck/blob/v0.23.0/src/commands/api/call.ts)_
+_See code: [src/commands/api/call.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/api/call.ts)_
 
 ## `sdkck api config NAME`
 
@@ -359,7 +349,7 @@ EXAMPLES
   $ sdkck api config petstore --title "My Petstore" --description "A pet store API"
 ```
 
-_See code: [src/commands/api/config.ts](https://github.com/hesedcasa/sdkck/blob/v0.23.0/src/commands/api/config.ts)_
+_See code: [src/commands/api/config.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/api/config.ts)_
 
 ## `sdkck api import SOURCE`
 
@@ -410,7 +400,7 @@ EXAMPLES
   $ sdkck api import ./api.yaml --auth-type basic --username user --password pass
 ```
 
-_See code: [src/commands/api/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.23.0/src/commands/api/import.ts)_
+_See code: [src/commands/api/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/api/import.ts)_
 
 ## `sdkck api list [NAME]`
 
@@ -432,7 +422,38 @@ EXAMPLES
   $ sdkck api list petstore
 ```
 
-_See code: [src/commands/api/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.23.0/src/commands/api/list.ts)_
+_See code: [src/commands/api/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/api/list.ts)_
+
+## `sdkck api profile NAME`
+
+Manage auth profiles for an imported API spec
+
+```
+USAGE
+  $ sdkck api profile NAME [--delete <value>] [--show <value>] [--use <value>]
+
+ARGUMENTS
+  NAME  API name
+
+FLAGS
+  --delete=<value>  Delete a named profile
+  --show=<value>    Show auth details for a named profile
+  --use=<value>     Activate a named profile
+
+DESCRIPTION
+  Manage auth profiles for an imported API spec
+
+EXAMPLES
+  $ sdkck api profile petstore
+
+  $ sdkck api profile petstore --show dev
+
+  $ sdkck api profile petstore --use prod
+
+  $ sdkck api profile petstore --delete dev
+```
+
+_See code: [src/commands/api/profile.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/api/profile.ts)_
 
 ## `sdkck api remove NAME`
 
@@ -452,7 +473,7 @@ EXAMPLES
   $ sdkck api remove petstore
 ```
 
-_See code: [src/commands/api/remove.ts](https://github.com/hesedcasa/sdkck/blob/v0.23.0/src/commands/api/remove.ts)_
+_See code: [src/commands/api/remove.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/api/remove.ts)_
 
 ## `sdkck commands`
 
@@ -530,7 +551,7 @@ EXAMPLES
   $ sdkck mcp start --transport http --host 0.0.0.0
 ```
 
-_See code: [src/commands/mcp/start.ts](https://github.com/hesedcasa/sdkck/blob/v0.23.0/src/commands/mcp/start.ts)_
+_See code: [src/commands/mcp/start.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/mcp/start.ts)_
 
 ## `sdkck mcp token delete`
 
@@ -547,7 +568,7 @@ EXAMPLES
   $ sdkck mcp token delete
 ```
 
-_See code: [src/commands/mcp/token/delete.ts](https://github.com/hesedcasa/sdkck/blob/v0.23.0/src/commands/mcp/token/delete.ts)_
+_See code: [src/commands/mcp/token/delete.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/mcp/token/delete.ts)_
 
 ## `sdkck mcp token generate`
 
@@ -564,7 +585,7 @@ EXAMPLES
   $ sdkck mcp token generate
 ```
 
-_See code: [src/commands/mcp/token/generate.ts](https://github.com/hesedcasa/sdkck/blob/v0.23.0/src/commands/mcp/token/generate.ts)_
+_See code: [src/commands/mcp/token/generate.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/mcp/token/generate.ts)_
 
 ## `sdkck mcp token show`
 
@@ -581,7 +602,7 @@ EXAMPLES
   $ sdkck mcp token show
 ```
 
-_See code: [src/commands/mcp/token/show.ts](https://github.com/hesedcasa/sdkck/blob/v0.23.0/src/commands/mcp/token/show.ts)_
+_See code: [src/commands/mcp/token/show.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/mcp/token/show.ts)_
 
 ## `sdkck permission disallow PATTERN`
 
@@ -608,7 +629,7 @@ EXAMPLES
   $ sdkck permission disallow "jira issue create"
 ```
 
-_See code: [src/commands/permission/disallow.ts](https://github.com/hesedcasa/sdkck/blob/v0.23.0/src/commands/permission/disallow.ts)_
+_See code: [src/commands/permission/disallow.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/permission/disallow.ts)_
 
 ## `sdkck permission export FILE`
 
@@ -628,7 +649,7 @@ EXAMPLES
   $ sdkck permission export permission.json
 ```
 
-_See code: [src/commands/permission/export.ts](https://github.com/hesedcasa/sdkck/blob/v0.23.0/src/commands/permission/export.ts)_
+_See code: [src/commands/permission/export.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/permission/export.ts)_
 
 ## `sdkck permission import FILE`
 
@@ -648,7 +669,7 @@ EXAMPLES
   $ sdkck permission import permission.json
 ```
 
-_See code: [src/commands/permission/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.23.0/src/commands/permission/import.ts)_
+_See code: [src/commands/permission/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/permission/import.ts)_
 
 ## `sdkck permission list`
 
@@ -665,7 +686,7 @@ EXAMPLES
   $ sdkck permission list
 ```
 
-_See code: [src/commands/permission/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.23.0/src/commands/permission/list.ts)_
+_See code: [src/commands/permission/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/permission/list.ts)_
 
 ## `sdkck permission reset`
 
@@ -687,7 +708,7 @@ EXAMPLES
   $ sdkck permission reset --confirm
 ```
 
-_See code: [src/commands/permission/reset.ts](https://github.com/hesedcasa/sdkck/blob/v0.23.0/src/commands/permission/reset.ts)_
+_See code: [src/commands/permission/reset.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/permission/reset.ts)_
 
 ## `sdkck plugins`
 
@@ -1008,7 +1029,7 @@ EXAMPLES
   $ sdkck search "update jira" --details
 ```
 
-_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.23.0/src/commands/search.ts)_
+_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.24.0/src/commands/search.ts)_
 
 ## `sdkck update [CHANNEL]`
 
