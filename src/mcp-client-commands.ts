@@ -118,7 +118,7 @@ function createMcpToolCommand(serverName: string, tool: McpToolSchema): typeof C
 
       const serverFile = await readServerFile(this.config.configDir, capturedServerName)
       if (!serverFile) {
-        this.error(`MCP server "${capturedServerName}" not found. Run \`mcp client list\` to see configured servers.`)
+        this.error(`MCP server "${capturedServerName}" not found. Run 'mcp client list' to see configured servers.`)
       }
 
       const serverConfig: McpServerConfig = serverFile.config
@@ -148,7 +148,7 @@ function createMcpToolCommand(serverName: string, tool: McpToolSchema): typeof C
       }
 
       try {
-        const result = await callMcpTool(serverConfig, capturedToolName, toolArgs)
+        const result = await callMcpTool(serverConfig, capturedToolName, toolArgs, this.config.configDir)
 
         if (result.isError) {
           const errorText = result.content

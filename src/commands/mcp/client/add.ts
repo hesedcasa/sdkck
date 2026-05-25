@@ -1,4 +1,5 @@
 import {Args, Command, Flags} from '@oclif/core'
+import {action} from '@oclif/core/ux'
 
 import {discoverTools, type McpServerConfig, writeServerFile} from '../../../mcp-client-store.js'
 
@@ -92,12 +93,14 @@ export default class McpClientAdd extends Command {
           }),
     }
 
-    this.log(`Connecting to MCP server "${name}" to discover tools...`)
+    action.start(`Connecting to MCP server "${name}"`)
 
     let tools
     try {
-      tools = await discoverTools(serverConfig)
+      tools = await discoverTools(serverConfig, this.config.configDir)
+      action.stop('✓')
     } catch (error) {
+      action.stop('✗')
       this.error(`Failed to connect to MCP server: ${(error as Error).message}`)
     }
 

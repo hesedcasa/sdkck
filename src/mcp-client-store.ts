@@ -97,7 +97,7 @@ export async function listServerFiles(configDir: string): Promise<McpClientServe
     return []
   }
 
-  const serverFiles = files.filter((f) => /^mcp-client-.+\.json$/.test(f))
+  const serverFiles = files.filter((f) => /^mcp-client-.+\.json$/.test(f) && !f.endsWith('-oauth.json'))
   const results = await Promise.all(
     serverFiles.map(async (file) => {
       try {
@@ -120,35 +120,75 @@ export function isToolCacheStale(data: McpClientServerFile): boolean {
 
 // ─── MCP transport helpers ────────────────────────────────────────────────────
 
-async function createTransport(config: McpServerConfig) {
+async function createTransport(
+  config: McpServerConfig,
+  configDir: string,
+): Promise<{oauthProvider: import('./mcp-oauth.js').CliOAuthProvider | undefined; transport: unknown}> {
   if (config.transport === 'stdio') {
     // eslint-disable-next-line import/no-unresolved
     const {StdioClientTransport} = await import('@modelcontextprotocol/sdk/client/stdio.js')
-    return new StdioClientTransport({
-      args: config.args ?? [],
-      command: config.command!,
-      env: config.env ? ({...process.env, ...config.env} as Record<string, string>) : undefined,
-      stderr: 'pipe',
-    })
+    return {
+      oauthProvider: undefined,
+      transport: new StdioClientTransport({
+        args: config.args ?? [],
+        command: config.command!,
+        env: config.env ? ({...process.env, ...config.env} as Record<string, string>) : undefined,
+        stderr: 'pipe',
+      }),
+    }
   }
+
+  const {CliOAuthProvider, hasStaticAuth} = await import('./mcp-oauth.js')
+  const oauthProvider = hasStaticAuth(config) ? undefined : new CliOAuthProvider(configDir, config.name)
 
   // eslint-disable-next-line import/no-unresolved
   const {StreamableHTTPClientTransport} = await import('@modelcontextprotocol/sdk/client/streamableHttp.js')
-  return new StreamableHTTPClientTransport(new URL(config.url!), {
-    requestInit: {headers: config.headers},
+  const transport = new StreamableHTTPClientTransport(new URL(config.url!), {
+    authProvider: oauthProvider,
+    requestInit: {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        ...config.headers,
+      },
+    },
   })
+
+  return {oauthProvider, transport}
 }
 
 // ─── Tool discovery ───────────────────────────────────────────────────────────
 
-export async function discoverTools(config: McpServerConfig): Promise<McpToolSchema[]> {
+export async function discoverTools(config: McpServerConfig, configDir: string): Promise<McpToolSchema[]> {
   // eslint-disable-next-line import/no-unresolved
   const {Client} = await import('@modelcontextprotocol/sdk/client/index.js')
-  const transport = await createTransport(config)
-  const client = new Client({name: 'sdkck', version: '1.0.0'})
+  // eslint-disable-next-line import/no-unresolved
+  const {UnauthorizedError} = await import('@modelcontextprotocol/sdk/client/auth.js')
+  const {oauthProvider, transport} = await createTransport(config, configDir)
 
+  if (oauthProvider) {
+    oauthProvider.bindTransport(transport as never)
+  }
+
+  let client = new Client({name: 'sdkck', version: '1.0.0'})
   try {
-    await client.connect(transport)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await client.connect(transport as any)
+    } catch (error) {
+      if (error instanceof UnauthorizedError && oauthProvider?.didCompleteFlow()) {
+        // Browser auth just completed; tokens are saved — reconnect with a fresh transport
+        // because StreamableHTTPClientTransport cannot be started twice.
+        await client.close().catch(() => {})
+        const {oauthProvider: retryProvider, transport: retryTransport} = await createTransport(config, configDir)
+        if (retryProvider) retryProvider.bindTransport(retryTransport as never)
+        client = new Client({name: 'sdkck', version: '1.0.0'})
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await client.connect(retryTransport as any)
+      } else {
+        throw error
+      }
+    }
+
     const result = await client.listTools()
     return result.tools as unknown as McpToolSchema[]
   } finally {
@@ -162,14 +202,38 @@ export async function callMcpTool(
   config: McpServerConfig,
   toolName: string,
   args: Record<string, unknown>,
+  configDir: string,
 ): Promise<McpToolResult> {
   // eslint-disable-next-line import/no-unresolved
   const {Client} = await import('@modelcontextprotocol/sdk/client/index.js')
-  const transport = await createTransport(config)
-  const client = new Client({name: 'sdkck', version: '1.0.0'})
+  // eslint-disable-next-line import/no-unresolved
+  const {UnauthorizedError} = await import('@modelcontextprotocol/sdk/client/auth.js')
+  const {oauthProvider, transport} = await createTransport(config, configDir)
 
+  if (oauthProvider) {
+    oauthProvider.bindTransport(transport as never)
+  }
+
+  let client = new Client({name: 'sdkck', version: '1.0.0'})
   try {
-    await client.connect(transport)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await client.connect(transport as any)
+    } catch (error) {
+      if (error instanceof UnauthorizedError && oauthProvider?.didCompleteFlow()) {
+        // Browser auth just completed; tokens are saved — reconnect with a fresh transport
+        // because StreamableHTTPClientTransport cannot be started twice.
+        await client.close().catch(() => {})
+        const {oauthProvider: retryProvider, transport: retryTransport} = await createTransport(config, configDir)
+        if (retryProvider) retryProvider.bindTransport(retryTransport as never)
+        client = new Client({name: 'sdkck', version: '1.0.0'})
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await client.connect(retryTransport as any)
+      } else {
+        throw error
+      }
+    }
+
     const result = await client.callTool({arguments: args, name: toolName})
     return result as unknown as McpToolResult
   } finally {

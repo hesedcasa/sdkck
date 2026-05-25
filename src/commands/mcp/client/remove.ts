@@ -1,6 +1,7 @@
 import {Args, Command} from '@oclif/core'
 
 import {deleteServerFile, readServerFile} from '../../../mcp-client-store.js'
+import {deleteOAuthState} from '../../../mcp-oauth.js'
 
 export default class McpClientRemove extends Command {
   static args = {
@@ -15,10 +16,11 @@ export default class McpClientRemove extends Command {
 
     const existing = await readServerFile(this.config.configDir, name)
     if (!existing) {
-      this.error(`MCP server "${name}" not found. Run \`mcp client list\` to see configured servers.`)
+      this.error(`MCP server "${name}" not found. Run 'mcp client list' to see configured servers.`)
     }
 
     await deleteServerFile(this.config.configDir, name)
+    await deleteOAuthState(this.config.configDir, name)
     this.log(`Removed MCP server "${name}".`)
   }
 }

@@ -1,4 +1,5 @@
 import {Args, Command} from '@oclif/core'
+import {action} from '@oclif/core/ux'
 
 import {discoverTools, listServerFiles, readServerFile, writeServerFile} from '../../../mcp-client-store.js'
 
@@ -32,12 +33,14 @@ export default class McpClientRefresh extends Command {
       this.error(`MCP server "${name}" not found. Run 'mcp client list' to see configured servers.`)
     }
 
-    this.log(`Refreshing tools for "${name}"...`)
+    action.start(`Refreshing tools for "${name}"`)
 
     let tools
     try {
-      tools = await discoverTools(serverFile.config)
+      tools = await discoverTools(serverFile.config, this.config.configDir)
+      action.stop('✓')
     } catch (error) {
+      action.stop('✗')
       this.warn(`Failed to refresh "${name}": ${(error as Error).message}`)
       return
     }
