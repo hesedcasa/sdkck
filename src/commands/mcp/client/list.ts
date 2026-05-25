@@ -4,11 +4,8 @@ import {isToolCacheStale, listServerFiles} from '../../../mcp-client-store.js'
 
 export default class McpClientList extends Command {
   static description = 'List configured MCP servers and their cached tools'
-static examples = [
-    '<%= config.bin %> mcp client list',
-    '<%= config.bin %> mcp client list --tools',
-  ]
-static flags = {
+  static examples = ['<%= config.bin %> mcp client list', '<%= config.bin %> mcp client list --tools']
+  static flags = {
     tools: Flags.boolean({
       char: 't',
       description: 'Show individual tools for each server',
@@ -21,7 +18,7 @@ static flags = {
     const serverFiles = await listServerFiles(this.config.configDir)
 
     if (serverFiles.length === 0) {
-      this.log('No MCP servers configured. Run `mcp client add` to add one.')
+      this.log("No MCP servers configured. Run 'mcp client add' to add one.")
       return
     }
 
@@ -38,7 +35,7 @@ static flags = {
 
       this.log(`${config.name}`)
       this.log(`  Transport: ${config.transport} (${transportDesc})`)
-      this.log(`  Tools: ${toolCount}${stale ? ' (cache stale — run `mcp client refresh`)' : ''}`)
+      this.log(`  Tools: ${toolCount}${stale ? " (cache stale — run 'mcp client refresh')" : ''}`)
       this.log(`  Cached at: ${cachedAt}`)
 
       if (flags.tools && cachedTools && cachedTools.length > 0) {

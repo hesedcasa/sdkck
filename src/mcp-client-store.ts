@@ -42,7 +42,7 @@ interface McpClientServerFile {
   config: McpServerConfig
 }
 
-export interface McpToolResult {
+interface McpToolResult {
   content: Array<{data?: string; mimeType?: string; text?: string; type: string}>
   isError?: boolean
 }

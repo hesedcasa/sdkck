@@ -6,14 +6,14 @@ export default class McpClientAdd extends Command {
   static args = {
     name: Args.string({description: 'Name for the MCP server', required: true}),
   }
-static description = 'Add an MCP server and register its tools as native CLI commands'
-static examples = [
+  static description = 'Add an MCP server and register its tools as native CLI commands'
+  static examples = [
     '<%= config.bin %> mcp client add github --command npx --args @modelcontextprotocol/server-github',
     '<%= config.bin %> mcp client add myserver --command ./bin/server.js --args start --env API_KEY=abc123',
     '<%= config.bin %> mcp client add remote --url http://localhost:3000/mcp',
     '<%= config.bin %> mcp client add remote --url https://api.example.com/mcp --header Authorization="Bearer token"',
   ]
-static flags = {
+  static flags = {
     args: Flags.string({
       description: 'Argument to pass to the server command (repeatable)',
       multiple: true,
@@ -113,7 +113,7 @@ static flags = {
     }
 
     if (tools.length > 0) {
-      this.log(`\nRun \`${this.config.bin} ${name} <tool> --help\` to see tool usage.`)
+      this.log(`\nRun '${this.config.bin} ${name} <tool> --help' to see tool usage.`)
     }
   }
 }

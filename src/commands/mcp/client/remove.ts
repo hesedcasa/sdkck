@@ -6,8 +6,8 @@ export default class McpClientRemove extends Command {
   static args = {
     name: Args.string({description: 'Name of the MCP server to remove', required: true}),
   }
-static description = 'Remove a configured MCP server and its cached tools'
-static examples = ['<%= config.bin %> mcp client remove github']
+  static description = 'Remove a configured MCP server and its cached tools'
+  static examples = ['<%= config.bin %> mcp client remove github']
 
   async run(): Promise<void> {
     const {args} = await this.parse(McpClientRemove)

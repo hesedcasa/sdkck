@@ -1,6 +1,6 @@
 import type {Config} from '@oclif/core/interfaces'
 
-import {Args, Command, Flags} from '@oclif/core'
+import {Command, Flags} from '@oclif/core'
 
 import {
   callMcpTool,
@@ -14,13 +14,15 @@ import {
 // ─── Schema → flag helpers ────────────────────────────────────────────────────
 
 function schemaPropertyToFlag(name: string, prop: McpSchemaProperty, required: boolean): unknown {
-  const description = prop.description ?? name
+  const description = (required ? '(required) ' : '') + (prop.description ?? name)
 
   if (prop.type === 'boolean') {
     return Flags.boolean({description, required: false})
   }
 
-  return Flags.string({description, required})
+  // Always optional at the oclif level so --json-args can bypass individual flags
+  // without oclif rejecting the parse. Required enforcement is done in buildToolArgsFromFlags.
+  return Flags.string({description, required: false})
 }
 
 function coercePropertyValue(prop: McpSchemaProperty, value: unknown): unknown {
@@ -80,26 +82,14 @@ function createMcpToolCommand(serverName: string, tool: McpToolSchema): typeof C
   const properties = tool.inputSchema.properties ?? {}
   const requiredSet = new Set(tool.inputSchema.required ?? [])
 
-  const dynamicArgs: Record<string, unknown> = {}
+  // All properties become flags (no positional args).
+  // Positional args break command ID resolution when commands are registered dynamically
+  // via init hooks, because normalizeArgv runs before init hooks fire and cannot tell
+  // where the command ID ends and positional args begin.
+  const positionalNames: string[] = []
   const dynamicFlags: Record<string, unknown> = {}
 
-  // Required string properties become positional args.
-  // Everything else (optional, boolean, number, object, array) becomes a flag.
-  const positionalNames: string[] = []
-
   for (const [name, prop] of Object.entries(properties)) {
-    if (requiredSet.has(name) && (!prop.type || prop.type === 'string')) {
-      positionalNames.push(name)
-    }
-  }
-
-  for (const name of positionalNames) {
-    const prop = properties[name]
-    dynamicArgs[name] = Args.string({description: prop.description ?? name, name, required: true})
-  }
-
-  for (const [name, prop] of Object.entries(properties)) {
-    if (positionalNames.includes(name)) continue
     dynamicFlags[name] = schemaPropertyToFlag(name, prop, requiredSet.has(name))
   }
 
@@ -118,15 +108,13 @@ function createMcpToolCommand(serverName: string, tool: McpToolSchema): typeof C
   const capturedRequiredSet = requiredSet
 
   class DynamicMcpToolCommand extends Command {
-    // Cast required: dynamicArgs is built at runtime
-    static args = dynamicArgs as typeof Command.args
     static description = toolDescription
     // Cast required: dynamicFlags is built at runtime
     static flags = dynamicFlags as typeof Command.flags
     static id = commandId
 
     async run(): Promise<void> {
-      const {args: a, flags: f} = await this.parse(DynamicMcpToolCommand as unknown as typeof Command)
+      const {flags: f} = await this.parse(DynamicMcpToolCommand as unknown as typeof Command)
 
       const serverFile = await readServerFile(this.config.configDir, capturedServerName)
       if (!serverFile) {
@@ -140,8 +128,12 @@ function createMcpToolCommand(serverName: string, tool: McpToolSchema): typeof C
       if (jsonArgsFlag === undefined) {
         try {
           toolArgs = buildToolArgsFromFlags(
-            {positionalNames: capturedPositionalNames, properties: capturedProperties, requiredSet: capturedRequiredSet},
-            a as Record<string, string>,
+            {
+              positionalNames: capturedPositionalNames,
+              properties: capturedProperties,
+              requiredSet: capturedRequiredSet,
+            },
+            {},
             f as Record<string, unknown>,
           )
         } catch (error) {
@@ -235,7 +227,7 @@ export async function registerMcpClientCommands(config: Config): Promise<void> {
 
       internal._commands.set(commandId, {
         aliases: [],
-        args: CmdClass.args as Record<string, unknown>,
+        args: {},
         description: tool.description ?? tool.name,
         flags: CmdClass.flags as Record<string, unknown>,
         hidden: false,
