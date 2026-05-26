@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.25.1](https://github.com/hesedcasa/sdkck/compare/v0.25.0...v0.25.1) (2026-05-26)
+
+
+### 📄 Documentation
+
+* add changelog for 0.25.0 and HTTP authentication docs for MCP ([6bce8f6](https://github.com/hesedcasa/sdkck/commit/6bce8f6ff952df8140bb4ccb80af6ac8c9de3af6))
+
 ## [0.25.0](https://github.com/hesedcasa/sdkck/compare/v0.24.0...v0.25.0) (2026-05-25)
 
 
