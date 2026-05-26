@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.25.0](https://github.com/hesedcasa/sdkck/compare/v0.24.0...v0.25.0) (2026-05-25)
+
+
+### 🎉 Features
+
+* add MCP client mode to register server tools as CLI commands ([#126](https://github.com/hesedcasa/sdkck/issues/126)) ([3e6db85](https://github.com/hesedcasa/sdkck/commit/3e6db852ee874045874ed6e5ec325e3d3861bb28))
+
 ## [0.24.0](https://github.com/hesedcasa/sdkck/compare/v0.23.0...v0.24.0) (2026-05-25)
 
 
