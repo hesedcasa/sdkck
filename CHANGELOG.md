@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.1](https://github.com/hesedcasa/sdkck/compare/v0.26.0...v0.26.1) (2026-05-28)
+
+
+### 📄 Documentation
+
+* update CLAUDE.md with features added in v0.23–v0.26 ([13d7289](https://github.com/hesedcasa/sdkck/commit/13d7289bba785ee52ac993d6a589f8685d2f78ae))
+
 ## [0.26.0](https://github.com/hesedcasa/sdkck/compare/v0.25.1...v0.26.0) (2026-05-28)
 
 
