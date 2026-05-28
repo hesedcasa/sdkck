@@ -4,6 +4,8 @@ import {Config, flush, handle, run, settings} from '@oclif/core'
 
 // eslint-disable-next-line n/no-unpublished-import
 import {registerApiCommands} from '../src/api-dynamic-commands.js'
+// eslint-disable-next-line n/no-unpublished-import
+import {registerMcpClientCommands} from '../src/mcp-client-commands.js'
 
 process.env.NODE_ENV = 'development'
 settings.debug = true
@@ -15,6 +17,7 @@ const originalLoad = Config.load.bind(Config)
 Config.load = async (...args) => {
   const config = await originalLoad(...args)
   await registerApiCommands(config).catch(() => {})
+  await registerMcpClientCommands(config).catch(() => {})
   return config
 }
 
