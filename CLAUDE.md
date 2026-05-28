@@ -34,7 +34,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Key files: `src/api-store.ts` (CRUD for stored specs/ops), `src/api-dynamic-commands.ts` (command factory), `src/hooks/init/register-api-commands.ts`, `src/postman-converter.ts` (Postman→OpenAPI via `@scalar/postman-to-openapi`), `src/graphql-converter.ts` (GraphQL SDL/introspection → StoredOperations).
 
-Other subcommands: `api auth`, `api call`, `api list`, `api config`, `api remove`.
+Other subcommands: `api auth`, `api call`, `api list`, `api config`, `api remove`, `api profile`.
+
+`api call --toon` encodes JSON responses with TOON format for token-efficient LLM consumption.
 
 `api import --insecure` and `api config --insecure` skip TLS certificate verification — useful for self-signed certs. `--no-insecure` disables it on an already-imported spec.
 
@@ -55,7 +57,7 @@ Subcommands: `permission allow`, `permission disallow`, `permission list`, `perm
 
 ### MCP Server (`mcp` topic)
 
-`mcp start` launches a stdio MCP server that exposes every sdkck CLI command as an MCP tool to any connected client (e.g. Claude Code, Cursor).
+`mcp start` launches an MCP server (stdio by default; `--transport http --port 3000 --host 127.0.0.1` for HTTP) that exposes every sdkck CLI command as an MCP tool to any connected client (e.g. Claude Code, Cursor).
 
 Key file: `src/mcp-server.ts`. Exports:
 
@@ -72,6 +74,16 @@ To wire it up in Claude Code, add to `.mcp.json`:
 ```
 
 Dep: `@modelcontextprotocol/sdk` (^1.29.0). No extra peer dep installs needed.
+
+### MCP HTTP Authentication (`mcp token` subtopic)
+
+`mcp token generate` creates a random Bearer token stored in `<configDir>/mcp-auth.json`; the HTTP transport enforces it automatically. `mcp token show` displays the current token; `mcp token delete` removes it (disabling auth).
+
+### MCP Client (`mcp client` subtopic)
+
+`mcp client add <name> --command <cmd>` connects to an external MCP server (stdio via `--command`/`--args`/`--env`, or HTTP via `--url`/`--header`) and registers its tools as native sdkck CLI commands. Tools are cached; `mcp client list [--tools]` shows configured servers. `mcp client auth`, `mcp client refresh`, and `mcp client remove` manage credentials and lifecycle.
+
+Key file: `src/mcp-client-store.ts`.
 
 ## JIT Plugins
 
