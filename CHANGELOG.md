@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.0](https://github.com/hesedcasa/sdkck/compare/v0.25.1...v0.26.0) (2026-05-28)
+
+
+### 🎉 Features
+
+* **api call:** add --toon flag for token-efficient JSON output ([#130](https://github.com/hesedcasa/sdkck/issues/130)) ([8adfb2e](https://github.com/hesedcasa/sdkck/commit/8adfb2e72ef6494464ffeb38abdd3ed71fbbc7f0))
+
 ## [0.25.1](https://github.com/hesedcasa/sdkck/compare/v0.25.0...v0.25.1) (2026-05-26)
 
 
