@@ -1,6 +1,7 @@
 import {Errors, Hook} from '@oclif/core'
 
 import {matchesPattern, readPermissionConfig} from '../../permission-config.js'
+import {recordUsage} from '../../usage-tracker.js'
 
 /**
  * Blocks execution of disallowed commands even when invoked directly by name.
@@ -12,7 +13,10 @@ import {matchesPattern, readPermissionConfig} from '../../permission-config.js'
  */
 const hook: Hook<'prerun'> = async function ({Command, config}) {
   const permissionConfig = await readPermissionConfig(config.configDir)
-  if (permissionConfig.rules.length === 0) return
+  if (permissionConfig.rules.length === 0) {
+    recordUsage(config.configDir, Command.id).catch(() => {})
+    return
+  }
 
   const normalizedId = Command.id.replaceAll(':', config.topicSeparator)
   for (const rule of permissionConfig.rules) {
@@ -20,6 +24,9 @@ const hook: Hook<'prerun'> = async function ({Command, config}) {
       throw new Errors.CLIError(`Command "${normalizedId}" is not permitted.`)
     }
   }
+
+  // Only reached when the command is allowed — record it for rank-by-usage search.
+  recordUsage(config.configDir, Command.id).catch(() => {})
 }
 
 export default hook

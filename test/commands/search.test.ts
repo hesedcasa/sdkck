@@ -212,6 +212,56 @@ describe('search', () => {
     })
   })
 
+  describe('rank-by-usage (_usageMap injection)', () => {
+    it('boosts a frequently-used command above an unused one in fuzzy results', async () => {
+      // Query 'jira' matches both 'jira auth add' and 'jira issue get'.
+      // Without usage they appear in fuzzy order; with heavy usage on the
+      // second one it should jump to position 0.
+      const {cmd} = makeSearch(['jira', '--limit', '2'])
+      cmd._usageMap = {'jira issue get': {count: 100, lastUsed: Date.now()}}
+      const result = await cmd.run()
+      expect(result[0].commandId).to.equal('jira issue get')
+    })
+
+    it('boosts a frequently-used command in LLM results', async () => {
+      const {cmd} = makeSearch(['anything', '--limit', '2'])
+      // LLM puts 'help' first, 'update' second
+      cmd._llmClient = makeMockSamplingClient(['help', 'update'])
+      // Heavy usage on 'update' should move it to position 0
+      cmd._usageMap = {'update': {count: 100, lastUsed: Date.now()}}
+      const result = await cmd.run()
+      const ids = result.map((r) => r.commandId)
+      expect(ids[0]).to.equal('update')
+    })
+
+    it('does not reorder when usage map is empty', async () => {
+      const {cmd} = makeSearch(['anything'])
+      cmd._llmClient = makeMockSamplingClient(['update', 'help'])
+      cmd._usageMap = {}
+      const result = await cmd.run()
+      expect(result[0].commandId).to.equal('update')
+    })
+
+    it('includes usage context in the LLM prompt when usage data is present', async () => {
+      let capturedPrompt = ''
+      const {cmd} = makeSearch(['jira'])
+      cmd._usageMap = {'jira issue get': {count: 42, lastUsed: Date.now()}}
+      cmd._llmClient = {
+        chat: {
+          completions: {
+            async create(params) {
+              capturedPrompt = (params.messages[1]?.content as string) ?? ''
+              return {choices: [{message: {content: '["jira issue get"]'}}]}
+            },
+          },
+        },
+      }
+      await cmd.run()
+      expect(capturedPrompt).to.include('jira issue get')
+      expect(capturedPrompt).to.include('×42')
+    })
+  })
+
   describe('--limit flag', () => {
     it('caps results to the given limit', async () => {
       const {cmd} = makeSearch(['help', '--limit', '1'])

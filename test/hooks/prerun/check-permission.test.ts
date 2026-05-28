@@ -6,6 +6,7 @@ import {join} from 'node:path'
 
 import hook from '../../../src/hooks/prerun/check-permission.js'
 import {writePermissionConfig} from '../../../src/permission-config.js'
+import {readUsageSync} from '../../../src/usage-tracker.js'
 
 type HookOpts = Parameters<typeof hook>[0]
 
@@ -72,6 +73,24 @@ describe('prerun/check-permission hook', () => {
     } catch (error: unknown) {
       expect(error).to.be.instanceOf(Errors.CLIError)
     }
+  })
+
+  it('records usage for an allowed command', async () => {
+    const opts = makeOpts(tmpDir, 'jira:issue-get')
+    await hook.call({} as never, opts)
+    // recordUsage is fire-and-forget; wait for async I/O to settle
+    await new Promise<void>((resolve) => { setTimeout(resolve, 50) })
+    const usage = readUsageSync(tmpDir)
+    expect(usage['jira:issue-get']?.count).to.equal(1)
+  })
+
+  it('does not record usage for a blocked command', async () => {
+    await writePermissionConfig(tmpDir, {rules: [{pattern: 'blocked'}]})
+    const opts = makeOpts(tmpDir, 'blocked:cmd')
+    await hook.call({} as never, opts).catch(() => {})
+    await new Promise<void>((resolve) => { setTimeout(resolve, 50) })
+    const usage = readUsageSync(tmpDir)
+    expect(usage['blocked:cmd']).to.be.undefined
   })
 
   it('blocks a colon-separated command ID (as stored by external plugins)', async () => {

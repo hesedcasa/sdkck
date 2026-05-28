@@ -3,6 +3,7 @@ import {Args, Command, CommandHelp, Flags, toConfiguredId} from '@oclif/core'
 import {OpenAI} from 'openai'
 
 import {SearchCache} from '../search-cache.js'
+import {applyUsageBoost, readUsageSync, type UsageMap} from '../usage-tracker.js'
 
 interface CommandEntry {
   description: string
@@ -33,13 +34,29 @@ interface SamplingClient {
  * for semantic search and relevance ranking, mirroring the MCP sampling pattern
  * where the server delegates LLM inference to the connected client.
  */
-async function samplingSearch(query: string, commands: CommandEntry[], client: SamplingClient): Promise<string[]> {
+async function samplingSearch(
+  query: string,
+  commands: CommandEntry[],
+  client: SamplingClient,
+  usageMap: UsageMap = {},
+): Promise<string[]> {
   const commandList = commands
     .map((c) => {
       const desc = [c.summary, c.description].filter(Boolean).join(' — ')
       return `${c.id}: ${desc || '(no description)'}`
     })
     .join('\n')
+
+  const commandIdSet = new Set(commands.map((c) => c.id))
+  const topUsed = Object.entries(usageMap)
+    .filter(([id]) => commandIdSet.has(id))
+    .sort(([, a], [, b]) => b.count - a.count)
+    .slice(0, 5)
+    .map(([id, e]) => `${id} (×${e.count})`)
+  const usageContext =
+    topUsed.length > 0
+      ? `\nFrequently used commands in this workspace (consider for relevance): ${topUsed.join(', ')}`
+      : ''
 
   const completion = await client.chat.completions.create({
     // eslint-disable-next-line camelcase
@@ -51,7 +68,7 @@ async function samplingSearch(query: string, commands: CommandEntry[], client: S
         role: 'system',
       },
       {
-        content: `Find the most relevant CLI commands for this search query: "${query}"
+        content: `Find the most relevant CLI commands for this search query: "${query}"${usageContext}
 
 Available commands:
 ${commandList}
@@ -89,6 +106,8 @@ export default class Search extends Command {
   _llmClient: null | SamplingClient = null
   // Exposed for testing — inject a pre-populated cache to exercise the cache hit path
   _searchCache: null | SearchCache = null
+  // Exposed for testing — inject usage data to exercise the rank-by-usage path
+  _usageMap: null | UsageMap = null
 
   async run(): Promise<
     Array<{
@@ -110,6 +129,7 @@ export default class Search extends Command {
 
     const cacheFilePath = this.config.configDir ? `${this.config.configDir}/search-cache-cli.json` : undefined
     const searchCache = this._searchCache ?? new SearchCache({cacheFilePath})
+    const usageMap = this._usageMap ?? (this.config.configDir ? readUsageSync(this.config.configDir) : {})
 
     const client = this._llmClient ?? this._createOpenAIClient()
     type ScoredEntry = {cmd: Command.Loadable; score: number}
@@ -144,7 +164,7 @@ export default class Search extends Command {
         scored = this._fuzzySearch(args.query, allCommands)
       } else {
         try {
-          const matchedIds = await samplingSearch(args.query, commandEntries, client)
+          const matchedIds = await samplingSearch(args.query, commandEntries, client, usageMap)
           scored = matchedIds
             .map((id, index) => {
               const cmd = idToCmd.get(id)
@@ -164,6 +184,23 @@ export default class Search extends Command {
       if (!llmFailed && scored.length > 0) {
         searchCache.set(args.query, flags.limit, JSON.stringify(scored.map((e) => e.cmd.id)))
       }
+    }
+
+    // Re-rank by blending semantic position with usage frequency. Cache stores
+    // the stable semantic ordering; boost is applied fresh on every search so
+    // it reflects current usage without invalidating the cache.
+    if (Object.keys(usageMap).length > 0) {
+      const boostedIds = applyUsageBoost(
+        scored.map((e) => e.cmd.id),
+        usageMap,
+      )
+      const idToEntry = new Map(scored.map((e) => [e.cmd.id, e]))
+      scored = boostedIds
+        .map((id, i) => {
+          const e = idToEntry.get(id)
+          return e ? {cmd: e.cmd, score: i} : null
+        })
+        .filter((e): e is ScoredEntry => e !== null)
     }
 
     const results = scored.map((entry) => {
