@@ -99,8 +99,10 @@ export default class Search extends Command {
     '<%= config.bin %> search "update jira" --details',
   ]
   static flags = {
+    compact: Flags.boolean({description: 'Show only command IDs without descriptions (token-efficient)', required: false}),
     details: Flags.boolean({char: 'd', description: 'Show full help for each matched command', required: false}),
     limit: Flags.integer({char: 'n', default: 5, description: 'Maximum number of results to return', required: false}),
+    top: Flags.integer({description: 'Maximum number of results; overrides --limit when provided', required: false}),
   }
   // Exposed for testing — inject a mock client to exercise the LLM search path
   _llmClient: null | SamplingClient = null
@@ -119,6 +121,7 @@ export default class Search extends Command {
     }>
   > {
     const {args, flags} = await this.parse(Search)
+    const effectiveLimit = flags.top ?? flags.limit
     const allCommands = this.config.commands.filter((c) => !c.hidden && c.pluginName !== '@oclif/plugin-plugins')
     const commandEntries: CommandEntry[] = allCommands.map((c) => ({
       description: c.description ?? '',
@@ -136,7 +139,7 @@ export default class Search extends Command {
     let scored: ScoredEntry[] = []
 
     const idToCmd = new Map(allCommands.map((c) => [c.id, c]))
-    const cached = searchCache.get(args.query, flags.limit)
+    const cached = searchCache.get(args.query, effectiveLimit)
     let cacheHit = false
 
     if (cached !== undefined) {
@@ -157,7 +160,7 @@ export default class Search extends Command {
     }
 
     if (cacheHit) {
-      scored = scored.slice(0, flags.limit)
+      scored = scored.slice(0, effectiveLimit)
     } else {
       let llmFailed = false
       if (client === null) {
@@ -180,9 +183,9 @@ export default class Search extends Command {
         }
       }
 
-      scored = scored.slice(0, flags.limit)
+      scored = scored.slice(0, effectiveLimit)
       if (!llmFailed && scored.length > 0) {
-        searchCache.set(args.query, flags.limit, JSON.stringify(scored.map((e) => e.cmd.id)))
+        searchCache.set(args.query, effectiveLimit, JSON.stringify(scored.map((e) => e.cmd.id)))
       }
     }
 
@@ -236,7 +239,7 @@ export default class Search extends Command {
     })
 
     if (!this.jsonEnabled()) {
-      this._printResults(scored, results, flags)
+      this._printResults(scored, results, {compact: flags.compact ?? false, details: flags.details})
     }
 
     return results
@@ -281,10 +284,18 @@ export default class Search extends Command {
 
   private _printResults(
     scored: Array<{cmd: Command.Loadable; score: number}>,
-    results: Array<{[key: string]: unknown; command: string; description: string}>,
-    flags: {details: boolean},
+    results: Array<{[key: string]: unknown; command: string; commandId: string; description: string}>,
+    flags: {compact: boolean; details: boolean},
   ): void {
     if (results.length === 0) return
+
+    if (flags.compact) {
+      for (const result of results) {
+        this.log(result.commandId)
+      }
+
+      return
+    }
 
     this.log(`Found ${results.length} command${results.length === 1 ? '' : 's'}:\n`)
 

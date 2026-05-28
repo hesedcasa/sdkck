@@ -53,6 +53,10 @@ export default class ApiCall extends Command {
       multiple: true,
       required: false,
     }),
+    head: Flags.integer({
+      description: 'Truncate JSON array responses to the first N elements',
+      required: false,
+    }),
     header: Flags.string({
       description: 'Extra request header as Key=Value (repeatable)',
       multiple: true,
@@ -164,10 +168,11 @@ export default class ApiCall extends Command {
     } else {
       try {
         const parsed = JSON.parse(responseText)
+        const value = Array.isArray(parsed) && flags.head !== undefined ? parsed.slice(0, flags.head) : parsed
         if (flags.toon) {
-          this.log(this._applyToon(parsed))
+          this.log(this._applyToon(value))
         } else {
-          this.log(JSON.stringify(parsed, null, 2))
+          this.log(JSON.stringify(value, null, 2))
         }
       } catch {
         this.log(responseText)

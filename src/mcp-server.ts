@@ -119,8 +119,10 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
         description: searchToolsDescription,
         inputSchema: {
           properties: {
+            compact: {description: 'Show only command IDs without descriptions (token-efficient)', type: 'boolean'},
             limit: {description: 'Maximum number of results (default 5)', type: 'number'},
             query: {description: 'Search query describing the task or command you are looking for', type: 'string'},
+            top: {description: 'Maximum number of results; overrides limit when provided', type: 'number'},
           },
           required: ['query'],
           type: 'object',
@@ -162,21 +164,27 @@ export async function createMcpServer(config: Config): Promise<McpServer> {
 
       const query = (toolArgs?.query as string) ?? ''
       const limit = toolArgs?.limit as number | undefined
+      const top = toolArgs?.top as number | undefined
+      const compact = toolArgs?.compact as boolean | undefined
 
-      const cached = searchCache.get(query, limit)
+      const effectiveLimit = top ?? limit
+      const cacheQuery = compact ? `compact:${query}` : query
+
+      const cached = searchCache.get(cacheQuery, effectiveLimit)
       if (cached !== undefined) {
         return {content: [{text: cached, type: 'text' as const}]}
       }
 
       const searchArgs: Record<string, unknown> = {query}
-      if (limit !== undefined) searchArgs.limit = limit
+      if (effectiveLimit !== undefined) searchArgs.limit = effectiveLimit
+      if (compact) searchArgs.compact = true
 
       const {error, output} = await sdkck.commands.run(config, 'search', searchArgs)
       if (error) {
         return {content: [{text: error, type: 'text' as const}], isError: true}
       }
 
-      searchCache.set(query, limit, output)
+      searchCache.set(cacheQuery, effectiveLimit, output)
       return {content: [{text: output, type: 'text' as const}]}
     }
 

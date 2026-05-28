@@ -276,6 +276,59 @@ describe('search', () => {
     })
   })
 
+  describe('--top flag', () => {
+    it('caps results to the given count', async () => {
+      const {cmd} = makeSearch(['e', '--top', '1'])
+      const result = await cmd.run()
+      expect(result.length).to.be.at.most(1)
+    })
+
+    it('overrides --limit when both are supplied', async () => {
+      const {cmd} = makeSearch(['e', '--limit', '5', '--top', '1'])
+      const result = await cmd.run()
+      expect(result.length).to.be.at.most(1)
+    })
+
+    it('works with the LLM client', async () => {
+      const {cmd} = makeSearch(['anything', '--top', '1'])
+      cmd._llmClient = makeMockSamplingClient(['update', 'help', 'search'])
+      const result = await cmd.run()
+      expect(result.length).to.be.at.most(1)
+      expect(result[0].commandId).to.equal('update')
+    })
+  })
+
+  describe('--compact flag', () => {
+    it('shows only command IDs without descriptions or header', async () => {
+      const {cmd, output} = makeSearch(['help', '--compact'])
+      await cmd.run()
+      const lines = output()
+        .split('\n')
+        .filter((l) => l.trim().length > 0)
+      expect(lines.every((l) => !l.startsWith('Found'))).to.be.true
+      expect(lines[0]).to.equal('help')
+    })
+
+    it('does not show descriptions in compact mode', async () => {
+      const {cmd, output} = makeSearch(['help', '--compact'])
+      await cmd.run()
+      expect(output()).to.not.include('Display help')
+    })
+
+    it('does not affect JSON output structure', async () => {
+      const {cmd} = makeSearchJson(['help', '--compact'])
+      const result = await cmd.run()
+      expect(result).to.be.an('array')
+      expect(result[0]).to.include.keys(['command', 'commandId', 'description'])
+    })
+
+    it('returns empty output when no commands match', async () => {
+      const {cmd, output} = makeSearch(['zzzznonexistent', '--compact'])
+      await cmd.run()
+      expect(output()).to.equal('')
+    })
+  })
+
   describe('search cache', () => {
     it('returns cached results without calling the LLM', async () => {
       const {cmd} = makeSearch(['jira'])

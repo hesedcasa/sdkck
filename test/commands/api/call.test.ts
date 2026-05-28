@@ -245,4 +245,38 @@ describe('api call', () => {
     await cmd.run().catch(() => {})
     expect(errorMsg).to.include('petId')
   })
+
+  describe('--head flag', () => {
+    it('truncates array responses to N elements', async () => {
+      const body = JSON.stringify([{id: 1}, {id: 2}, {id: 3}, {id: 4}])
+      const {mockFetch} = makeMockFetch(200, body)
+      const {cmd, output} = makeCall(['petstore', 'listPets', '--head', '2'], configDir)
+      cmd._fetch = mockFetch
+      await cmd.run()
+      const parsed = JSON.parse(output().split('\n').slice(1).join('\n'))
+      expect(parsed).to.have.length(2)
+      expect(parsed[0]).to.deep.equal({id: 1})
+      expect(parsed[1]).to.deep.equal({id: 2})
+    })
+
+    it('does not truncate non-array responses', async () => {
+      const body = JSON.stringify({items: [1, 2, 3], total: 3})
+      const {mockFetch} = makeMockFetch(200, body)
+      const {cmd, output} = makeCall(['petstore', 'listPets', '--head', '1'], configDir)
+      cmd._fetch = mockFetch
+      await cmd.run()
+      const parsed = JSON.parse(output().split('\n').slice(1).join('\n'))
+      expect(parsed).to.deep.equal({items: [1, 2, 3], total: 3})
+    })
+
+    it('works with --toon to encode the truncated array', async () => {
+      const body = JSON.stringify([{id: 1}, {id: 2}, {id: 3}])
+      const {mockFetch} = makeMockFetch(200, body)
+      const {cmd, output} = makeCall(['petstore', 'listPets', '--head', '1', '--toon'], configDir)
+      cmd._fetch = mockFetch
+      cmd._applyToon = (value) => `TOON:${JSON.stringify(value)}`
+      await cmd.run()
+      expect(output()).to.include('TOON:[{"id":1}]')
+    })
+  })
 })
