@@ -257,7 +257,11 @@ describe('api-dynamic-commands', () => {
       commandId: string,
       argv: string[],
       overrideConfigDir?: string,
-    ): Promise<{cmd: Command & {_fetch: FetchLike}; output: () => string; warnings: () => string[]}> {
+    ): Promise<{
+      cmd: Command & {_applyToon: (value: unknown) => string; _fetch: FetchLike}
+      output: () => string
+      warnings: () => string[]
+    }> {
       const entry = commandMap.get(commandId)
       if (!entry) throw new Error(`Command "${commandId}" not found`)
       const CmdClass = await entry.load()
@@ -270,7 +274,10 @@ describe('api-dynamic-commands', () => {
       const lines: string[] = []
       const warnLines: string[] = []
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const cmd = new (CmdClass as any)(argv, cmdConfig) as Command & {_fetch: FetchLike}
+      const cmd = new (CmdClass as any)(argv, cmdConfig) as Command & {
+        _applyToon: (value: unknown) => string
+        _fetch: FetchLike
+      }
       cmd.log = (message = '') => {
         lines.push(String(message))
       }
@@ -406,6 +413,27 @@ describe('api-dynamic-commands', () => {
       cmd._fetch = mockFetch
       await cmd.run()
       expect(output()).to.include(raw)
+    })
+
+    it('passes parsed JSON to _applyToon when --toon flag is set', async () => {
+      const {mockFetch} = makeMockFetch(200, JSON.stringify([{id: 1, name: 'Fido'}]))
+      const {cmd, output} = await makeCmd('petstore:listPets', ['--toon'])
+      cmd._fetch = mockFetch
+      cmd._applyToon = (value) => `TOON:${JSON.stringify(value)}`
+      await cmd.run()
+      expect(output()).to.include('TOON:')
+      expect(output()).to.include('"name"')
+    })
+
+    it('--toon does not affect non-JSON responses (prints as-is)', async () => {
+      const raw = 'plain text response'
+      const {mockFetch} = makeMockFetch(200, raw)
+      const {cmd, output} = await makeCmd('petstore:listPets', ['--toon'])
+      cmd._fetch = mockFetch
+      cmd._applyToon = (value) => `TOON:${JSON.stringify(value)}`
+      await cmd.run()
+      expect(output()).to.include(raw)
+      expect(output()).not.to.include('TOON:')
     })
 
     it('emits a warning on non-2xx HTTP status', async () => {
