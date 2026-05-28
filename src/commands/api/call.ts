@@ -1,4 +1,5 @@
 import {Args, Command, Flags} from '@oclif/core'
+import {spawnSync} from 'node:child_process'
 
 import {
   buildAuthHeaders,
@@ -22,6 +23,33 @@ export interface FetchLike {
     url: string,
     init?: {body?: null | string; headers?: Record<string, string>; method?: string},
   ): Promise<{ok: boolean; status: number; statusText: string; text: () => Promise<string>}>
+}
+
+// Tries the `toon` binary first (fast path), then `npx @toon-format/cli` (auto-install).
+// Returns the original compact JSON string unchanged if neither succeeds.
+function applyToon(jsonText: string): string {
+  const candidates: [string, string[]][] = [
+    ['toon', []],
+    ['npx', ['--yes', '@toon-format/cli']],
+  ]
+  for (const [cmd, args] of candidates) {
+    const result = spawnSync(cmd, args, {
+      encoding: 'utf8',
+      input: jsonText,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: 15_000,
+    })
+    if (result.status === 0 && result.stdout) {
+      return result.stdout.trimEnd()
+    }
+
+    // ENOENT means the binary wasn't found — try the next candidate.
+    // Any other error (bad JSON, timeout, non-zero exit) means TOON ran but failed; stop.
+    const code = (result.error as NodeJS.ErrnoException | undefined)?.code
+    if (code !== 'ENOENT') break
+  }
+
+  return jsonText
 }
 
 export default class ApiCall extends Command {
@@ -66,10 +94,16 @@ export default class ApiCall extends Command {
       description: 'Print the raw response body without JSON formatting',
       required: false,
     }),
+    toon: Flags.boolean({
+      description: 'Encode JSON output with TOON for token-efficient LLM consumption',
+      required: false,
+    }),
   }
   // Exposed for testing — inject a mock implementation to avoid real HTTP calls
   // eslint-disable-next-line n/no-unsupported-features/node-builtins
   _fetch: FetchLike = fetch
+  // Exposed for testing — inject a mock to skip the real subprocess call
+  _applyToon: (jsonText: string) => string = applyToon
 
   async run(): Promise<void> {
     const {args, flags} = await this.parse(ApiCall)
@@ -157,7 +191,11 @@ export default class ApiCall extends Command {
     } else {
       try {
         const parsed = JSON.parse(responseText)
-        this.log(JSON.stringify(parsed, null, 2))
+        if (flags.toon) {
+          this.log(this._applyToon(JSON.stringify(parsed)))
+        } else {
+          this.log(JSON.stringify(parsed, null, 2))
+        }
       } catch {
         this.log(responseText)
       }
