@@ -195,12 +195,12 @@ describe('api call', () => {
     expect(calls[0].headers['Content-Type']).to.equal('application/vnd.api+json')
   })
 
-  it('passes JSON through _applyToon when --toon flag is set', async () => {
+  it('passes parsed value to _applyToon when --toon flag is set', async () => {
     const body = JSON.stringify([{id: 1, name: 'Fido'}])
     const {mockFetch} = makeMockFetch(200, body)
     const {cmd, output} = makeCall(['petstore', 'listPets', '--toon'], configDir)
     cmd._fetch = mockFetch
-    cmd._applyToon = (json) => `TOON:${json}`
+    cmd._applyToon = (value) => `TOON:${JSON.stringify(value)}`
     await cmd.run()
     expect(output()).to.include('TOON:')
     expect(output()).to.include('"name"')
@@ -212,9 +212,9 @@ describe('api call', () => {
     const {cmd, output} = makeCall(['petstore', 'listPets', '--raw', '--toon'], configDir)
     cmd._fetch = mockFetch
     let toonCalled = false
-    cmd._applyToon = (json) => {
+    cmd._applyToon = (value) => {
       toonCalled = true
-      return json
+      return JSON.stringify(value)
     }
 
     await cmd.run()
@@ -222,13 +222,14 @@ describe('api call', () => {
     expect(output()).to.include(raw)
   })
 
-  it('--toon falls back to compact JSON when _applyToon returns unchanged input', async () => {
+  it('--toon uses the return value of _applyToon', async () => {
     const body = JSON.stringify({id: 1})
     const {mockFetch} = makeMockFetch(200, body)
     const {cmd, output} = makeCall(['petstore', 'listPets', '--toon'], configDir)
     cmd._fetch = mockFetch
-    cmd._applyToon = (json) => json // simulate TOON unavailable
+    cmd._applyToon = (value) => `encoded:${JSON.stringify(value)}`
     await cmd.run()
+    expect(output()).to.include('encoded:')
     expect(output()).to.include('"id"')
   })
 
