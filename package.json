@@ -17,7 +17,7 @@
     "@oclif/plugin-plugins": "^5.4.56",
     "@oclif/plugin-update": "^4.7.19",
     "@oclif/plugin-version": "^2.2.36",
-    "@scalar/openapi-parser": "^0.25.6",
+    "@scalar/openapi-parser": "^0.28.5",
     "@scalar/postman-to-openapi": "^0.7.8",
     "@scalar/types": "^0.12.2",
     "@toon-format/toon": "^2.3.0",
