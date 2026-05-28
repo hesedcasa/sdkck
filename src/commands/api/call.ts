@@ -1,4 +1,5 @@
 import {Args, Command, Flags} from '@oclif/core'
+import {encode} from '@toon-format/toon'
 
 import {
   buildAuthHeaders,
@@ -66,7 +67,13 @@ export default class ApiCall extends Command {
       description: 'Print the raw response body without JSON formatting',
       required: false,
     }),
+    toon: Flags.boolean({
+      description: 'Encode JSON output with TOON for token-efficient LLM consumption',
+      required: false,
+    }),
   }
+  // Exposed for testing — inject a mock to avoid encoding in unit tests
+  _applyToon: (value: unknown) => string = encode
   // Exposed for testing — inject a mock implementation to avoid real HTTP calls
   // eslint-disable-next-line n/no-unsupported-features/node-builtins
   _fetch: FetchLike = fetch
@@ -157,7 +164,11 @@ export default class ApiCall extends Command {
     } else {
       try {
         const parsed = JSON.parse(responseText)
-        this.log(JSON.stringify(parsed, null, 2))
+        if (flags.toon) {
+          this.log(this._applyToon(parsed))
+        } else {
+          this.log(JSON.stringify(parsed, null, 2))
+        }
       } catch {
         this.log(responseText)
       }

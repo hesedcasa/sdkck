@@ -195,6 +195,44 @@ describe('api call', () => {
     expect(calls[0].headers['Content-Type']).to.equal('application/vnd.api+json')
   })
 
+  it('passes parsed value to _applyToon when --toon flag is set', async () => {
+    const body = JSON.stringify([{id: 1, name: 'Fido'}])
+    const {mockFetch} = makeMockFetch(200, body)
+    const {cmd, output} = makeCall(['petstore', 'listPets', '--toon'], configDir)
+    cmd._fetch = mockFetch
+    cmd._applyToon = (value) => `TOON:${JSON.stringify(value)}`
+    await cmd.run()
+    expect(output()).to.include('TOON:')
+    expect(output()).to.include('"name"')
+  })
+
+  it('--raw takes priority over --toon and skips _applyToon', async () => {
+    const raw = '[{"id":1}]'
+    const {mockFetch} = makeMockFetch(200, raw)
+    const {cmd, output} = makeCall(['petstore', 'listPets', '--raw', '--toon'], configDir)
+    cmd._fetch = mockFetch
+    let toonCalled = false
+    cmd._applyToon = (value) => {
+      toonCalled = true
+      return JSON.stringify(value)
+    }
+
+    await cmd.run()
+    expect(toonCalled).to.be.false
+    expect(output()).to.include(raw)
+  })
+
+  it('--toon uses the return value of _applyToon', async () => {
+    const body = JSON.stringify({id: 1})
+    const {mockFetch} = makeMockFetch(200, body)
+    const {cmd, output} = makeCall(['petstore', 'listPets', '--toon'], configDir)
+    cmd._fetch = mockFetch
+    cmd._applyToon = (value) => `encoded:${JSON.stringify(value)}`
+    await cmd.run()
+    expect(output()).to.include('encoded:')
+    expect(output()).to.include('"id"')
+  })
+
   it('errors when a required path parameter is missing', async () => {
     const {cmd} = makeCall(['petstore', 'showPetById'], configDir)
     cmd._fetch = makeMockFetch(200, '{}').mockFetch

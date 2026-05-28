@@ -1,6 +1,7 @@
 import type {Config} from '@oclif/core/interfaces'
 
 import {Args, Command, Flags} from '@oclif/core'
+import {encode} from '@toon-format/toon'
 
 import {
   buildAuthHeaders,
@@ -142,6 +143,10 @@ function createOperationCommand(
       multiple: true,
       required: false,
     }),
+    toon: Flags.boolean({
+      description: 'Encode JSON output with TOON for token-efficient LLM consumption',
+      required: false,
+    }),
   }
 
   // For operations with a raw (non-JSON) request body, expose a --body flag.
@@ -205,6 +210,8 @@ function createOperationCommand(
     // Cast required: dynamicFlags is built at runtime so TypeScript cannot verify the exact shape
     static flags = dynamicFlags as typeof Command.flags
     static id = commandId
+    // Exposed for testing — inject a mock to avoid encoding in unit tests
+    _applyToon: (value: unknown) => string = encode
     // Exposed for testing — replace with a mock to avoid real HTTP calls
     _fetch: FetchLike = fetchFn
 
@@ -275,8 +282,10 @@ function createOperationCommand(
       const responseText = await res.text()
       if (!res.ok) this.warn(`HTTP ${res.status} ${res.statusText}`)
 
+      const useToon = Boolean((f as Record<string, unknown>).toon)
       try {
-        this.log(JSON.stringify(JSON.parse(responseText), null, 2))
+        const parsed = JSON.parse(responseText)
+        this.log(useToon ? this._applyToon(parsed) : JSON.stringify(parsed, null, 2))
       } catch {
         this.log(responseText)
       }

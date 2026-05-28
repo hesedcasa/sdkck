@@ -1,6 +1,7 @@
 import type {Config} from '@oclif/core/interfaces'
 
 import {Command, Flags} from '@oclif/core'
+import {encode} from '@toon-format/toon'
 
 import {
   callMcpTool,
@@ -98,6 +99,11 @@ function createMcpToolCommand(serverName: string, tool: McpToolSchema): typeof C
     required: false,
   })
 
+  dynamicFlags.toon = Flags.boolean({
+    description: 'Encode JSON output with TOON for token-efficient LLM consumption',
+    required: false,
+  })
+
   const commandId = `${serverName}:${tool.name}`
   const toolDescription = tool.description ?? tool.name
 
@@ -112,6 +118,11 @@ function createMcpToolCommand(serverName: string, tool: McpToolSchema): typeof C
     // Cast required: dynamicFlags is built at runtime
     static flags = dynamicFlags as typeof Command.flags
     static id = commandId
+    // Exposed for testing — inject a mock to avoid encoding in unit tests
+    _applyToon: (value: unknown) => string = encode
+    // Exposed for testing — inject a mock to avoid real MCP connections
+    // ts-prune-ignore-next
+    _callTool: typeof callMcpTool = callMcpTool
 
     async run(): Promise<void> {
       const {flags: f} = await this.parse(DynamicMcpToolCommand as unknown as typeof Command)
@@ -147,8 +158,18 @@ function createMcpToolCommand(serverName: string, tool: McpToolSchema): typeof C
         }
       }
 
+      const useToon = Boolean((f as Record<string, unknown>).toon)
+      const formatText = (text: string): string => {
+        if (!useToon) return text
+        try {
+          return this._applyToon(JSON.parse(text))
+        } catch {
+          return text
+        }
+      }
+
       try {
-        const result = await callMcpTool(serverConfig, capturedToolName, toolArgs, this.config.configDir)
+        const result = await this._callTool(serverConfig, capturedToolName, toolArgs, this.config.configDir)
 
         if (result.isError) {
           const errorText = result.content
@@ -160,11 +181,11 @@ function createMcpToolCommand(serverName: string, tool: McpToolSchema): typeof C
 
         for (const item of result.content) {
           if (item.type === 'text') {
-            this.log(item.text ?? '')
+            this.log(formatText(item.text ?? ''))
           } else if (item.type === 'image') {
             this.log(`[image/${item.mimeType ?? 'unknown'}: base64 data omitted]`)
           } else {
-            this.log(JSON.stringify(item, null, 2))
+            this.log(useToon ? this._applyToon(item) : JSON.stringify(item, null, 2))
           }
         }
       } catch (error) {
