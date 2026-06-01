@@ -7,7 +7,11 @@
     "sdkck": "./bin/run.js"
   },
   "bugs": "https://github.com/hesedcasa/sdkck/issues",
+  "workspaces": [
+    "packages/*"
+  ],
   "dependencies": {
+    "@sdkck/plugin-permission": "*",
     "@leeoniya/ufuzzy": "^1.0.19",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@oclif/core": "^4",
@@ -83,7 +87,8 @@
     "dirname": "sdkck",
     "commands": "./dist/commands",
     "plugins": [
-      "@oclif/plugin-*"
+      "@oclif/plugin-*",
+      "@sdkck/plugin-permission"
     ],
     "jitPlugins": {
       "@hesed/jira": "latest",
@@ -105,21 +110,19 @@
       "init": [
         "./dist/hooks/init/setup-file-logging",
         "./dist/hooks/init/register-api-commands",
-        "./dist/hooks/init/register-mcp-client-commands",
-        "./dist/hooks/init/apply-permission"
+        "./dist/hooks/init/register-mcp-client-commands"
       ],
-      "jit_plugin_not_installed": "./dist/hooks/jit_plugin_not_installed/jit-install",
-      "prerun": "./dist/hooks/prerun/check-permission"
+      "jit_plugin_not_installed": "./dist/hooks/jit_plugin_not_installed/jit-install"
     }
   },
   "repository": "hesedcasa/sdkck",
   "scripts": {
-    "build": "shx rm -rf dist && tsc -b",
+    "build": "shx rm -rf dist packages/plugin-permission/dist && tsc -b",
     "lint": "eslint",
     "postpack": "shx rm -f oclif.manifest.json",
     "posttest": "npm run lint",
     "prepack": "oclif manifest && oclif readme",
-    "test": "mocha --forbid-only \"test/**/*.test.ts\"",
+    "test": "mocha --forbid-only \"test/**/*.test.ts\" \"packages/plugin-permission/test/**/*.test.ts\"",
     "version": "oclif readme && git add README.md",
     "find-deadcode": "ts-prune --ignore '(run|default)'",
     "format": "eslint --cache --fix --quiet . && prettier --write --cache .",

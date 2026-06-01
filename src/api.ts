@@ -2,8 +2,7 @@ import type {Command} from '@oclif/core'
 import type {Config} from '@oclif/core/interfaces'
 
 import {toConfiguredId} from '@oclif/core'
-
-import {isCommandAllowed, readPermissionConfig} from './permission-config.js'
+import {isCommandAllowed, readPermissionConfig} from '@sdkck/plugin-permission'
 
 // ─── Public types ────────────────────────────────────────────────────────────
 

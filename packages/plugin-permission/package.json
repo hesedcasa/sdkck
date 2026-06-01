@@ -1,0 +1,42 @@
+{
+  "name": "@sdkck/plugin-permission",
+  "version": "0.1.0",
+  "description": "Permission control plugin for sdkck",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "ts-node": "./src/index.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "oclif.manifest.json"
+  ],
+  "oclif": {
+    "commands": "./dist/commands",
+    "hooks": {
+      "init": "./dist/hooks/init/apply-permission",
+      "prerun": "./dist/hooks/prerun/check-permission"
+    }
+  },
+  "peerDependencies": {
+    "@oclif/core": "^4"
+  },
+  "devDependencies": {
+    "@types/chai": "^5",
+    "@types/mocha": "^10",
+    "@types/node": "^25",
+    "chai": "^6",
+    "mocha": "^11",
+    "shx": "^0.4.0",
+    "ts-node": "^10",
+    "typescript": "^5"
+  },
+  "scripts": {
+    "build": "shx rm -rf dist && tsc -b",
+    "test": "mocha --forbid-only \"test/**/*.test.ts\""
+  }
+}

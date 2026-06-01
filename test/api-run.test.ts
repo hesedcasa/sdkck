@@ -1,13 +1,13 @@
 import type {Command} from '@oclif/core'
 import type {Config} from '@oclif/core/interfaces'
 
+import {writePermissionConfig} from '@sdkck/plugin-permission'
 import {expect} from 'chai'
 import {mkdtemp, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
 import {sdkck, SdkckExecutionError} from '../src/api.js'
-import {writePermissionConfig} from '../src/permission-config.js'
 
 interface CmdSpec {
   args?: Record<string, unknown>

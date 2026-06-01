@@ -8,12 +8,12 @@ import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js'
 import {StreamableHTTPServerTransport} from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 // eslint-disable-next-line import/no-unresolved
 import {CallToolRequestSchema, isInitializeRequest, ListToolsRequestSchema} from '@modelcontextprotocol/sdk/types.js'
+import {isCommandAllowed, readPermissionConfig} from '@sdkck/plugin-permission'
 import {randomUUID} from 'node:crypto'
 import * as http from 'node:http'
 
 import {sdkck, SdkckExecutionError} from './api.js'
 import {checkBearerToken, readMcpAuth} from './mcp-auth.js'
-import {isCommandAllowed, readPermissionConfig} from './permission-config.js'
 import {SearchCache} from './search-cache.js'
 
 // ─── Server factory ──────────────────────────────────────────────────────────
