@@ -1,0 +1,49 @@
+{
+  "name": "@sdkck/plugin-mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server plugin for sdkck — exposes all CLI commands as MCP tools",
+  "author": "Hesed",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "oclif.manifest.json"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@oclif/core": "^4"
+  },
+  "devDependencies": {
+    "@oclif/test": "^4",
+    "@types/chai": "^5",
+    "@types/mocha": "^10",
+    "@types/node": "^25",
+    "chai": "^6",
+    "mocha": "^11",
+    "oclif": "^4",
+    "shx": "^0.4.0",
+    "ts-node": "^10",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "oclif": {
+    "commands": "./dist/commands",
+    "topics": {
+      "mcp": {
+        "description": "MCP server management"
+      },
+      "mcp token": {
+        "description": "Manage MCP server authentication tokens"
+      }
+    }
+  },
+  "scripts": {
+    "build": "shx rm -rf dist tsconfig.tsbuildinfo && tsc -b",
+    "prepack": "npm run build && oclif manifest",
+    "test": "mocha --forbid-only \"test/**/*.test.ts\""
+  }
+}

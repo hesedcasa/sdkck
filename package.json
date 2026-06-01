@@ -7,9 +7,11 @@
     "sdkck": "./bin/run.js"
   },
   "bugs": "https://github.com/hesedcasa/sdkck/issues",
+  "workspaces": [
+    "packages/*"
+  ],
   "dependencies": {
     "@leeoniya/ufuzzy": "^1.0.19",
-    "@modelcontextprotocol/sdk": "^1.29.0",
     "@oclif/core": "^4",
     "@oclif/plugin-commands": "^4.1.40",
     "@oclif/plugin-help": "^6",
@@ -17,6 +19,8 @@
     "@oclif/plugin-plugins": "^5.4.56",
     "@oclif/plugin-update": "^4.7.19",
     "@oclif/plugin-version": "^2.2.36",
+    "@sdkck/plugin-mcp-client": "*",
+    "@sdkck/plugin-mcp-server": "*",
     "@scalar/openapi-parser": "^0.25.6",
     "@scalar/postman-to-openapi": "^0.7.8",
     "@scalar/types": "^0.12.2",
@@ -83,7 +87,9 @@
     "dirname": "sdkck",
     "commands": "./dist/commands",
     "plugins": [
-      "@oclif/plugin-*"
+      "@oclif/plugin-*",
+      "@sdkck/plugin-mcp-server",
+      "@sdkck/plugin-mcp-client"
     ],
     "jitPlugins": {
       "@hesed/jira": "latest",
@@ -105,7 +111,6 @@
       "init": [
         "./dist/hooks/init/setup-file-logging",
         "./dist/hooks/init/register-api-commands",
-        "./dist/hooks/init/register-mcp-client-commands",
         "./dist/hooks/init/apply-permission"
       ],
       "jit_plugin_not_installed": "./dist/hooks/jit_plugin_not_installed/jit-install",
@@ -114,7 +119,7 @@
   },
   "repository": "hesedcasa/sdkck",
   "scripts": {
-    "build": "shx rm -rf dist && tsc -b",
+    "build": "npm run build --workspaces --if-present && shx rm -rf dist tsconfig.tsbuildinfo && tsc -b",
     "lint": "eslint",
     "postpack": "shx rm -f oclif.manifest.json",
     "posttest": "npm run lint",

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 import {Config, flush, handle, run} from '@oclif/core'
+import {registerMcpClientCommands} from '@sdkck/plugin-mcp-client'
 
 import {registerApiCommands} from '../dist/api-dynamic-commands.js'
-import {registerMcpClientCommands} from '../dist/mcp-client-commands.js'
 
 // Patch Config.load so every config instance (including those created inside
 // Command.run) automatically gets the dynamic API commands registered.

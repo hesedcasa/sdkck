@@ -1,0 +1,51 @@
+{
+  "name": "@sdkck/plugin-mcp-client",
+  "version": "0.1.0",
+  "description": "MCP client plugin for sdkck — connects to external MCP servers and registers their tools as native CLI commands",
+  "author": "Hesed",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "oclif.manifest.json"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@oclif/core": "^4",
+    "@toon-format/toon": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/chai": "^5",
+    "@types/chai-as-promised": "^8.0.2",
+    "@types/mocha": "^10",
+    "@types/node": "^25",
+    "chai": "^6",
+    "chai-as-promised": "^8.0.2",
+    "mocha": "^11",
+    "oclif": "^4",
+    "shx": "^0.4.0",
+    "ts-node": "^10",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "oclif": {
+    "commands": "./dist/commands",
+    "hooks": {
+      "init": "./dist/hooks/init/register-mcp-client-commands"
+    },
+    "topics": {
+      "mcp client": {
+        "description": "Manage MCP client connections"
+      }
+    }
+  },
+  "scripts": {
+    "build": "shx rm -rf dist tsconfig.tsbuildinfo && tsc -b",
+    "prepack": "npm run build && oclif manifest",
+    "test": "mocha --forbid-only \"test/**/*.test.ts\""
+  }
+}

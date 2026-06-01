@@ -13,4 +13,10 @@ export default [
   },
   ...oclif,
   prettier,
+  {
+    files: ['packages/*/test/**/*.test.ts'],
+    rules: {
+      '@typescript-eslint/no-unused-expressions': 'off',
+    },
+  },
 ]

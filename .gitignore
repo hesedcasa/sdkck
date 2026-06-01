@@ -5,6 +5,8 @@
 /dist
 /tmp
 /node_modules
+packages/*/dist
+packages/*/node_modules
 oclif.manifest.json
 
 
