@@ -1,9 +1,9 @@
 import type {Command} from '@oclif/core'
 import type {Config} from '@oclif/core/interfaces'
 
+import {isCommandAllowed, readPermissionConfig} from '@hesed/permission'
 import {toConfiguredId} from '@oclif/core'
 
-import {isCommandAllowed, readPermissionConfig} from './permission-config.js'
 
 // ─── Public types ────────────────────────────────────────────────────────────
 

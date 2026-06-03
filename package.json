@@ -8,6 +8,7 @@
   },
   "bugs": "https://github.com/hesedcasa/sdkck/issues",
   "dependencies": {
+    "@hesed/permission": "^0.2.0",
     "@leeoniya/ufuzzy": "^1.0.19",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@oclif/core": "^4",
@@ -83,6 +84,7 @@
     "dirname": "sdkck",
     "commands": "./dist/commands",
     "plugins": [
+      "@hesed/permission",
       "@oclif/plugin-*"
     ],
     "jitPlugins": {
@@ -105,11 +107,9 @@
       "init": [
         "./dist/hooks/init/setup-file-logging",
         "./dist/hooks/init/register-api-commands",
-        "./dist/hooks/init/register-mcp-client-commands",
-        "./dist/hooks/init/apply-permission"
+        "./dist/hooks/init/register-mcp-client-commands"
       ],
-      "jit_plugin_not_installed": "./dist/hooks/jit_plugin_not_installed/jit-install",
-      "prerun": "./dist/hooks/prerun/check-permission"
+      "jit_plugin_not_installed": "./dist/hooks/jit_plugin_not_installed/jit-install"
     }
   },
   "repository": "hesedcasa/sdkck",
