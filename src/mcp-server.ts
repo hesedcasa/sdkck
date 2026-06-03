@@ -1,5 +1,6 @@
 import type {Config} from '@oclif/core/interfaces'
 
+import {isCommandAllowed, readPermissionConfig} from '@hesed/permission'
 // eslint-disable-next-line import/no-unresolved
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js'
 // eslint-disable-next-line import/no-unresolved
@@ -13,7 +14,6 @@ import * as http from 'node:http'
 
 import {sdkck, SdkckExecutionError} from './api.js'
 import {checkBearerToken, readMcpAuth} from './mcp-auth.js'
-import {isCommandAllowed, readPermissionConfig} from './permission-config.js'
 import {SearchCache} from './search-cache.js'
 
 // ─── Server factory ──────────────────────────────────────────────────────────
