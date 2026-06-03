@@ -8,6 +8,7 @@
   },
   "bugs": "https://github.com/hesedcasa/sdkck/issues",
   "dependencies": {
+    "@hesed/mcp-client": "^0.1.0",
     "@hesed/permission": "^0.2.0",
     "@leeoniya/ufuzzy": "^1.0.19",
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -84,6 +85,7 @@
     "dirname": "sdkck",
     "commands": "./dist/commands",
     "plugins": [
+      "@hesed/mcp-client",
       "@hesed/permission",
       "@oclif/plugin-*"
     ],
@@ -106,8 +108,7 @@
     "hooks": {
       "init": [
         "./dist/hooks/init/setup-file-logging",
-        "./dist/hooks/init/register-api-commands",
-        "./dist/hooks/init/register-mcp-client-commands"
+        "./dist/hooks/init/register-api-commands"
       ],
       "jit_plugin_not_installed": "./dist/hooks/jit_plugin_not_installed/jit-install"
     }

@@ -4,7 +4,6 @@ import type {Config} from '@oclif/core/interfaces'
 import {isCommandAllowed, readPermissionConfig} from '@hesed/permission'
 import {toConfiguredId} from '@oclif/core'
 
-
 // ─── Public types ────────────────────────────────────────────────────────────
 
 export interface CommandArg {
