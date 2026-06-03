@@ -9,6 +9,7 @@
   "bugs": "https://github.com/hesedcasa/sdkck/issues",
   "dependencies": {
     "@hesed/mcp-client": "^0.1.0",
+    "@hesed/mcp-server": "^0.1.2",
     "@hesed/permission": "^0.2.0",
     "@leeoniya/ufuzzy": "^1.0.19",
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -86,6 +87,7 @@
     "commands": "./dist/commands",
     "plugins": [
       "@hesed/mcp-client",
+      "@hesed/mcp-server",
       "@hesed/permission",
       "@oclif/plugin-*"
     ],
