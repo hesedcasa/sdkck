@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
+import {registerApiCommands} from '@hesed/api2cli'
 import {registerMcpClientCommands} from '@hesed/mcp-client'
 import {Config, flush, handle, run} from '@oclif/core'
-
-import {registerApiCommands} from '../dist/api-dynamic-commands.js'
 
 // Patch Config.load so every config instance (including those created inside
 // Command.run) automatically gets the dynamic API commands registered.

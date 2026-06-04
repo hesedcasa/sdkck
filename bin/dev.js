@@ -1,10 +1,8 @@
 #!/usr/bin/env -S node --loader ts-node/esm --disable-warning=ExperimentalWarning
 
+import {registerApiCommands} from '@hesed/api2cli'
 import {registerMcpClientCommands} from '@hesed/mcp-client'
 import {Config, flush, handle, run, settings} from '@oclif/core'
-
-// eslint-disable-next-line n/no-unpublished-import
-import {registerApiCommands} from '../src/api-dynamic-commands.js'
 
 process.env.NODE_ENV = 'development'
 settings.debug = true
