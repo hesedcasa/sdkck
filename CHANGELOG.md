@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.27.0](https://github.com/hesedcasa/sdkck/compare/v0.26.1...v0.27.0) (2026-06-04)
+
+
+### 🎉 Features
+
+* replace inline api commands with @hesed/api2cli plugin ([#142](https://github.com/hesedcasa/sdkck/issues/142)) ([#146](https://github.com/hesedcasa/sdkck/issues/146)) ([1587823](https://github.com/hesedcasa/sdkck/commit/1587823f03fa6cf816a00215225ccf36dc87a66f))
+* replace inline mcp-client commands with @hesed/mcp-client plugin ([#139](https://github.com/hesedcasa/sdkck/issues/139)) ([#140](https://github.com/hesedcasa/sdkck/issues/140)) ([cb0bb23](https://github.com/hesedcasa/sdkck/commit/cb0bb23d05df003abe7bcd52d4de908bb59c0a0c))
+* replace inline mcp-server commands with @hesed/mcp-server plugin ([#141](https://github.com/hesedcasa/sdkck/issues/141)) ([b43ffee](https://github.com/hesedcasa/sdkck/commit/b43ffee41c2cea0b5e65d7ac26c4af81437e26b2))
+* replace inline permission commands with @hesed/permission plugin ([#138](https://github.com/hesedcasa/sdkck/issues/138)) ([1cf8323](https://github.com/hesedcasa/sdkck/commit/1cf8323b445535fc2d8dc743bf2aae5f31823a6b))
+
 ## [0.26.1](https://github.com/hesedcasa/sdkck/compare/v0.26.0...v0.26.1) (2026-05-28)
 
 
