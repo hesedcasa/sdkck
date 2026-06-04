@@ -195,7 +195,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.26.1 linux-x64 node-v22.22.3
+sdkck/0.27.0 linux-x64 node-v22.22.3
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -206,13 +206,6 @@ USAGE
 # Commands
 
 <!-- commands -->
-* [`sdkck api auth NAME`](#sdkck-api-auth-name)
-* [`sdkck api call NAME OPERATIONID`](#sdkck-api-call-name-operationid)
-* [`sdkck api config NAME`](#sdkck-api-config-name)
-* [`sdkck api import SOURCE`](#sdkck-api-import-source)
-* [`sdkck api list [NAME]`](#sdkck-api-list-name)
-* [`sdkck api profile NAME`](#sdkck-api-profile-name)
-* [`sdkck api remove NAME`](#sdkck-api-remove-name)
 * [`sdkck commands`](#sdkck-commands)
 * [`sdkck help [COMMAND]`](#sdkck-help-command)
 * [`sdkck mcp client add NAME`](#sdkck-mcp-client-add-name)
@@ -242,244 +235,6 @@ USAGE
 * [`sdkck search QUERY`](#sdkck-search-query)
 * [`sdkck update [CHANNEL]`](#sdkck-update-channel)
 * [`sdkck version`](#sdkck-version)
-
-## `sdkck api auth NAME`
-
-Update the authentication settings for an imported API spec
-
-```
-USAGE
-  $ sdkck api auth NAME [--api-key <value>] [--api-key-header <value>] [--base-url <value>] [--header
-    <value>...] [--password <value>] [-p <value>] [--token <value>] [--type none|bearer|apikey|basic|custom] [--username
-    <value>]
-
-ARGUMENTS
-  NAME  API name to update authentication for
-
-FLAGS
-  -p, --profile=<value>         Named profile to save
-      --api-key=<value>         API key value (used with --type apikey)
-      --api-key-header=<value>  [default: X-API-Key] Header name for the API key
-      --base-url=<value>        Base URL for this profile
-      --header=<value>...       Custom header in Key=Value format (used with --type custom, repeatable)
-      --password=<value>        Password for basic auth
-      --token=<value>           Bearer token
-      --type=<option>           Authentication type to configure
-                                <options: none|bearer|apikey|basic|custom>
-      --username=<value>        Username for basic auth
-
-DESCRIPTION
-  Update the authentication settings for an imported API spec
-
-EXAMPLES
-  $ sdkck api auth petstore --type bearer --token sk-...
-
-  $ sdkck api auth petstore --type apikey --api-key mykey
-
-  $ sdkck api auth petstore --type apikey --api-key mykey --api-key-header Authorization
-
-  $ sdkck api auth petstore --type basic --username user --password secret
-
-  $ sdkck api auth petstore --type custom --header X-Tenant-ID=acme --header X-App-Key=secret
-
-  $ sdkck api auth petstore --type none
-
-  $ sdkck api auth petstore --type bearer --token sk-prod -p prod --base-url https://api.prod.example.com
-```
-
-_See code: [src/commands/api/auth.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/api/auth.ts)_
-
-## `sdkck api call NAME OPERATIONID`
-
-Call an imported API operation
-
-```
-USAGE
-  $ sdkck api call NAME OPERATIONID [--base-url <value>] [--body <value>...] [--header <value>...] [--param
-    <value>...] [--raw] [--toon]
-
-ARGUMENTS
-  NAME         API name (as shown in `api list`)
-  OPERATIONID  Operation ID to call (as shown in `api list <name>`)
-
-FLAGS
-  --base-url=<value>   Override the base URL for this request
-  --body=<value>...    Request body field as key=value (repeatable)
-  --header=<value>...  Extra request header as Key=Value (repeatable)
-  --param=<value>...   Path or query parameter as key=value (repeatable)
-  --raw                Print the raw response body without JSON formatting
-  --toon               Encode JSON output with TOON for token-efficient LLM consumption
-
-DESCRIPTION
-  Call an imported API operation
-
-EXAMPLES
-  $ sdkck api call petstore listPets
-
-  $ sdkck api call petstore getPetById --param petId=42
-
-  $ sdkck api call petstore createPet --body name=Fido --body tag=dog
-
-  $ sdkck api call petstore listPets --query limit=10 --header X-Trace=abc
-```
-
-_See code: [src/commands/api/call.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/api/call.ts)_
-
-## `sdkck api config NAME`
-
-Update configuration for an imported API spec
-
-```
-USAGE
-  $ sdkck api config NAME [--base-url <value>] [--description <value>] [--insecure] [--rename <value>] [--title
-    <value>]
-
-ARGUMENTS
-  NAME  API name (as shown in `api list`)
-
-FLAGS
-  --base-url=<value>     New base URL for API calls
-  --description=<value>  New description for the spec
-  --[no-]insecure        Skip TLS certificate verification (--no-insecure to disable)
-  --rename=<value>       New short identifier for this API
-  --title=<value>        New display title for the spec
-
-DESCRIPTION
-  Update configuration for an imported API spec
-
-EXAMPLES
-  $ sdkck api config petstore --base-url https://api.example.com
-
-  $ sdkck api config petstore --rename mystore
-
-  $ sdkck api config petstore --title "My Petstore" --description "A pet store API"
-```
-
-_See code: [src/commands/api/config.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/api/config.ts)_
-
-## `sdkck api import SOURCE`
-
-Import an OpenAPI spec, Postman collection, or GraphQL schema (SDL/introspection/endpoint) and register its operations as commands
-
-```
-USAGE
-  $ sdkck api import SOURCE [--api-key <value>] [--api-key-header <value>] [--auth-type
-    none|bearer|apikey|basic] [--base-url <value>] [--graphql] [--insecure] [--name <value>] [--password <value>]
-    [--selection-depth <value>] [--token <value>] [--username <value>]
-
-ARGUMENTS
-  SOURCE  Path to a local OpenAPI/Postman/GraphQL spec or URL (REST or GraphQL endpoint)
-
-FLAGS
-  --api-key=<value>          API key value (used with --auth-type apikey)
-  --api-key-header=<value>   [default: X-API-Key] Header name for the API key
-  --auth-type=<option>       Authentication type
-                             <options: none|bearer|apikey|basic>
-  --base-url=<value>         Override the base URL for API calls (GraphQL endpoint URL for GraphQL imports)
-  --graphql                  Treat the source as a GraphQL schema (SDL, introspection JSON, or live endpoint)
-  --insecure                 Skip TLS certificate verification (useful for self-signed certs)
-  --name=<value>             Short identifier for this API (defaults to the spec title slug)
-  --password=<value>         Password for basic auth
-  --selection-depth=<value>  [default: 3] Max depth of auto-generated GraphQL selection sets (GraphQL imports only)
-  --token=<value>            Bearer token (used with --auth-type bearer)
-  --username=<value>         Username for basic auth
-
-DESCRIPTION
-  Import an OpenAPI spec, Postman collection, or GraphQL schema (SDL/introspection/endpoint) and register its operations
-  as commands
-
-EXAMPLES
-  $ sdkck api import ./petstore.json  --name petstore
-
-  $ sdkck api import ./postman_collection.json --name myapi
-
-  $ sdkck api import https://petstore3.swagger.io/api/v3/openapi.json
-
-  $ sdkck api import ./schema.graphql --base-url https://api.example.com/graphql
-
-  $ sdkck api import https://api.example.com/graphql --name github
-
-  $ sdkck api import ./api.yaml --auth-type bearer --token sk-...
-
-  $ sdkck api import ./api.yaml --auth-type apikey --api-key mykey --api-key-header X-API-Key
-
-  $ sdkck api import ./api.yaml --auth-type basic --username user --password pass
-```
-
-_See code: [src/commands/api/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/api/import.ts)_
-
-## `sdkck api list [NAME]`
-
-List imported API specs and their available operations
-
-```
-USAGE
-  $ sdkck api list [NAME]
-
-ARGUMENTS
-  [NAME]  API name to list operations for (omit to list all imported APIs)
-
-DESCRIPTION
-  List imported API specs and their available operations
-
-EXAMPLES
-  $ sdkck api list
-
-  $ sdkck api list petstore
-```
-
-_See code: [src/commands/api/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/api/list.ts)_
-
-## `sdkck api profile NAME`
-
-Manage auth profiles for an imported API spec
-
-```
-USAGE
-  $ sdkck api profile NAME [--delete <value>] [--show <value>] [--use <value>]
-
-ARGUMENTS
-  NAME  API name
-
-FLAGS
-  --delete=<value>  Delete a named profile
-  --show=<value>    Show auth details for a named profile
-  --use=<value>     Activate a named profile
-
-DESCRIPTION
-  Manage auth profiles for an imported API spec
-
-EXAMPLES
-  $ sdkck api profile petstore
-
-  $ sdkck api profile petstore --show dev
-
-  $ sdkck api profile petstore --use prod
-
-  $ sdkck api profile petstore --delete dev
-```
-
-_See code: [src/commands/api/profile.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/api/profile.ts)_
-
-## `sdkck api remove NAME`
-
-Remove an imported API spec
-
-```
-USAGE
-  $ sdkck api remove NAME
-
-ARGUMENTS
-  NAME  API name to remove
-
-DESCRIPTION
-  Remove an imported API spec
-
-EXAMPLES
-  $ sdkck api remove petstore
-```
-
-_See code: [src/commands/api/remove.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/api/remove.ts)_
 
 ## `sdkck commands`
 
@@ -561,7 +316,7 @@ EXAMPLES
   $ sdkck mcp client add remote --url https://api.example.com/mcp --header Authorization="Bearer token"
 ```
 
-_See code: [src/commands/mcp/client/add.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/mcp/client/add.ts)_
+_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.1.1/src/commands/mcp/client/add.ts)_
 
 ## `sdkck mcp client auth NAME`
 
@@ -581,7 +336,7 @@ EXAMPLES
   $ sdkck mcp client auth browserstack-remote
 ```
 
-_See code: [src/commands/mcp/client/auth.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/mcp/client/auth.ts)_
+_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.1.1/src/commands/mcp/client/auth.ts)_
 
 ## `sdkck mcp client list`
 
@@ -603,7 +358,7 @@ EXAMPLES
   $ sdkck mcp client list --tools
 ```
 
-_See code: [src/commands/mcp/client/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/mcp/client/list.ts)_
+_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.1.1/src/commands/mcp/client/list.ts)_
 
 ## `sdkck mcp client refresh [NAME]`
 
@@ -625,7 +380,7 @@ EXAMPLES
   $ sdkck mcp client refresh github
 ```
 
-_See code: [src/commands/mcp/client/refresh.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/mcp/client/refresh.ts)_
+_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.1.1/src/commands/mcp/client/refresh.ts)_
 
 ## `sdkck mcp client remove NAME`
 
@@ -645,7 +400,7 @@ EXAMPLES
   $ sdkck mcp client remove github
 ```
 
-_See code: [src/commands/mcp/client/remove.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/mcp/client/remove.ts)_
+_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.1.1/src/commands/mcp/client/remove.ts)_
 
 ## `sdkck mcp start`
 
@@ -674,7 +429,7 @@ EXAMPLES
   $ sdkck mcp start --transport http --host 0.0.0.0
 ```
 
-_See code: [src/commands/mcp/start.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/mcp/start.ts)_
+_See code: [@hesed/mcp-server](https://github.com/hesedcasa/mcp-server/blob/v0.1.2/src/commands/mcp/start.ts)_
 
 ## `sdkck mcp token delete`
 
@@ -691,7 +446,7 @@ EXAMPLES
   $ sdkck mcp token delete
 ```
 
-_See code: [src/commands/mcp/token/delete.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/mcp/token/delete.ts)_
+_See code: [@hesed/mcp-server](https://github.com/hesedcasa/mcp-server/blob/v0.1.2/src/commands/mcp/token/delete.ts)_
 
 ## `sdkck mcp token generate`
 
@@ -708,7 +463,7 @@ EXAMPLES
   $ sdkck mcp token generate
 ```
 
-_See code: [src/commands/mcp/token/generate.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/mcp/token/generate.ts)_
+_See code: [@hesed/mcp-server](https://github.com/hesedcasa/mcp-server/blob/v0.1.2/src/commands/mcp/token/generate.ts)_
 
 ## `sdkck mcp token show`
 
@@ -725,22 +480,21 @@ EXAMPLES
   $ sdkck mcp token show
 ```
 
-_See code: [src/commands/mcp/token/show.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/mcp/token/show.ts)_
+_See code: [@hesed/mcp-server](https://github.com/hesedcasa/mcp-server/blob/v0.1.2/src/commands/mcp/token/show.ts)_
 
 ## `sdkck permission disallow PATTERN`
 
-Disallow a command pattern in the plugin command permission list
+Disallow a command pattern in the permission list
 
 ```
 USAGE
   $ sdkck permission disallow PATTERN
 
 ARGUMENTS
-  PATTERN  Command pattern to disallow. Use a full command ID ("jira issue create"), a topic ("jira"), a topic wildcard
-           ("jira *"), or "*" for everything.
+  PATTERN  Command pattern to disallow.
 
 DESCRIPTION
-  Disallow a command pattern in the plugin command permission list
+  Disallow a command pattern in the permission list
 
 EXAMPLES
   $ sdkck permission disallow "*"
@@ -752,68 +506,68 @@ EXAMPLES
   $ sdkck permission disallow "jira issue create"
 ```
 
-_See code: [src/commands/permission/disallow.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/permission/disallow.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.2.0/src/commands/permission/disallow.ts)_
 
 ## `sdkck permission export FILE`
 
-Export the plugin command permission configuration to a JSON file
+Export the permission configuration to a JSON file
 
 ```
 USAGE
   $ sdkck permission export FILE
 
 ARGUMENTS
-  FILE  Path to the JSON file to export the permission configuration to
+  FILE  File path to export the permission configuration to
 
 DESCRIPTION
-  Export the plugin command permission configuration to a JSON file
+  Export the permission configuration to a JSON file
 
 EXAMPLES
   $ sdkck permission export permission.json
 ```
 
-_See code: [src/commands/permission/export.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/permission/export.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.2.0/src/commands/permission/export.ts)_
 
 ## `sdkck permission import FILE`
 
-Import the plugin command permission configuration from a JSON file
+Import the permission configuration from a JSON file
 
 ```
 USAGE
   $ sdkck permission import FILE
 
 ARGUMENTS
-  FILE  Path to the JSON file to import the permission configuration from
+  FILE  File path to import the permission configuration from
 
 DESCRIPTION
-  Import the plugin command permission configuration from a JSON file
+  Import the permission configuration from a JSON file
 
 EXAMPLES
   $ sdkck permission import permission.json
 ```
 
-_See code: [src/commands/permission/import.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/permission/import.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.2.0/src/commands/permission/import.ts)_
 
 ## `sdkck permission list`
 
-List all rules in the plugin command permission list
+List all rules in the permission list
 
 ```
 USAGE
   $ sdkck permission list
 
 DESCRIPTION
-  List all rules in the plugin command permission list
+  List all rules in the permission list
 
 EXAMPLES
   $ sdkck permission list
 ```
 
-_See code: [src/commands/permission/list.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/permission/list.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.2.0/src/commands/permission/list.ts)_
 
 ## `sdkck permission reset`
 
-Reset all plugin command permission rules
+Reset all permission rules
 
 ```
 USAGE
@@ -823,7 +577,7 @@ FLAGS
   --confirm  Skip the confirmation prompt
 
 DESCRIPTION
-  Reset all plugin command permission rules
+  Reset all permission rules
 
 EXAMPLES
   $ sdkck permission reset
@@ -831,7 +585,7 @@ EXAMPLES
   $ sdkck permission reset --confirm
 ```
 
-_See code: [src/commands/permission/reset.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/permission/reset.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.2.0/src/commands/permission/reset.ts)_
 
 ## `sdkck plugins`
 
@@ -854,7 +608,7 @@ EXAMPLES
   $ sdkck plugins
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.69/src/commands/plugins/index.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.72/src/commands/plugins/index.ts)_
 
 ## `sdkck plugins add PLUGIN`
 
@@ -928,7 +682,7 @@ EXAMPLES
   $ sdkck plugins inspect myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.69/src/commands/plugins/inspect.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.72/src/commands/plugins/inspect.ts)_
 
 ## `sdkck plugins install PLUGIN`
 
@@ -977,7 +731,7 @@ EXAMPLES
     $ sdkck plugins install someuser/someplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.69/src/commands/plugins/install.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.72/src/commands/plugins/install.ts)_
 
 ## `sdkck plugins link PATH`
 
@@ -1008,7 +762,7 @@ EXAMPLES
   $ sdkck plugins link myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.69/src/commands/plugins/link.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.72/src/commands/plugins/link.ts)_
 
 ## `sdkck plugins remove [PLUGIN]`
 
@@ -1049,7 +803,7 @@ FLAGS
   --reinstall  Reinstall all plugins after uninstalling.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.69/src/commands/plugins/reset.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.72/src/commands/plugins/reset.ts)_
 
 ## `sdkck plugins uninstall [PLUGIN]`
 
@@ -1077,7 +831,7 @@ EXAMPLES
   $ sdkck plugins uninstall myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.69/src/commands/plugins/uninstall.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.72/src/commands/plugins/uninstall.ts)_
 
 ## `sdkck plugins unlink [PLUGIN]`
 
@@ -1121,7 +875,7 @@ DESCRIPTION
   Update installed plugins.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.69/src/commands/plugins/update.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.72/src/commands/plugins/update.ts)_
 
 ## `sdkck search QUERY`
 
@@ -1152,7 +906,7 @@ EXAMPLES
   $ sdkck search "update jira" --details
 ```
 
-_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.26.1/src/commands/search.ts)_
+_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.27.0/src/commands/search.ts)_
 
 ## `sdkck update [CHANNEL]`
 
