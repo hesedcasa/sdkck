@@ -87,6 +87,7 @@
     "dirname": "sdkck",
     "commands": "./dist/commands",
     "plugins": [
+      "@hesed/api2cli",
       "@hesed/mcp-client",
       "@hesed/mcp-server",
       "@hesed/permission",
@@ -110,8 +111,7 @@
     },
     "hooks": {
       "init": [
-        "./dist/hooks/init/setup-file-logging",
-        "./dist/hooks/init/register-api-commands"
+        "./dist/hooks/init/setup-file-logging"
       ],
       "jit_plugin_not_installed": "./dist/hooks/jit_plugin_not_installed/jit-install"
     }
