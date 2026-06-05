@@ -8,7 +8,7 @@
   },
   "bugs": "https://github.com/hesedcasa/sdkck/issues",
   "dependencies": {
-    "@hesed/api2cli": "^0.2.0",
+    "@hesed/api2cli": "^0.3.1",
     "@hesed/mcp-client": "^0.1.0",
     "@hesed/mcp-server": "^0.1.2",
     "@hesed/permission": "^0.2.0",
