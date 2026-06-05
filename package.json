@@ -12,7 +12,7 @@
     "@hesed/mcp-client": "^0.1.0",
     "@hesed/mcp-server": "^0.1.2",
     "@hesed/permission": "^0.2.0",
-    "@hesed/search": "^0.1.0",
+    "@hesed/search": "^0.2.2",
     "@leeoniya/ufuzzy": "^1.0.19",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@oclif/core": "^4",
