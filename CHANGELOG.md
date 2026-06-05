@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.31.0](https://github.com/hesedcasa/sdkck/compare/v0.30.0...v0.31.0) (2026-06-05)
+
+
+### 🎉 Features
+
+* upgrade @hesed/search to v0.2.2 ([6458e60](https://github.com/hesedcasa/sdkck/commit/6458e609234d017c90b0af9a186d954f24927be8))
+
 ## [0.30.0](https://github.com/hesedcasa/sdkck/compare/v0.29.0...v0.30.0) (2026-06-05)
 
 
