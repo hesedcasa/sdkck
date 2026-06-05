@@ -195,7 +195,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.28.0 linux-x64 node-v22.22.3
+sdkck/0.28.1 linux-x64 node-v22.22.3
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -206,6 +206,16 @@ USAGE
 # Commands
 
 <!-- commands -->
+* [`sdkck api auth add API`](#sdkck-api-auth-add-api)
+* [`sdkck api auth delete API`](#sdkck-api-auth-delete-api)
+* [`sdkck api auth list API`](#sdkck-api-auth-list-api)
+* [`sdkck api auth profile API`](#sdkck-api-auth-profile-api)
+* [`sdkck api auth update API`](#sdkck-api-auth-update-api)
+* [`sdkck api call NAME OPERATIONID`](#sdkck-api-call-name-operationid)
+* [`sdkck api config NAME`](#sdkck-api-config-name)
+* [`sdkck api import SOURCE`](#sdkck-api-import-source)
+* [`sdkck api list [NAME]`](#sdkck-api-list-name)
+* [`sdkck api remove NAME`](#sdkck-api-remove-name)
 * [`sdkck commands`](#sdkck-commands)
 * [`sdkck help [COMMAND]`](#sdkck-help-command)
 * [`sdkck mcp client add NAME`](#sdkck-mcp-client-add-name)
@@ -235,6 +245,317 @@ USAGE
 * [`sdkck search QUERY`](#sdkck-search-query)
 * [`sdkck update [CHANNEL]`](#sdkck-update-channel)
 * [`sdkck version`](#sdkck-version)
+
+## `sdkck api auth add API`
+
+Add an auth profile for an imported API
+
+```
+USAGE
+  $ sdkck api auth add API --type none|bearer|apikey|basic|custom [--api-key <value>] [--api-key-header <value>]
+    [--base-url <value>] [--header <value>...] [--password <value>] [-p <value>] [--token <value>] [--username <value>]
+
+ARGUMENTS
+  API  API name
+
+FLAGS
+  -p, --profile=<value>         [default: default] Profile name
+      --api-key=<value>         API key value (used with --type apikey)
+      --api-key-header=<value>  [default: X-API-Key] Header name for the API key
+      --base-url=<value>        Base URL for this profile (overrides spec base URL at call time)
+      --header=<value>...       Custom header Key=Value (--type custom, repeatable)
+      --password=<value>        Password for basic auth
+      --token=<value>           Bearer token (used with --type bearer)
+      --type=<option>           (required) Auth type
+                                <options: none|bearer|apikey|basic|custom>
+      --username=<value>        Username for basic auth
+
+DESCRIPTION
+  Add an auth profile for an imported API
+
+EXAMPLES
+  $ sdkck api auth add petstore --type bearer --token sk-...
+
+  $ sdkck api auth add petstore --type apikey --api-key mykey -p prod
+
+  $ sdkck api auth add petstore --type basic --username user --password secret
+
+  $ sdkck api auth add petstore --type custom --header X-Tenant-ID=acme --header X-App-Key=secret
+
+  $ sdkck api auth add petstore --type bearer --token sk-... --base-url https://api.prod.example.com
+
+  $ sdkck api auth add petstore --type none
+```
+
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/auth/add.ts)_
+
+## `sdkck api auth delete API`
+
+Delete an auth profile for an imported API
+
+```
+USAGE
+  $ sdkck api auth delete API [-p <value>]
+
+ARGUMENTS
+  API  API name
+
+FLAGS
+  -p, --profile=<value>  [default: default] Profile name to delete
+
+DESCRIPTION
+  Delete an auth profile for an imported API
+
+EXAMPLES
+  $ sdkck api auth delete petstore
+
+  $ sdkck api auth delete petstore -p prod
+```
+
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/auth/delete.ts)_
+
+## `sdkck api auth list API`
+
+List auth profiles for an imported API
+
+```
+USAGE
+  $ sdkck api auth list API
+
+ARGUMENTS
+  API  API name
+
+DESCRIPTION
+  List auth profiles for an imported API
+
+EXAMPLES
+  $ sdkck api auth list petstore
+```
+
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/auth/list.ts)_
+
+## `sdkck api auth profile API`
+
+Get or set the default auth profile for an imported API
+
+```
+USAGE
+  $ sdkck api auth profile API [--default <value>]
+
+ARGUMENTS
+  API  API name
+
+FLAGS
+  --default=<value>  Profile to set as default
+
+DESCRIPTION
+  Get or set the default auth profile for an imported API
+
+EXAMPLES
+  $ sdkck api auth profile petstore
+
+  $ sdkck api auth profile petstore --default prod
+```
+
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/auth/profile.ts)_
+
+## `sdkck api auth update API`
+
+Update an auth profile for an imported API
+
+```
+USAGE
+  $ sdkck api auth update API --type none|bearer|apikey|basic|custom [--api-key <value>] [--api-key-header <value>]
+    [--base-url <value>] [--header <value>...] [--password <value>] [-p <value>] [--token <value>] [--username <value>]
+
+ARGUMENTS
+  API  API name
+
+FLAGS
+  -p, --profile=<value>         [default: default] Profile name
+      --api-key=<value>         API key value (used with --type apikey)
+      --api-key-header=<value>  [default: X-API-Key] Header name for the API key
+      --base-url=<value>        Base URL for this profile (overrides spec base URL at call time)
+      --header=<value>...       Custom header Key=Value (--type custom, repeatable)
+      --password=<value>        Password for basic auth
+      --token=<value>           Bearer token (used with --type bearer)
+      --type=<option>           (required) Auth type
+                                <options: none|bearer|apikey|basic|custom>
+      --username=<value>        Username for basic auth
+
+DESCRIPTION
+  Update an auth profile for an imported API
+
+EXAMPLES
+  $ sdkck api auth update petstore --type bearer --token sk-new
+
+  $ sdkck api auth update petstore --type apikey --api-key newkey -p prod
+
+  $ sdkck api auth update petstore --type bearer --token sk-... --base-url https://api.prod.example.com -p prod
+```
+
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/auth/update.ts)_
+
+## `sdkck api call NAME OPERATIONID`
+
+Call an imported API operation
+
+```
+USAGE
+  $ sdkck api call NAME OPERATIONID [--base-url <value>] [--body <value>...] [--header <value>...] [--param
+    <value>...] [--raw] [--toon]
+
+ARGUMENTS
+  NAME         API name (as shown in `api list`)
+  OPERATIONID  Operation ID to call (as shown in `api list <name>`)
+
+FLAGS
+  --base-url=<value>   Override the base URL for this request
+  --body=<value>...    Request body field as key=value (repeatable)
+  --header=<value>...  Extra request header as Key=Value (repeatable)
+  --param=<value>...   Path or query parameter as key=value (repeatable)
+  --raw                Print the raw response body without JSON formatting
+  --toon               Encode JSON output with TOON for token-efficient LLM consumption
+
+DESCRIPTION
+  Call an imported API operation
+
+EXAMPLES
+  $ sdkck api call petstore listPets
+
+  $ sdkck api call petstore getPetById --param petId=42
+
+  $ sdkck api call petstore createPet --body name=Fido --body tag=dog
+
+  $ sdkck api call petstore listPets --query limit=10 --header X-Trace=abc
+```
+
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/call.ts)_
+
+## `sdkck api config NAME`
+
+Update configuration for an imported API spec
+
+```
+USAGE
+  $ sdkck api config NAME [--base-url <value>] [--description <value>] [--insecure] [--rename <value>] [--title
+    <value>]
+
+ARGUMENTS
+  NAME  API name (as shown in `api list`)
+
+FLAGS
+  --base-url=<value>     New base URL for API calls
+  --description=<value>  New description for the spec
+  --[no-]insecure        Skip TLS certificate verification (--no-insecure to disable)
+  --rename=<value>       New short identifier for this API
+  --title=<value>        New display title for the spec
+
+DESCRIPTION
+  Update configuration for an imported API spec
+
+EXAMPLES
+  $ sdkck api config petstore --base-url https://api.example.com
+
+  $ sdkck api config petstore --rename mystore
+
+  $ sdkck api config petstore --title "My Petstore" --description "A pet store API"
+```
+
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/config.ts)_
+
+## `sdkck api import SOURCE`
+
+Import an OpenAPI spec, Postman collection, or GraphQL schema (SDL/introspection/endpoint) and register its operations as commands
+
+```
+USAGE
+  $ sdkck api import SOURCE [--api-key <value>] [--api-key-header <value>] [--auth-type
+    none|bearer|apikey|basic] [--base-url <value>] [--graphql] [--insecure] [--name <value>] [--password <value>]
+    [--selection-depth <value>] [--token <value>] [--username <value>]
+
+ARGUMENTS
+  SOURCE  Path to a local OpenAPI/Postman/GraphQL spec or URL (REST or GraphQL endpoint)
+
+FLAGS
+  --api-key=<value>          API key value (used with --auth-type apikey)
+  --api-key-header=<value>   [default: X-API-Key] Header name for the API key
+  --auth-type=<option>       Authentication type
+                             <options: none|bearer|apikey|basic>
+  --base-url=<value>         Override the base URL for API calls (GraphQL endpoint URL for GraphQL imports)
+  --graphql                  Treat the source as a GraphQL schema (SDL, introspection JSON, or live endpoint)
+  --insecure                 Skip TLS certificate verification (useful for self-signed certs)
+  --name=<value>             Short identifier for this API (defaults to the spec title slug)
+  --password=<value>         Password for basic auth
+  --selection-depth=<value>  [default: 3] Max depth of auto-generated GraphQL selection sets (GraphQL imports only)
+  --token=<value>            Bearer token (used with --auth-type bearer)
+  --username=<value>         Username for basic auth
+
+DESCRIPTION
+  Import an OpenAPI spec, Postman collection, or GraphQL schema (SDL/introspection/endpoint) and register its operations
+  as commands
+
+EXAMPLES
+  $ sdkck api import ./petstore.json  --name petstore
+
+  $ sdkck api import ./postman_collection.json --name myapi
+
+  $ sdkck api import https://petstore3.swagger.io/api/v3/openapi.json
+
+  $ sdkck api import ./schema.graphql --base-url https://api.example.com/graphql
+
+  $ sdkck api import https://api.example.com/graphql --name github
+
+  $ sdkck api import ./api.yaml --auth-type bearer --token sk-...
+
+  $ sdkck api import ./api.yaml --auth-type apikey --api-key mykey --api-key-header X-API-Key
+
+  $ sdkck api import ./api.yaml --auth-type basic --username user --password pass
+```
+
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/import.ts)_
+
+## `sdkck api list [NAME]`
+
+List imported API specs and their available operations
+
+```
+USAGE
+  $ sdkck api list [NAME]
+
+ARGUMENTS
+  [NAME]  API name to list operations for (omit to list all imported APIs)
+
+DESCRIPTION
+  List imported API specs and their available operations
+
+EXAMPLES
+  $ sdkck api list
+
+  $ sdkck api list petstore
+```
+
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/list.ts)_
+
+## `sdkck api remove NAME`
+
+Remove an imported API spec
+
+```
+USAGE
+  $ sdkck api remove NAME
+
+ARGUMENTS
+  NAME  API name to remove
+
+DESCRIPTION
+  Remove an imported API spec
+
+EXAMPLES
+  $ sdkck api remove petstore
+```
+
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/remove.ts)_
 
 ## `sdkck commands`
 
@@ -906,7 +1227,7 @@ EXAMPLES
   $ sdkck search "update jira" --details
 ```
 
-_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.28.0/src/commands/search.ts)_
+_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.28.1/src/commands/search.ts)_
 
 ## `sdkck update [CHANNEL]`
 
