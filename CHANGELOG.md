@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.30.0](https://github.com/hesedcasa/sdkck/compare/v0.29.0...v0.30.0) (2026-06-05)
+
+
+### 🎉 Features
+
+* migrate search command to @hesed/search plugin ([21511d5](https://github.com/hesedcasa/sdkck/commit/21511d50e25a42deadd3971c24724dd7dbc47405))
+
 ## [0.29.0](https://github.com/hesedcasa/sdkck/compare/v0.28.1...v0.29.0) (2026-06-05)
 
 
