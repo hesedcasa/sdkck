@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.28.1](https://github.com/hesedcasa/sdkck/compare/v0.28.0...v0.28.1) (2026-06-05)
+
+
+### 🛠️ Fixes
+
+* missing plugin and init file ([374d35c](https://github.com/hesedcasa/sdkck/commit/374d35c5ac75003c68afe1df9ffc31db2c891d5b))
+
 ## [0.28.0](https://github.com/hesedcasa/sdkck/compare/v0.27.0...v0.28.0) (2026-06-04)
 
 
