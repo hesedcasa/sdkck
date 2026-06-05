@@ -195,7 +195,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.28.1 linux-x64 node-v22.22.3
+sdkck/0.29.0 linux-x64 node-v22.22.3
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -287,7 +287,7 @@ EXAMPLES
   $ sdkck api auth add petstore --type none
 ```
 
-_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/auth/add.ts)_
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.3.1/src/commands/api/auth/add.ts)_
 
 ## `sdkck api auth delete API`
 
@@ -312,7 +312,7 @@ EXAMPLES
   $ sdkck api auth delete petstore -p prod
 ```
 
-_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/auth/delete.ts)_
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.3.1/src/commands/api/auth/delete.ts)_
 
 ## `sdkck api auth list API`
 
@@ -332,7 +332,7 @@ EXAMPLES
   $ sdkck api auth list petstore
 ```
 
-_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/auth/list.ts)_
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.3.1/src/commands/api/auth/list.ts)_
 
 ## `sdkck api auth profile API`
 
@@ -357,7 +357,7 @@ EXAMPLES
   $ sdkck api auth profile petstore --default prod
 ```
 
-_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/auth/profile.ts)_
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.3.1/src/commands/api/auth/profile.ts)_
 
 ## `sdkck api auth update API`
 
@@ -394,7 +394,7 @@ EXAMPLES
   $ sdkck api auth update petstore --type bearer --token sk-... --base-url https://api.prod.example.com -p prod
 ```
 
-_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/auth/update.ts)_
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.3.1/src/commands/api/auth/update.ts)_
 
 ## `sdkck api call NAME OPERATIONID`
 
@@ -403,19 +403,20 @@ Call an imported API operation
 ```
 USAGE
   $ sdkck api call NAME OPERATIONID [--base-url <value>] [--body <value>...] [--header <value>...] [--param
-    <value>...] [--raw] [--toon]
+    <value>...] [-p <value>] [--raw] [--toon]
 
 ARGUMENTS
-  NAME         API name (as shown in `api list`)
+  NAME         API name (as shown in 'api list')
   OPERATIONID  Operation ID to call (as shown in `api list <name>`)
 
 FLAGS
-  --base-url=<value>   Override the base URL for this request
-  --body=<value>...    Request body field as key=value (repeatable)
-  --header=<value>...  Extra request header as Key=Value (repeatable)
-  --param=<value>...   Path or query parameter as key=value (repeatable)
-  --raw                Print the raw response body without JSON formatting
-  --toon               Encode JSON output with TOON for token-efficient LLM consumption
+  -p, --profile=<value>    Authentication profile name
+      --base-url=<value>   Override the base URL for this request
+      --body=<value>...    Request body field as key=value (repeatable)
+      --header=<value>...  Extra request header as Key=Value (repeatable)
+      --param=<value>...   Path or query parameter as key=value (repeatable)
+      --raw                Print the raw response body without JSON formatting
+      --toon               Encode JSON output with TOON for token-efficient LLM consumption
 
 DESCRIPTION
   Call an imported API operation
@@ -430,7 +431,7 @@ EXAMPLES
   $ sdkck api call petstore listPets --query limit=10 --header X-Trace=abc
 ```
 
-_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/call.ts)_
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.3.1/src/commands/api/call.ts)_
 
 ## `sdkck api config NAME`
 
@@ -462,7 +463,7 @@ EXAMPLES
   $ sdkck api config petstore --title "My Petstore" --description "A pet store API"
 ```
 
-_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/config.ts)_
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.3.1/src/commands/api/config.ts)_
 
 ## `sdkck api import SOURCE`
 
@@ -482,10 +483,10 @@ FLAGS
   --api-key-header=<value>   [default: X-API-Key] Header name for the API key
   --auth-type=<option>       Authentication type
                              <options: none|bearer|apikey|basic>
-  --base-url=<value>         Override the base URL for API calls (GraphQL endpoint URL for GraphQL imports)
+  --base-url=<value>         Override the base URL for API calls
   --graphql                  Treat the source as a GraphQL schema (SDL, introspection JSON, or live endpoint)
-  --insecure                 Skip TLS certificate verification (useful for self-signed certs)
-  --name=<value>             Short identifier for this API (defaults to the spec title slug)
+  --insecure                 Skip TLS certificate verification (for self-signed certs)
+  --name=<value>             Short identifier for this API (defaults to title slug)
   --password=<value>         Password for basic auth
   --selection-depth=<value>  [default: 3] Max depth of auto-generated GraphQL selection sets (GraphQL imports only)
   --token=<value>            Bearer token (used with --auth-type bearer)
@@ -513,7 +514,7 @@ EXAMPLES
   $ sdkck api import ./api.yaml --auth-type basic --username user --password pass
 ```
 
-_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/import.ts)_
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.3.1/src/commands/api/import.ts)_
 
 ## `sdkck api list [NAME]`
 
@@ -535,7 +536,7 @@ EXAMPLES
   $ sdkck api list petstore
 ```
 
-_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/list.ts)_
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.3.1/src/commands/api/list.ts)_
 
 ## `sdkck api remove NAME`
 
@@ -555,7 +556,7 @@ EXAMPLES
   $ sdkck api remove petstore
 ```
 
-_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.2.0/src/commands/api/remove.ts)_
+_See code: [@hesed/api2cli](https://github.com/hesedcasa/api2cli/blob/v0.3.1/src/commands/api/remove.ts)_
 
 ## `sdkck commands`
 
@@ -1227,7 +1228,7 @@ EXAMPLES
   $ sdkck search "update jira" --details
 ```
 
-_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.28.1/src/commands/search.ts)_
+_See code: [src/commands/search.ts](https://github.com/hesedcasa/sdkck/blob/v0.29.0/src/commands/search.ts)_
 
 ## `sdkck update [CHANNEL]`
 
