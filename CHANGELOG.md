@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.29.0](https://github.com/hesedcasa/sdkck/compare/v0.28.1...v0.29.0) (2026-06-05)
+
+
+### 🎉 Features
+
+* update api2cli plugin to v0.3.1 ([0e3d904](https://github.com/hesedcasa/sdkck/commit/0e3d904a6f5add0a7bf5bd38d185d464c399d0f2))
+
 ## [0.28.1](https://github.com/hesedcasa/sdkck/compare/v0.28.0...v0.28.1) (2026-06-05)
 
 
