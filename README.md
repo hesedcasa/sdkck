@@ -195,7 +195,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.30.0 linux-x64 node-v22.22.3
+sdkck/0.31.0 linux-x64 node-v22.22.3
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -243,6 +243,8 @@ USAGE
 * [`sdkck plugins unlink [PLUGIN]`](#sdkck-plugins-unlink-plugin)
 * [`sdkck plugins update`](#sdkck-plugins-update)
 * [`sdkck search QUERY`](#sdkck-search-query)
+* [`sdkck synonyms export [FILE]`](#sdkck-synonyms-export-file)
+* [`sdkck synonyms import FILE`](#sdkck-synonyms-import-file)
 * [`sdkck update [CHANNEL]`](#sdkck-update-channel)
 * [`sdkck version`](#sdkck-version)
 
@@ -1228,7 +1230,54 @@ EXAMPLES
   $ sdkck search "update jira" --details
 ```
 
-_See code: [@hesed/search](https://github.com/hesedcasa/search/blob/v0.1.0/src/commands/search.ts)_
+_See code: [@hesed/search](https://github.com/hesedcasa/search/blob/v0.2.2/src/commands/search.ts)_
+
+## `sdkck synonyms export [FILE]`
+
+Export the stored synonyms to a JSON file or stdout
+
+```
+USAGE
+  $ sdkck synonyms export [FILE]
+
+ARGUMENTS
+  [FILE]  Output file path (prints to stdout if omitted)
+
+DESCRIPTION
+  Export the stored synonyms to a JSON file or stdout
+
+EXAMPLES
+  $ sdkck synonyms export
+
+  $ sdkck synonyms export ./my-synonyms.json
+```
+
+_See code: [@hesed/search](https://github.com/hesedcasa/search/blob/v0.2.2/src/commands/synonyms/export.ts)_
+
+## `sdkck synonyms import FILE`
+
+Import synonyms from a JSON file
+
+```
+USAGE
+  $ sdkck synonyms import FILE [--merge]
+
+ARGUMENTS
+  FILE  Path to a JSON synonyms file to import
+
+FLAGS
+  --merge  Merge with existing synonyms instead of replacing them
+
+DESCRIPTION
+  Import synonyms from a JSON file
+
+EXAMPLES
+  $ sdkck synonyms import ./synonyms.json
+
+  $ sdkck synonyms import ./synonyms.json --merge
+```
+
+_See code: [@hesed/search](https://github.com/hesedcasa/search/blob/v0.2.2/src/commands/synonyms/import.ts)_
 
 ## `sdkck update [CHANNEL]`
 
