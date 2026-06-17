@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "target": "es2022",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "composite": true
+  },
+  "include": ["./src/**/*"],
+  "exclude": ["./web", "./dist", "./node_modules"],
+  "ts-node": {
+    "esm": true
+  }
+}

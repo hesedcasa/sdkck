@@ -1,0 +1,72 @@
+{
+  "name": "@hesed/webui",
+  "version": "0.1.0",
+  "description": "oclif plugin that serves a React/Next.js web UI to browse and execute sdkck commands",
+  "author": "Hesed",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "webui": "./bin/run.js"
+  },
+  "files": [
+    "./bin",
+    "./dist",
+    "./web/app",
+    "./web/components",
+    "./web/lib",
+    "./web/public",
+    "./web/next.config.mjs",
+    "./web/tsconfig.json",
+    "./web/.next",
+    "./oclif.manifest.json"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "oclif-plugin",
+    "oclif",
+    "web",
+    "ui",
+    "nextjs",
+    "react",
+    "sdkck"
+  ],
+  "dependencies": {
+    "next": "^15.5.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "peerDependencies": {
+    "@oclif/core": ">=4"
+  },
+  "devDependencies": {
+    "@oclif/core": "^4",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "oclif": "^4",
+    "ts-node": "^10",
+    "typescript": "^5"
+  },
+  "oclif": {
+    "bin": "sdkck",
+    "commands": "./dist/commands",
+    "topicSeparator": " ",
+    "topics": {
+      "webui": {
+        "description": "Serve a web UI to browse and run sdkck commands"
+      }
+    }
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -b && npm run build:web",
+    "build:cli": "rm -rf dist && tsc -b",
+    "build:web": "next build web",
+    "dev:web": "next dev web",
+    "prepack": "npm run build && oclif manifest",
+    "postpack": "rm -f oclif.manifest.json"
+  }
+}

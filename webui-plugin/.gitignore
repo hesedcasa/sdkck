@@ -1,0 +1,6 @@
+node_modules
+dist
+oclif.manifest.json
+web/.next
+web/next-env.d.ts
+*.tsbuildinfo
