@@ -195,7 +195,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.31.1 linux-x64 node-v22.22.3
+sdkck/0.32.0 linux-x64 node-v22.22.3
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -227,10 +227,13 @@ USAGE
 * [`sdkck mcp token delete`](#sdkck-mcp-token-delete)
 * [`sdkck mcp token generate`](#sdkck-mcp-token-generate)
 * [`sdkck mcp token show`](#sdkck-mcp-token-show)
+* [`sdkck permission allow PATTERN`](#sdkck-permission-allow-pattern)
+* [`sdkck permission check COMMAND`](#sdkck-permission-check-command)
 * [`sdkck permission disallow PATTERN`](#sdkck-permission-disallow-pattern)
 * [`sdkck permission export FILE`](#sdkck-permission-export-file)
 * [`sdkck permission import FILE`](#sdkck-permission-import-file)
 * [`sdkck permission list`](#sdkck-permission-list)
+* [`sdkck permission remove PATTERN`](#sdkck-permission-remove-pattern)
 * [`sdkck permission reset`](#sdkck-permission-reset)
 * [`sdkck plugins`](#sdkck-plugins)
 * [`sdkck plugins add PLUGIN`](#sdkck-plugins-add-plugin)
@@ -245,7 +248,6 @@ USAGE
 * [`sdkck search QUERY`](#sdkck-search-query)
 * [`sdkck synonyms export [FILE]`](#sdkck-synonyms-export-file)
 * [`sdkck synonyms import FILE`](#sdkck-synonyms-import-file)
-* [`sdkck update [CHANNEL]`](#sdkck-update-channel)
 * [`sdkck version`](#sdkck-version)
 
 ## `sdkck api auth add API`
@@ -607,7 +609,7 @@ DESCRIPTION
   Display help for sdkck.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/6.2.49/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/6.2.50/src/commands/help.ts)_
 
 ## `sdkck mcp client add NAME`
 
@@ -640,7 +642,7 @@ EXAMPLES
   $ sdkck mcp client add remote --url https://api.example.com/mcp --header Authorization="Bearer token"
 ```
 
-_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.1.1/src/commands/mcp/client/add.ts)_
+_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.2.0/src/commands/mcp/client/add.ts)_
 
 ## `sdkck mcp client auth NAME`
 
@@ -660,7 +662,7 @@ EXAMPLES
   $ sdkck mcp client auth browserstack-remote
 ```
 
-_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.1.1/src/commands/mcp/client/auth.ts)_
+_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.2.0/src/commands/mcp/client/auth.ts)_
 
 ## `sdkck mcp client list`
 
@@ -682,7 +684,7 @@ EXAMPLES
   $ sdkck mcp client list --tools
 ```
 
-_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.1.1/src/commands/mcp/client/list.ts)_
+_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.2.0/src/commands/mcp/client/list.ts)_
 
 ## `sdkck mcp client refresh [NAME]`
 
@@ -704,7 +706,7 @@ EXAMPLES
   $ sdkck mcp client refresh github
 ```
 
-_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.1.1/src/commands/mcp/client/refresh.ts)_
+_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.2.0/src/commands/mcp/client/refresh.ts)_
 
 ## `sdkck mcp client remove NAME`
 
@@ -724,7 +726,7 @@ EXAMPLES
   $ sdkck mcp client remove github
 ```
 
-_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.1.1/src/commands/mcp/client/remove.ts)_
+_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.2.0/src/commands/mcp/client/remove.ts)_
 
 ## `sdkck mcp start`
 
@@ -806,6 +808,56 @@ EXAMPLES
 
 _See code: [@hesed/mcp-server](https://github.com/hesedcasa/mcp-server/blob/v0.1.2/src/commands/mcp/token/show.ts)_
 
+## `sdkck permission allow PATTERN`
+
+Allow a command pattern in the permission list
+
+```
+USAGE
+  $ sdkck permission allow PATTERN
+
+ARGUMENTS
+  PATTERN  Command pattern to allow.
+
+DESCRIPTION
+  Allow a command pattern in the permission list
+
+EXAMPLES
+  $ sdkck permission allow "*"
+
+  $ sdkck permission allow jira
+
+  $ sdkck permission allow "jira *"
+
+  $ sdkck permission allow "jira issue create"
+```
+
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.0/src/commands/permission/allow.ts)_
+
+## `sdkck permission check COMMAND`
+
+Check whether a command is allowed and which rule decides it
+
+```
+USAGE
+  $ sdkck permission check COMMAND...
+
+ARGUMENTS
+  COMMAND...  Command to check, e.g. "jira issue create"
+
+DESCRIPTION
+  Check whether a command is allowed and which rule decides it
+
+EXAMPLES
+  $ sdkck permission check jira
+
+  $ sdkck permission check "jira issue create"
+
+  $ sdkck permission check jira issue create
+```
+
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.0/src/commands/permission/check.ts)_
+
 ## `sdkck permission disallow PATTERN`
 
 Disallow a command pattern in the permission list
@@ -830,7 +882,7 @@ EXAMPLES
   $ sdkck permission disallow "jira issue create"
 ```
 
-_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.2.0/src/commands/permission/disallow.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.0/src/commands/permission/disallow.ts)_
 
 ## `sdkck permission export FILE`
 
@@ -850,7 +902,7 @@ EXAMPLES
   $ sdkck permission export permission.json
 ```
 
-_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.2.0/src/commands/permission/export.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.0/src/commands/permission/export.ts)_
 
 ## `sdkck permission import FILE`
 
@@ -870,7 +922,7 @@ EXAMPLES
   $ sdkck permission import permission.json
 ```
 
-_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.2.0/src/commands/permission/import.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.0/src/commands/permission/import.ts)_
 
 ## `sdkck permission list`
 
@@ -878,16 +930,51 @@ List all rules in the permission list
 
 ```
 USAGE
-  $ sdkck permission list
+  $ sdkck permission list [--json]
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
   List all rules in the permission list
 
 EXAMPLES
   $ sdkck permission list
+
+  $ sdkck permission list --json
 ```
 
-_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.2.0/src/commands/permission/list.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.0/src/commands/permission/list.ts)_
+
+## `sdkck permission remove PATTERN`
+
+Remove a rule from the permission list
+
+```
+USAGE
+  $ sdkck permission remove PATTERN [--allow] [--disallow]
+
+ARGUMENTS
+  PATTERN  Pattern to remove from the permission list.
+
+FLAGS
+  --allow     Only remove the pattern from the allow list
+  --disallow  Only remove the pattern from the disallow list
+
+DESCRIPTION
+  Remove a rule from the permission list
+
+EXAMPLES
+  $ sdkck permission remove jira
+
+  $ sdkck permission remove "jira *"
+
+  $ sdkck permission remove jira --allow
+
+  $ sdkck permission remove jira --disallow
+```
+
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.0/src/commands/permission/remove.ts)_
 
 ## `sdkck permission reset`
 
@@ -909,7 +996,7 @@ EXAMPLES
   $ sdkck permission reset --confirm
 ```
 
-_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.2.0/src/commands/permission/reset.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.0/src/commands/permission/reset.ts)_
 
 ## `sdkck plugins`
 
@@ -932,7 +1019,7 @@ EXAMPLES
   $ sdkck plugins
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.72/src/commands/plugins/index.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.74/src/commands/plugins/index.ts)_
 
 ## `sdkck plugins add PLUGIN`
 
@@ -1006,7 +1093,7 @@ EXAMPLES
   $ sdkck plugins inspect myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.72/src/commands/plugins/inspect.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.74/src/commands/plugins/inspect.ts)_
 
 ## `sdkck plugins install PLUGIN`
 
@@ -1055,7 +1142,7 @@ EXAMPLES
     $ sdkck plugins install someuser/someplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.72/src/commands/plugins/install.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.74/src/commands/plugins/install.ts)_
 
 ## `sdkck plugins link PATH`
 
@@ -1086,7 +1173,7 @@ EXAMPLES
   $ sdkck plugins link myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.72/src/commands/plugins/link.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.74/src/commands/plugins/link.ts)_
 
 ## `sdkck plugins remove [PLUGIN]`
 
@@ -1127,7 +1214,7 @@ FLAGS
   --reinstall  Reinstall all plugins after uninstalling.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.72/src/commands/plugins/reset.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.74/src/commands/plugins/reset.ts)_
 
 ## `sdkck plugins uninstall [PLUGIN]`
 
@@ -1155,7 +1242,7 @@ EXAMPLES
   $ sdkck plugins uninstall myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.72/src/commands/plugins/uninstall.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.74/src/commands/plugins/uninstall.ts)_
 
 ## `sdkck plugins unlink [PLUGIN]`
 
@@ -1199,7 +1286,7 @@ DESCRIPTION
   Update installed plugins.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.72/src/commands/plugins/update.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.74/src/commands/plugins/update.ts)_
 
 ## `sdkck search QUERY`
 
@@ -1278,44 +1365,6 @@ EXAMPLES
 ```
 
 _See code: [@hesed/search](https://github.com/hesedcasa/search/blob/v0.2.2/src/commands/synonyms/import.ts)_
-
-## `sdkck update [CHANNEL]`
-
-update the sdkck CLI
-
-```
-USAGE
-  $ sdkck update [CHANNEL] [--force |  | [-a | -v <value> | -i]] [-b ]
-
-FLAGS
-  -a, --available        See available versions.
-  -b, --verbose          Show more details about the available versions.
-  -i, --interactive      Interactively select version to install. This is ignored if a channel is provided.
-  -v, --version=<value>  Install a specific version.
-      --force            Force a re-download of the requested version.
-
-DESCRIPTION
-  update the sdkck CLI
-
-EXAMPLES
-  Update to the stable channel:
-
-    $ sdkck update stable
-
-  Update to a specific version:
-
-    $ sdkck update --version 1.0.0
-
-  Interactively select version:
-
-    $ sdkck update --interactive
-
-  See available versions:
-
-    $ sdkck update --available
-```
-
-_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/4.7.42/src/commands/update.ts)_
 
 ## `sdkck version`
 
