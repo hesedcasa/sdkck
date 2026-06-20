@@ -9,9 +9,9 @@
   "bugs": "https://github.com/hesedcasa/sdkck/issues",
   "dependencies": {
     "@hesed/api2cli": "^0.3.2",
-    "@hesed/mcp-client": "^0.1.0",
+    "@hesed/mcp-client": "^0.2.0",
     "@hesed/mcp-server": "^0.1.2",
-    "@hesed/permission": "^0.2.0",
+    "@hesed/permission": "^0.3.0",
     "@hesed/search": "^0.2.2",
     "@leeoniya/ufuzzy": "^1.0.19",
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -20,7 +20,6 @@
     "@oclif/plugin-help": "^6",
     "@oclif/plugin-not-found": "^3.2.74",
     "@oclif/plugin-plugins": "^5.4.56",
-    "@oclif/plugin-update": "^4.7.19",
     "@oclif/plugin-version": "^2.2.36",
     "@scalar/openapi-parser": "^0.28.6",
     "@scalar/postman-to-openapi": "^0.7.8",
@@ -82,7 +81,6 @@
   ],
   "license": "Apache-2.0",
   "main": "dist/index.js",
-  "type": "module",
   "oclif": {
     "bin": "sdkck",
     "dirname": "sdkck",
@@ -106,11 +104,6 @@
     },
     "topicSeparator": " ",
     "topics": {},
-    "update": {
-      "autoupdate": {
-        "debounce": 7
-      }
-    },
     "hooks": {
       "init": [
         "./dist/hooks/init/setup-file-logging"
@@ -131,5 +124,6 @@
     "format": "eslint --cache --fix --quiet . && prettier --write --cache .",
     "pre-commit": "npm run format && npm run find-deadcode"
   },
+  "type": "module",
   "types": "dist/index.d.ts"
 }
