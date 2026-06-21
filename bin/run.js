@@ -8,6 +8,7 @@ import {Config, flush, handle, run} from '@oclif/core'
 // commands register once the plugin has been auto-installed on first use.
 async function registerMcpClientCommands(config) {
   try {
+    // eslint-disable-next-line import/no-unresolved -- JIT plugin, may not be installed
     const {registerMcpClientCommands: register} = await import('@hesed/mcp-client')
     await register(config)
   } catch {
