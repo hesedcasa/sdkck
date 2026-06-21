@@ -87,7 +87,9 @@ Key file: `src/mcp-client-store.ts`.
 
 ## JIT Plugins
 
-The `oclif.jitPlugins` field in `package.json` declares plugins that are auto-installed on first use (e.g., `@hesed/jira`, `@hesed/conni`, `@hesed/bb`, `@hesed/sentry`, `@hesed/mysql`, `@hesed/psql`, `@hesed/supabase`). When a JIT plugin's command is invoked, the `jit_plugin_not_installed` hook (`src/hooks/jit_plugin_not_installed/jit-install.ts`) runs `plugins:install <pluginName>@<pluginVersion>` automatically.
+The `oclif.jitPlugins` field in `package.json` declares plugins that are auto-installed on first use (e.g., `@hesed/mcp-server`, `@hesed/mcp-client`, `@hesed/jira`, `@hesed/conni`, `@hesed/bb`, `@hesed/sentry`, `@hesed/mysql`, `@hesed/psql`, `@hesed/supabase`). When a JIT plugin's command is invoked, the `jit_plugin_not_installed` hook (`src/hooks/jit_plugin_not_installed/jit-install.ts`) runs `plugins:install <pluginName>@<pluginVersion>` automatically.
+
+The MCP server (`mcp start`, `mcp token …`) and MCP client (`mcp client …`) live in the JIT plugins `@hesed/mcp-server` and `@hesed/mcp-client`. Because `bin/run.js`/`bin/dev.js` register the MCP client's dynamic tool commands at startup, they import `@hesed/mcp-client` via a guarded dynamic `import()` — when the plugin isn't installed yet the CLI still starts, and the dynamic commands appear once it's auto-installed on first `mcp client` use.
 
 ## Testing Patterns
 

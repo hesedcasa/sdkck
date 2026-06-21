@@ -1,8 +1,19 @@
 #!/usr/bin/env node
 
 import {registerApiCommands} from '@hesed/api2cli'
-import {registerMcpClientCommands} from '@hesed/mcp-client'
 import {Config, flush, handle, run} from '@oclif/core'
+
+// @hesed/mcp-client is a JIT plugin, so it may not be installed yet. Import it
+// lazily and ignore a missing module so the CLI still starts; its dynamic
+// commands register once the plugin has been auto-installed on first use.
+async function registerMcpClientCommands(config) {
+  try {
+    const {registerMcpClientCommands: register} = await import('@hesed/mcp-client')
+    await register(config)
+  } catch {
+    // plugin not installed yet, or registration failed — skip silently
+  }
+}
 
 // Patch Config.load so every config instance (including those created inside
 // Command.run) automatically gets the dynamic API commands registered.
@@ -11,7 +22,7 @@ const originalLoad = Config.load.bind(Config)
 Config.load = async (...args) => {
   const config = await originalLoad(...args)
   await registerApiCommands(config).catch(() => {})
-  await registerMcpClientCommands(config).catch(() => {})
+  await registerMcpClientCommands(config)
   return config
 }
 
