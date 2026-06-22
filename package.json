@@ -9,12 +9,9 @@
   "bugs": "https://github.com/hesedcasa/sdkck/issues",
   "dependencies": {
     "@hesed/api2cli": "^0.3.2",
-    "@hesed/mcp-client": "^0.2.0",
-    "@hesed/mcp-server": "^0.1.2",
     "@hesed/permission": "^0.3.0",
     "@hesed/search": "^0.2.2",
     "@leeoniya/ufuzzy": "^1.0.19",
-    "@modelcontextprotocol/sdk": "^1.29.0",
     "@oclif/core": "^4",
     "@oclif/plugin-commands": "^4.1.40",
     "@oclif/plugin-help": "^6",
@@ -87,13 +84,13 @@
     "commands": "./dist/commands",
     "plugins": [
       "@hesed/api2cli",
-      "@hesed/mcp-client",
-      "@hesed/mcp-server",
       "@hesed/permission",
       "@hesed/search",
       "@oclif/plugin-*"
     ],
     "jitPlugins": {
+      "@hesed/mcp-server": "latest",
+      "@hesed/mcp-client": "latest",
       "@hesed/jira": "latest",
       "@hesed/conni": "latest",
       "@hesed/bb": "latest",
