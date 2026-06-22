@@ -8,8 +8,13 @@ import {Config, flush, handle, run} from '@oclif/core'
 // commands register once the plugin has been auto-installed on first use.
 async function registerMcpClientCommands(config) {
   try {
-    // eslint-disable-next-line import/no-unresolved -- JIT plugin, may not be installed
-    const {registerMcpClientCommands: register} = await import('@hesed/mcp-client')
+    // JIT plugins are installed under config.dataDir, not the project's node_modules,
+    // so we must resolve the absolute path rather than using a bare package specifier.
+    const pluginPath = new URL(
+      'node_modules/@hesed/mcp-client/dist/index.js',
+      `file://${config.dataDir}/`,
+    ).href
+    const {registerMcpClientCommands: register} = await import(pluginPath)
     await register(config)
   } catch {
     // plugin not installed yet, or registration failed — skip silently
