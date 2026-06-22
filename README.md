@@ -195,7 +195,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.32.0 linux-x64 node-v22.22.3
+sdkck/0.32.1 linux-x64 node-v22.22.3
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -218,15 +218,6 @@ USAGE
 * [`sdkck api remove NAME`](#sdkck-api-remove-name)
 * [`sdkck commands`](#sdkck-commands)
 * [`sdkck help [COMMAND]`](#sdkck-help-command)
-* [`sdkck mcp client add NAME`](#sdkck-mcp-client-add-name)
-* [`sdkck mcp client auth NAME`](#sdkck-mcp-client-auth-name)
-* [`sdkck mcp client list`](#sdkck-mcp-client-list)
-* [`sdkck mcp client refresh [NAME]`](#sdkck-mcp-client-refresh-name)
-* [`sdkck mcp client remove NAME`](#sdkck-mcp-client-remove-name)
-* [`sdkck mcp start`](#sdkck-mcp-start)
-* [`sdkck mcp token delete`](#sdkck-mcp-token-delete)
-* [`sdkck mcp token generate`](#sdkck-mcp-token-generate)
-* [`sdkck mcp token show`](#sdkck-mcp-token-show)
 * [`sdkck permission allow PATTERN`](#sdkck-permission-allow-pattern)
 * [`sdkck permission check COMMAND`](#sdkck-permission-check-command)
 * [`sdkck permission disallow PATTERN`](#sdkck-permission-disallow-pattern)
@@ -589,7 +580,7 @@ DESCRIPTION
   List all sdkck commands.
 ```
 
-_See code: [@oclif/plugin-commands](https://github.com/oclif/plugin-commands/blob/4.1.57/src/commands/commands.ts)_
+_See code: [@oclif/plugin-commands](https://github.com/oclif/plugin-commands/blob/4.1.59/src/commands/commands.ts)_
 
 ## `sdkck help [COMMAND]`
 
@@ -609,204 +600,7 @@ DESCRIPTION
   Display help for sdkck.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/6.2.50/src/commands/help.ts)_
-
-## `sdkck mcp client add NAME`
-
-Add an MCP server and register its tools as native CLI commands
-
-```
-USAGE
-  $ sdkck mcp client add NAME [--args <value>...] [-c <value>] [--env <value>...] [--header <value>...] [-u <value>]
-
-ARGUMENTS
-  NAME  Name for the MCP server
-
-FLAGS
-  -c, --command=<value>    Command to run the MCP server (stdio transport)
-  -u, --url=<value>        URL of the MCP server (http transport)
-      --args=<value>...    Argument to pass to the server command (repeatable)
-      --env=<value>...     Environment variable for the server process as KEY=VALUE (repeatable)
-      --header=<value>...  HTTP header for the MCP server as Key=Value (repeatable)
-
-DESCRIPTION
-  Add an MCP server and register its tools as native CLI commands
-
-EXAMPLES
-  $ sdkck mcp client add github --command npx --args @modelcontextprotocol/server-github
-
-  $ sdkck mcp client add myserver --command ./bin/server.js --args start --env API_KEY=abc123
-
-  $ sdkck mcp client add remote --url http://localhost:3000/mcp
-
-  $ sdkck mcp client add remote --url https://api.example.com/mcp --header Authorization="Bearer token"
-```
-
-_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.2.0/src/commands/mcp/client/add.ts)_
-
-## `sdkck mcp client auth NAME`
-
-Re-authenticate an HTTP MCP server via OAuth browser flow
-
-```
-USAGE
-  $ sdkck mcp client auth NAME
-
-ARGUMENTS
-  NAME  Name of the MCP server to re-authenticate
-
-DESCRIPTION
-  Re-authenticate an HTTP MCP server via OAuth browser flow
-
-EXAMPLES
-  $ sdkck mcp client auth browserstack-remote
-```
-
-_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.2.0/src/commands/mcp/client/auth.ts)_
-
-## `sdkck mcp client list`
-
-List configured MCP servers and their cached tools
-
-```
-USAGE
-  $ sdkck mcp client list [-t]
-
-FLAGS
-  -t, --tools  Show individual tools for each server
-
-DESCRIPTION
-  List configured MCP servers and their cached tools
-
-EXAMPLES
-  $ sdkck mcp client list
-
-  $ sdkck mcp client list --tools
-```
-
-_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.2.0/src/commands/mcp/client/list.ts)_
-
-## `sdkck mcp client refresh [NAME]`
-
-Refresh the cached tool list for one or all MCP servers
-
-```
-USAGE
-  $ sdkck mcp client refresh [NAME]
-
-ARGUMENTS
-  [NAME]  Name of the MCP server to refresh (refreshes all if omitted)
-
-DESCRIPTION
-  Refresh the cached tool list for one or all MCP servers
-
-EXAMPLES
-  $ sdkck mcp client refresh
-
-  $ sdkck mcp client refresh github
-```
-
-_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.2.0/src/commands/mcp/client/refresh.ts)_
-
-## `sdkck mcp client remove NAME`
-
-Remove a configured MCP server and its cached tools
-
-```
-USAGE
-  $ sdkck mcp client remove NAME
-
-ARGUMENTS
-  NAME  Name of the MCP server to remove
-
-DESCRIPTION
-  Remove a configured MCP server and its cached tools
-
-EXAMPLES
-  $ sdkck mcp client remove github
-```
-
-_See code: [@hesed/mcp-client](https://github.com/hesedcasa/mcp-client/blob/v0.2.0/src/commands/mcp/client/remove.ts)_
-
-## `sdkck mcp start`
-
-Start an MCP server exposing all CLI commands as tools
-
-```
-USAGE
-  $ sdkck mcp start [--host <value>] [--port <value>] [--transport stdio|http]
-
-FLAGS
-  --host=<value>        [default: 127.0.0.1] IP address to listen on (HTTP transport only)
-  --port=<value>        [default: 3000] Port to listen on (HTTP transport only)
-  --transport=<option>  [default: stdio] Transport to use
-                        <options: stdio|http>
-
-DESCRIPTION
-  Start an MCP server exposing all CLI commands as tools
-
-EXAMPLES
-  $ sdkck mcp start
-
-  $ sdkck mcp start --transport http
-
-  $ sdkck mcp start --transport http --port 3001
-
-  $ sdkck mcp start --transport http --host 0.0.0.0
-```
-
-_See code: [@hesed/mcp-server](https://github.com/hesedcasa/mcp-server/blob/v0.1.2/src/commands/mcp/start.ts)_
-
-## `sdkck mcp token delete`
-
-Remove the MCP server Bearer token, disabling HTTP authentication
-
-```
-USAGE
-  $ sdkck mcp token delete
-
-DESCRIPTION
-  Remove the MCP server Bearer token, disabling HTTP authentication
-
-EXAMPLES
-  $ sdkck mcp token delete
-```
-
-_See code: [@hesed/mcp-server](https://github.com/hesedcasa/mcp-server/blob/v0.1.2/src/commands/mcp/token/delete.ts)_
-
-## `sdkck mcp token generate`
-
-Generate a Bearer token for MCP server HTTP authentication
-
-```
-USAGE
-  $ sdkck mcp token generate
-
-DESCRIPTION
-  Generate a Bearer token for MCP server HTTP authentication
-
-EXAMPLES
-  $ sdkck mcp token generate
-```
-
-_See code: [@hesed/mcp-server](https://github.com/hesedcasa/mcp-server/blob/v0.1.2/src/commands/mcp/token/generate.ts)_
-
-## `sdkck mcp token show`
-
-Show the current MCP server Bearer token
-
-```
-USAGE
-  $ sdkck mcp token show
-
-DESCRIPTION
-  Show the current MCP server Bearer token
-
-EXAMPLES
-  $ sdkck mcp token show
-```
-
-_See code: [@hesed/mcp-server](https://github.com/hesedcasa/mcp-server/blob/v0.1.2/src/commands/mcp/token/show.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/6.2.52/src/commands/help.ts)_
 
 ## `sdkck permission allow PATTERN`
 
@@ -1019,7 +813,7 @@ EXAMPLES
   $ sdkck plugins
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.74/src/commands/plugins/index.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.78/src/commands/plugins/index.ts)_
 
 ## `sdkck plugins add PLUGIN`
 
@@ -1093,7 +887,7 @@ EXAMPLES
   $ sdkck plugins inspect myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.74/src/commands/plugins/inspect.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.78/src/commands/plugins/inspect.ts)_
 
 ## `sdkck plugins install PLUGIN`
 
@@ -1142,7 +936,7 @@ EXAMPLES
     $ sdkck plugins install someuser/someplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.74/src/commands/plugins/install.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.78/src/commands/plugins/install.ts)_
 
 ## `sdkck plugins link PATH`
 
@@ -1173,7 +967,7 @@ EXAMPLES
   $ sdkck plugins link myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.74/src/commands/plugins/link.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.78/src/commands/plugins/link.ts)_
 
 ## `sdkck plugins remove [PLUGIN]`
 
@@ -1214,7 +1008,7 @@ FLAGS
   --reinstall  Reinstall all plugins after uninstalling.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.74/src/commands/plugins/reset.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.78/src/commands/plugins/reset.ts)_
 
 ## `sdkck plugins uninstall [PLUGIN]`
 
@@ -1242,7 +1036,7 @@ EXAMPLES
   $ sdkck plugins uninstall myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.74/src/commands/plugins/uninstall.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.78/src/commands/plugins/uninstall.ts)_
 
 ## `sdkck plugins unlink [PLUGIN]`
 
@@ -1286,7 +1080,7 @@ DESCRIPTION
   Update installed plugins.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.74/src/commands/plugins/update.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.78/src/commands/plugins/update.ts)_
 
 ## `sdkck search QUERY`
 
@@ -1384,5 +1178,5 @@ FLAG DESCRIPTIONS
     Additionally shows the architecture, node version, operating system, and versions of plugins that the CLI is using.
 ```
 
-_See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/2.2.46/src/commands/version.ts)_
+_See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/2.2.49/src/commands/version.ts)_
 <!-- commandsstop -->
