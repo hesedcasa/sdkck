@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.32.1](https://github.com/hesedcasa/sdkck/compare/v0.32.0...v0.32.1) (2026-06-22)
+
+
+### ♻️ Chores
+
+* convert MCP server and client to JIT plugins ([#162](https://github.com/hesedcasa/sdkck/issues/162)) ([f52e00b](https://github.com/hesedcasa/sdkck/commit/f52e00b91b67d99575d3e2614594ac844ed34c97))
+
 ## [0.32.0](https://github.com/hesedcasa/sdkck/compare/v0.31.1...v0.32.0) (2026-06-20)
 
 
