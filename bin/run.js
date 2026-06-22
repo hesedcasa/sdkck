@@ -10,10 +10,7 @@ async function registerMcpClientCommands(config) {
   try {
     // JIT plugins are installed under config.dataDir, not the project's node_modules,
     // so we must resolve the absolute path rather than using a bare package specifier.
-    const pluginPath = new URL(
-      'node_modules/@hesed/mcp-client/dist/index.js',
-      `file://${config.dataDir}/`,
-    ).href
+    const pluginPath = new URL('node_modules/@hesed/mcp-client/dist/index.js', `file://${config.dataDir}/`).href
     const {registerMcpClientCommands: register} = await import(pluginPath)
     await register(config)
   } catch {
