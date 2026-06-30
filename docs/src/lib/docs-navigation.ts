@@ -51,6 +51,7 @@ export const navigation: NavSection[] = [
       {href: '/official-plugins/postgresql', name: 'PostgreSQL'},
       {href: '/official-plugins/supabase', name: 'Supabase'},
       {href: '/official-plugins/confluence', name: 'Confluence'},
+      {href: '/official-plugins/webui', name: 'WebUI'},
     ],
     title: 'Official Plugins',
   },
