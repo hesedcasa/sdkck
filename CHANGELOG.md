@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.32.2](https://github.com/hesedcasa/sdkck/compare/v0.32.1...v0.32.2) (2026-06-30)
+
+
+### 📄 Documentation
+
+* add WebUI plugin documentation and navigation entry ([#167](https://github.com/hesedcasa/sdkck/issues/167)) ([17a1982](https://github.com/hesedcasa/sdkck/commit/17a19823fe71d454fa4794b60ab6c0e8622c6c47))
+
 ## [0.32.1](https://github.com/hesedcasa/sdkck/compare/v0.32.0...v0.32.1) (2026-06-22)
 
 
