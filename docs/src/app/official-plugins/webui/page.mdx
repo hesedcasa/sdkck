@@ -1,0 +1,89 @@
+# WebUI (`@hesed/webui`)
+
+The `@hesed/webui` plugin starts a local browser interface for browsing Sidekick commands, filling command options, and running commands without typing the full CLI invocation by hand.
+
+![WebUI command browser](/webui-01.jpg)
+
+## Step 1: Install the plugin
+
+```bash
+sdkck plugins install @hesed/webui
+```
+
+## Step 2: Start the WebUI
+
+```bash
+sdkck webui
+```
+
+By default, the WebUI listens on `127.0.0.1:4040`. Open [http://127.0.0.1:4040](http://127.0.0.1:4040) in your browser.
+
+To open the browser automatically when the server is ready:
+
+```bash
+sdkck webui --open
+```
+
+## UI features
+
+The WebUI is organized around a command browser and a command runner.
+
+![WebUI topic navigation](/webui-02.jpg)
+
+- **Search** — type in the command filter to find commands by name or description.
+- **Topic navigation** — choose a topic, such as `jira`, to browse only commands from that plugin.
+- **Command list** — select a command from the left sidebar to inspect what it does.
+- **Command details** — fill required arguments and optional flags in the main panel.
+- **Generated command preview** — review the equivalent `sdkck ...` command before running it.
+- **Theme toggle** — switch between light and dark mode from the header.
+
+## Step 3: Run a Jira command from the WebUI
+
+1. Type `jira issue search` in the command filter.
+2. Click `jira:issue:search` in the command list.
+3. Enter a JQL expression, such as `project = PROJ AND status = "In Progress"`.
+4. Optionally set flags like `--max`, `--fields`, or `--profile`.
+5. Click **Run command**.
+
+Commands run through the WebUI use the same Sidekick configuration, plugins, and authentication profiles as commands run directly in the terminal.
+
+The example above builds the equivalent of:
+
+```bash
+sdkck jira:issue:search 'project = PROJ AND status = "In Progress"'
+```
+
+## Options
+
+```bash
+# Use a different port
+sdkck webui --port 8080
+
+# Bind to another host interface
+sdkck webui --host 0.0.0.0
+
+# Start and open the UI automatically
+sdkck webui --port 8080 --open
+```
+
+## Discover command help
+
+```bash
+sdkck webui --help
+```
+
+## Troubleshooting
+
+**Port already in use**
+
+- Start the WebUI on another port: `sdkck webui --port 8080`
+
+**Cannot access from another device**
+
+- Bind to all interfaces with `sdkck webui --host 0.0.0.0`
+- Confirm your firewall allows inbound access to the selected port
+
+**Command is missing from the WebUI**
+
+- Verify the plugin that provides the command is installed or has been auto-installed
+- Restart the WebUI after installing new plugins
