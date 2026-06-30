@@ -4,13 +4,7 @@ The `@hesed/webui` plugin starts a local browser interface for browsing Sidekick
 
 ![WebUI command browser](/webui-01.jpg)
 
-## Step 1: Install the plugin
-
-```bash
-sdkck plugins install @hesed/webui
-```
-
-## Step 2: Start the WebUI
+## Start the WebUI
 
 ```bash
 sdkck webui
@@ -37,7 +31,7 @@ The WebUI is organized around a command browser and a command runner.
 - **Generated command preview** — review the equivalent `sdkck ...` command before running it.
 - **Theme toggle** — switch between light and dark mode from the header.
 
-## Step 3: Run a Jira command from the WebUI
+## Run command from WebUI
 
 1. Type `jira issue search` in the command filter.
 2. Click `jira:issue:search` in the command list.
@@ -60,6 +54,7 @@ sdkck jira:issue:search 'project = PROJ AND status = "In Progress"'
 sdkck webui --port 8080
 
 # Bind to another host interface
+# only use on a trusted private network
 sdkck webui --host 0.0.0.0
 
 # Start and open the UI automatically
