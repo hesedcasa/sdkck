@@ -35,7 +35,7 @@
     "@types/chai-as-promised": "^8.0.2",
     "@types/js-yaml": "^4.0.9",
     "@types/mocha": "^10",
-    "@types/node": "^25",
+    "@types/node": "^26",
     "chai": "^6",
     "chai-as-promised": "^8.0.2",
     "eslint": "^9",
