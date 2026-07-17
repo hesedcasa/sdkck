@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.32.4](https://github.com/hesedcasa/sdkck/compare/v0.32.3...v0.32.4) (2026-07-17)
+
+
+### 🛠️ Fixes
+
+* stop passing command return value to flush() as timeout ([#181](https://github.com/hesedcasa/sdkck/issues/181)) ([e21260e](https://github.com/hesedcasa/sdkck/commit/e21260e59dc04a069fdc9b59e2edcacd02528b03))
+
 ## [0.32.3](https://github.com/hesedcasa/sdkck/compare/v0.32.2...v0.32.3) (2026-07-05)
 
 
