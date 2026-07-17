@@ -32,6 +32,8 @@ Config.load = async (...args) => {
   return config
 }
 
+// run() resolves with the command's return value; don't pass it to flush(),
+// which would treat it as the timeout in ms (NaN → TimeoutNaNWarning).
 await run(process.argv.slice(2), import.meta.url)
-  .then(flush)
+  .then(() => flush())
   .catch(handle)
