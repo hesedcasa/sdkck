@@ -1,0 +1,58 @@
+# 权限
+
+对哪些命令可以被执行进行细粒度控制。非常适合企业环境和共享的智能体（agent）配置。
+
+## 规则匹配
+
+第一条匹配的规则生效。未匹配到的命令默认为**允许**。规则使用 glob 风格的模式，针对以空格分隔的命令 ID 进行匹配。
+
+## 允许与禁止
+
+```bash
+# Allow specific commands
+sdkck permission allow "jira issue list"
+sdkck permission allow "jira issue view"
+
+# Disallow a topic and everything under it
+sdkck permission disallow "jira *"
+
+# Allow everything
+sdkck permission allow "*"
+```
+
+## 模式语法
+
+| 模式                | 匹配内容                             |
+| ------------------- | ----------------------------------- |
+| `jira`              | 精确的命令 ID "jira"                 |
+| `jira issue create` | 精确的命令 ID                        |
+| `jira *`            | "jira" 主题下的所有命令             |
+| `*`                 | 所有内容                            |
+
+## 列出规则
+
+```bash
+sdkck permission list
+```
+
+## 导出与导入
+
+在团队中共享权限配置：
+
+```bash
+# Export current rules
+sdkck permission export permissions.json
+
+# Import rules on another machine
+sdkck permission import permissions.json
+```
+
+## 重置
+
+```bash
+# Reset all rules (prompts for confirmation)
+sdkck permission reset
+
+# Skip confirmation
+sdkck permission reset --confirm
+```

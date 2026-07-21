@@ -6,6 +6,7 @@ import './globals.css'
 import {DocsMobileNav} from '@/components/docs-mobile-nav'
 import {DocsSidebar} from '@/components/docs-sidebar'
 import {Header} from '@/components/header'
+import {HtmlLangSync} from '@/components/html-lang-sync'
 import {ThemeProvider} from '@/components/theme-provider'
 
 const inter = Inter({
@@ -38,6 +39,7 @@ export default function RootLayout({
         className={`${inter.variable} ${geistMono.variable} bg-white text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100`}
       >
         <ThemeProvider>
+          <HtmlLangSync />
           <Header />
           <DocsMobileNav />
           <div className="max-w-5xl mx-auto px-6 py-8 lg:py-12 flex gap-16">

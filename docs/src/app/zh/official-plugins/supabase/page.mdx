@@ -1,0 +1,70 @@
+# Supabase (`@hesed/supabase`)
+
+`@hesed/supabase` 插件让你可以直接从终端与你的 Supabase 项目交互——查询数据、管理表等等。它已随 Sidekick 预装。
+
+## 前提条件
+
+- 一个至少拥有一个项目的 Supabase 账户
+- 一个 Supabase service role key 或个人访问令牌（见下文）
+
+## 第 1 步：获取你的 Supabase 凭据
+
+### 项目 URL 和 API 密钥
+
+1. 登录 [https://supabase.com/dashboard](https://supabase.com/dashboard)
+2. 选择你的项目
+3. 前往 **Settings → API**
+4. 复制 **Project URL**（例如 `https://xyzcompany.supabase.co`）
+5. 在 **Project API keys** 下，复制 **service_role** 密钥
+
+> **警告：** `service_role` 密钥会绕过行级安全（Row Level Security）。请将其保密，切勿提交到版本控制中。对于只读用例，请改用 `anon` 密钥。
+
+## 第 2 步：在 Sidekick 中配置认证
+
+```bash
+sdkck supabase auth add
+```
+
+系统会提示你输入：
+
+- **Project URL** — 你的 Supabase 项目 URL
+- **API key** — 第 1 步中的 service role 或 anon 密钥
+
+## 第 3 步：验证连接
+
+```bash
+sdkck supabase auth test
+```
+
+## 示例命令
+
+```bash
+# 列出你 Supabase 项目中的表
+sdkck supabase tables
+
+# 查询一张表
+sdkck supabase query users first_name,last_name,email --filters "created_at=gt.2017-01-01"
+
+# 查看表结构
+sdkck supabase table-columns
+```
+
+## 探索所有命令
+
+```bash
+sdkck help supabase
+```
+
+## 故障排查
+
+**API 密钥无效（Invalid API key）**
+
+- 确保你使用的是来自正确项目的正确密钥（service_role 或 anon）
+
+**网络错误 / CORS**
+
+- 验证你的项目 URL 是否正确，以及项目是否处于活动状态（未被暂停——Supabase 会暂停不活跃的免费套餐项目）
+
+**权限被拒绝（Permission denied）**
+
+- 如果使用 `anon` 密钥，行级安全策略可能会限制访问。切换到 `service_role` 密钥以获得完全访问权限，或调整你的 RLS 策略

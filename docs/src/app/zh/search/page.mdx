@@ -1,0 +1,56 @@
+# 搜索
+
+通过模糊匹配或 AI 驱动的语义搜索，即时找到合适的命令。
+
+## 基本用法
+
+```bash
+sdkck search "create issue"
+sdkck search jira
+sdkck search "list pets"
+```
+
+## 标志
+
+| 标志            | 默认值 | 说明                             |
+| --------------- | ------- | --------------------------------------- |
+| `-d, --details` | 关闭     | 为每个匹配的命令显示完整帮助 |
+| `-n, --limit`   | 5       | 结果的最大数量               |
+| `--json`        | 关闭     | 以 JSON 格式输出结果                   |
+
+## 模糊搜索（默认）
+
+无需 API 密钥。使用模糊匹配来查找相关命令：
+
+```bash
+sdkck search "create pr"
+sdkck search jira -d
+sdkck search "update jira" --details
+```
+
+## 语义搜索（AI 驱动）
+
+设置 `OPENAI_API_KEY` 环境变量以启用由 `gpt-4o` 驱动的语义匹配：
+
+```bash
+export OPENAI_API_KEY=sk-...
+sdkck search "find recent errors in production"
+```
+
+当 `OPENAI_API_KEY` 未设置时，搜索会自动回退到模糊匹配。
+
+## 示例
+
+```bash
+# Find Jira-related commands
+sdkck search jira
+
+# Find database commands with full details
+sdkck search "database query" -d
+
+# Get JSON output for scripting
+sdkck search "create Jira issue" --json
+
+# Limit results
+sdkck search "list" -n 10
+```

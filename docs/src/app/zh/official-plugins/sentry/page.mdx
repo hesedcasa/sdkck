@@ -1,0 +1,75 @@
+# Sentry (`@hesed/sentry`)
+
+`@hesed/sentry` 插件让你可以在终端中分类错误、列出问题并管理 Sentry 项目。它已随 Sidekick 预装。
+
+## 前提条件
+
+- 一个 Sentry 账户（云端或自托管）
+- 一个 Sentry Auth Token（见下文）
+
+## 第 1 步：获取你的 Sentry Auth Token
+
+1. 登录 [https://sentry.io](https://sentry.io) 或自托管 URL
+2. 点击左下角侧边栏中的用户名或头像
+3. 选择 **User Auth Tokens**（或前往 **Settings → Account → API → Auth Tokens**）
+4. 点击 **Create New Token**
+5. 为其命名（例如 `sdkck-cli`）
+6. 选择所需的权限范围（scope）——至少包含：
+   - `project:read`
+   - `event:read`
+   - `org:read`
+7. 点击 **Create Token**
+8. 立即复制令牌——它不会再次显示
+
+![Sentry 复制 API 令牌界面](/sentry-01.webp)
+
+## 第 2 步：在 Sidekick 中配置认证
+
+```bash
+sdkck sentry auth add
+```
+
+![Sentry 添加认证](/sentry-02.webp)
+
+系统会提示你输入：
+
+- **Host** — Sentry 云端填 `https://sentry.io`，或填你的自托管 URL
+- **Auth token** — 你在第 1 步复制的令牌
+- **Organization slug** — 你的 Sentry 组织 slug（可在 Sentry URL 中看到）
+
+## 第 3 步：验证连接
+
+```bash
+sdkck sentry auth test
+```
+
+## 示例命令
+
+```bash
+# 获取某个特定问题的详情
+sdkck sentry issue get 123456789
+
+# 列出你组织中的项目
+sdkck sentry project issues my-project --query "is:unresolved"
+```
+
+## 探索所有命令
+
+```bash
+sdkck help sentry
+```
+
+## 故障排查
+
+**401 Unauthorized / 权限被拒绝**
+
+- 重新检查令牌的权限范围是否包含 `project:read` 和 `event:read`
+- 确保令牌未被撤销
+
+**找不到组织（Organization not found）**
+
+- 确认 `--org` slug 与你的 Sentry URL 中显示的完全一致：`sentry.io/organizations/<org-slug>/`
+
+**自托管 Sentry**
+
+- 使用你完整的自托管 URL 作为 host（例如 `https://sentry.yourcompany.com`）

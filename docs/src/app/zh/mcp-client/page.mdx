@@ -1,0 +1,135 @@
+# MCP 客户端
+
+连接到任何外部 MCP 服务器，并将其工具作为原生 CLI 命令使用 —— 支持 Tab 补全、`--help` 以及完整的参数支持。
+
+## 添加服务器
+
+只需将 Sidekick 指向某个 MCP 服务器一次。它会建立连接、发现所有可用工具，并在本地缓存这些 schema。
+
+### stdio（子进程）
+
+```bash
+# npx-based server (e.g. the official BrowserStack MCP server)
+sdkck mcp client add browserstack \
+  --command npx \
+  --args -y \
+  --args @browserstack/mcp-server@latest \
+  --env BROWSERSTACK_USERNAME=your_username \
+  --env BROWSERSTACK_ACCESS_KEY=your_access_key
+
+# Local script with arguments and environment variables
+sdkck mcp client add myserver \
+  --command ./bin/server.js \
+  --args start \
+  --env API_KEY=sk-... \
+  --env LOG_LEVEL=info
+```
+
+### HTTP（远程）
+
+```bash
+# With a Bearer token in the Authorization header
+sdkck mcp client add remote \
+  --url https://api.example.com/mcp \
+  --header "Authorization=Bearer sk-..."
+
+# OAuth-protected server (e.g. BrowserStack) — no extra flags needed.
+# sdkck opens your browser to authorize, then saves the token automatically.
+sdkck mcp client add browserstack-remote \
+  --url https://mcp.browserstack.com/mcp
+```
+
+| 标志 | 说明 |
+|------|-------------|
+| `--command`, `-c` | 用于启动服务器的命令（stdio 传输方式） |
+| `--args` | 传递给命令的参数（可重复） |
+| `--env` | 形如 `KEY=VALUE` 的环境变量（可重复） |
+| `--url`, `-u` | MCP 服务器的 URL（HTTP 传输方式） |
+| `--header` | 形如 `Key=Value` 的 HTTP 头（可重复） |
+
+## 将工具作为原生命令使用
+
+添加服务器后，每个工具都会立即以 `sdkck <serverName> <toolName>` 的形式可用：
+
+```bash
+# Discover what tools a server exposes
+sdkck help browserstack
+
+# Use a tool
+sdkck browserstack runBrowserLiveSession "https://example.com"
+
+# Get help for a specific tool
+sdkck browserstack runBrowserLiveSession --help
+```
+
+必需的字符串参数会成为位置参数。可选参数会成为 `--<name>` 标志。复杂类型（对象、数组）接受 JSON 字符串：
+
+```bash
+# Required string param → positional arg
+sdkck browserstack runBrowserLiveSession https://example.com
+
+# Optional params → flags
+sdkck browserstack runBrowserLiveSession https://example.com --browser chrome --os Windows
+
+# Object param → JSON string
+sdkck browserstack setupBrowserStackAutomateTests "my-project" --config '{"framework":"selenium","language":"javascript"}'
+
+# Override everything with a raw JSON object (useful for complex schemas)
+sdkck browserstack runBrowserLiveSession --json-args '{"url":"https://example.com","browser":"chrome","browserVersion":"latest"}'
+```
+
+工具命令会与其他所有内置命令一同出现在 `sdkck help`、`sdkck commands` 以及 Tab 补全中。
+
+## 列出服务器
+
+```bash
+# Show configured servers
+sdkck mcp client list
+
+# Include individual tool names
+sdkck mcp client list --tools
+```
+
+输出示例：
+
+```
+browserstack
+  Transport: stdio (npx -y @browserstack/mcp-server@latest)
+  Tools: 40
+  Cached at: 5/25/2026, 9:00:00 AM
+
+remote
+  Transport: http (https://api.example.com/mcp)
+  Tools: 5
+  Cached at: 5/25/2026, 9:01:00 AM
+```
+
+## 刷新工具
+
+工具 schema 会缓存在本地，并保持一小时有效。要在服务器更新后获取新工具：
+
+```bash
+# Refresh a single server
+sdkck mcp client refresh browserstack
+
+# Refresh all servers
+sdkck mcp client refresh
+```
+
+## 移除服务器
+
+```bash
+sdkck mcp client remove browserstack
+```
+
+这会删除存储的配置和缓存的工具。在下一次调用时，这些工具命令会从 CLI 中消失。
+
+## 工作原理
+
+工具的发现与调用是解耦的：
+
+- **在 `add`/`refresh` 时** —— Sidekick 连接到服务器，调用 `listTools`，并将 schema 缓存到 `~/.config/sdkck/mcp-client-<name>.json`。
+- **在启动时** —— 从磁盘读取缓存的 schema，并将每个工具注册为原生 oclif 命令（无需实时连接）。
+- **在调用时** —— Sidekick 与服务器建立一个全新连接，使用映射后的参数调用 `tools/call`，并打印结果。
+
+这意味着无论配置了多少个服务器，启动都很快；即使某个服务器在启动时暂时不可用，其工具命令也能正常工作。

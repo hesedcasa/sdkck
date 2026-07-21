@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import {LanguageToggle} from './language-toggle'
 import {ThemeToggle} from './theme-toggle'
 
 export function Header() {
@@ -35,6 +36,7 @@ export function Header() {
           >
             npm
           </a>
+          <LanguageToggle />
           <ThemeToggle />
         </nav>
       </div>

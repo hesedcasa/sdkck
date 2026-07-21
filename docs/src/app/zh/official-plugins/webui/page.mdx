@@ -1,0 +1,84 @@
+# WebUI (`@hesed/webui`)
+
+`@hesed/webui` 插件会启动一个本地浏览器界面，用于浏览 Sidekick 命令、填写命令选项，以及运行命令，而无需手动键入完整的 CLI 调用。
+
+![WebUI 命令浏览器](/webui-01.jpg)
+
+## 启动 WebUI
+
+```bash
+sdkck webui
+```
+
+默认情况下，WebUI 监听 `127.0.0.1:4040`。在浏览器中打开 [http://127.0.0.1:4040](http://127.0.0.1:4040)。
+
+要在服务器就绪时自动打开浏览器：
+
+```bash
+sdkck webui --open
+```
+
+## 界面功能
+
+WebUI 围绕命令浏览器和命令运行器进行组织。
+
+![WebUI 主题导航](/webui-02.jpg)
+
+- **搜索** —— 在命令筛选框中输入，按名称或描述查找命令。
+- **主题导航** —— 选择一个主题，例如 `jira`，仅浏览该插件的命令。
+- **命令列表** —— 从左侧边栏选择一个命令，查看它的功能。
+- **命令详情** —— 在主面板中填写必需参数和可选标志。
+- **生成的命令预览** —— 在运行前查看等效的 `sdkck ...` 命令。
+- **主题切换** —— 从页头在浅色和深色模式之间切换。
+
+## 从 WebUI 运行命令
+
+1. 在命令筛选框中输入 `jira issue search`。
+2. 在命令列表中点击 `jira:issue:search`。
+3. 输入一个 JQL 表达式，例如 `project = PROJ AND status = "In Progress"`。
+4. 可选地设置 `--max`、`--fields` 或 `--profile` 等标志。
+5. 点击 **Run command**。
+
+通过 WebUI 运行的命令，与直接在终端中运行的命令使用相同的 Sidekick 配置、插件和认证配置文件。
+
+上面的示例构建出等效于以下的命令：
+
+```bash
+sdkck jira:issue:search 'project = PROJ AND status = "In Progress"'
+```
+
+## 选项
+
+```bash
+# Use a different port
+sdkck webui --port 8080
+
+# Bind to another host interface
+# only use on a trusted private network
+sdkck webui --host 0.0.0.0
+
+# Start and open the UI automatically
+sdkck webui --port 8080 --open
+```
+
+## 查看命令帮助
+
+```bash
+sdkck webui --help
+```
+
+## 故障排查
+
+**端口已被占用**
+
+- 在另一个端口上启动 WebUI：`sdkck webui --port 8080`
+
+**无法从其他设备访问**
+
+- 使用 `sdkck webui --host 0.0.0.0` 绑定到所有网络接口
+- 确认你的防火墙允许对所选端口的入站访问
+
+**WebUI 中缺少某个命令**
+
+- 确认提供该命令的插件已安装或已被自动安装
+- 安装新插件后重启 WebUI

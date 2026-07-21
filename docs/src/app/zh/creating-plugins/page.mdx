@@ -1,0 +1,84 @@
+# 创建插件
+
+Sidekick 基于 [oclif](https://oclif.io) 构建，因此任何 oclif 插件都可以作为 Sidekick 插件使用。
+
+## 插件结构
+
+Sidekick 插件是一个导出 oclif 命令的 npm 包。最小结构如下：
+
+```
+my-plugin/
+├── package.json
+├── src/
+│   └── commands/
+│       └── hello.ts
+└── tsconfig.json
+```
+
+## 创建一个命令
+
+```typescript
+import {Command} from '@oclif/core'
+
+export default class Hello extends Command {
+  static description = 'Say hello'
+
+  static args = {
+    name: Args.string({description: 'Person to greet'}),
+  }
+
+  async run(): Promise<void> {
+    const {args} = await this.parse(Hello)
+    this.log(`Hello, ${args.name}!`)
+  }
+}
+```
+
+## 安装你的插件
+
+```bash
+# From npm
+sdkck plugins install my-custom-plugin
+
+# From GitHub
+sdkck plugins install myorg/my-custom-plugin
+
+# From a local directory (for development)
+sdkck plugins link ./my-plugin
+```
+
+## 插件约定
+
+- 命令从 `src/commands/`（编译到 `dist/commands/`）中自动发现
+- 每个文件导出一个继承自 `Command` 的类
+- 使用 ESM 模块（在 package.json 中设置 `"type": "module"`）
+- 以 TypeScript 严格模式为目标编译到 ES2022
+- 基于空格的主题分隔符（`"myplugin subcommand"`）
+
+## JIT 插件声明
+
+要让你的插件在首次使用时自动安装，请将其添加到 Sidekick `package.json` 中的 `oclif.jitPlugins`：
+
+```json
+{
+  "oclif": {
+    "jitPlugins": {
+      "@myorg/my-plugin": "^1.0.0"
+    }
+  }
+}
+```
+
+当用户首次调用你插件中的某个命令时，Sidekick 会自动安装它。
+
+## 测试
+
+通过直接使用一个 mock config 实例化命令类来测试你的插件命令。该 config 必须包含：
+
+```typescript
+const config = {
+  runHook: async () => ({failures: [], successes: []}),
+}
+```
+
+对于依赖外部客户端的命令，请使用公共属性进行依赖注入。

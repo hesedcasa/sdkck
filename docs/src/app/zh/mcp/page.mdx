@@ -1,0 +1,141 @@
+# MCP 服务器
+
+将 Sidekick 作为 MCP（模型上下文协议，Model Context Protocol）服务器运行，把每个 CLI 命令作为工具暴露给已连接的客户端。
+
+## 安装
+
+### Claude Code 插件（推荐）
+
+```bash
+claude plugin marketplace add hesedcasa/sdkck
+claude plugin install sidekick@mcp
+```
+
+这会自动接入 MCP 服务器 —— 无需手动配置 `.mcp.json`。
+
+### 在 Claude Code 中配置
+
+如需手动设置，请添加到 `.mcp.json`：
+
+```json
+{
+  "mcpServers": {
+    "sdkck": {
+      "command": "sdkck",
+      "args": ["mcp", "start"]
+    }
+  }
+}
+```
+
+### 可流式传输的 HTTP（Streamable HTTP）
+
+使用 [MCP Streamable HTTP transport](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http) 在 `http://<host>:<port>/mcp` 启动一个 HTTP 服务器。适用于远程客户端或多会话配置。
+
+```bash
+sdkck mcp start --transport http
+sdkck mcp start --transport http --host 0.0.0.0 --port 3001
+```
+
+| 标志 | 默认值 | 说明 |
+|------|---------|-------------|
+| `--host` | `127.0.0.1` | 监听的 IP 地址 |
+| `--port` | `3000` | 监听的端口 |
+
+### HTTP 认证
+
+用于 HTTP 传输的 Bearer token 认证：
+
+```bash
+sdkck mcp token generate  # Create token
+sdkck mcp token show      # View token
+sdkck mcp token delete    # Remove token (disables auth)
+```
+
+客户端必须在请求中包含 `Authorization: Bearer <token>`。
+
+## 暴露的工具
+
+MCP 服务器暴露两个工具：`search_tools` 和 `run_command`。
+
+### `search_tools`
+
+这是一个刻意的设计选择：Sidekick 只暴露单一的语义搜索入口，而不是将每个底层命令都注册为独立的 MCP 工具。预先加载数百个工具定义会消耗大量上下文，并降低模型选择工具的准确性，因此 Sidekick 遵循 Anthropic 的[高级工具使用（Advanced Tool Use）](https://www.anthropic.com/engineering/advanced-tool-use)指南中所述的渐进式工具发现模式 —— 只返回与当前查询相关的一小组命令，随后由智能体通过 `run_command` 调用它们。
+
+该工具会委托给 `search` 命令。它接受一个 `query`（必填）和一个可选的 `limit`（默认 5）。其对外公布的描述包含一个去重后的关键词索引，该索引由每个命令的 ID、摘要和描述构建而成，从而让客户端无需枚举完整的工具集就能准确路由查询。
+
+### `run_command`
+
+接受一个命令 ID 和一个参数对象，构建 argv 数组，然后运行该命令。请先使用 `search_tools` 来发现命令及其参数。
+
+命令 ID 接受两种分隔符：
+
+- `"api import"`（以空格分隔）
+- `"api:import"`（以冒号分隔）
+
+两者都解析为同一个命令。
+
+## 示例：
+
+一次典型的交互会按顺序使用这两个工具。假设用户提问：
+
+> please get this confluence page 1453068888
+
+**第 1 步 —— 用 `search_tools` 发现正确的命令：**
+
+```json
+{
+  "query": "confluence page get",
+  "limit": 5
+}
+```
+
+服务器返回一份候选命令的候选清单：
+
+```json
+[
+  {
+    "command": "conni content get <pageId>",
+    "description": "Get details of a Confluence content"
+  },
+  {
+    "command": "conni content search <cql>",
+    "description": "Search for Confluence contents using CQL"
+  },
+  ...
+]
+```
+
+**第 2 步 —— 用 `run_command` 调用所选的命令：**
+
+```json
+{
+  "commandId": "conni content get",
+  "args": {
+    "pageId": "1453068888"
+  }
+}
+```
+
+服务器运行该命令并返回其输出：
+
+```json
+{
+  "data": {
+    "id": "1453068888",
+    "type": "page",
+    "ari": "ari:cloud:confluence:4952d4330-8888-5566-a07c-6bdc3f2aff5c:page/1453068888",
+    "status": "current",
+    "title": "Company MCP Servers",
+    ...
+  }
+}
+```
+
+在客户端的上下文窗口中，只有本次任务实际用到的这两个命令会被具现化 —— Sidekick 其余的命令集会一直保持在幕后，直到下一次查询需要用到它们。
+
+## 依赖
+
+- `@modelcontextprotocol/sdk` ^1.29.0
+
+无需安装额外的 peer 依赖。

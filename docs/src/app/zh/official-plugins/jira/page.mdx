@@ -1,0 +1,83 @@
+# Jira（`@hesed/jira`）
+
+`@hesed/jira` 插件让你可以直接从终端创建、搜索和管理 Jira 问题。它已随 Sidekick 预装 —— 无需手动安装插件。
+
+## 前置条件
+
+- 一个可访问某个 Jira 项目的 Atlassian 账户
+- 一个 Jira API token（见下文）
+
+## 第 1 步：获取你的 Jira API token
+
+Jira 使用 API token —— 而非密码 —— 进行 CLI 身份验证。
+
+1. 在 [https://id.atlassian.com](https://id.atlassian.com) 登录你的 Atlassian 账户
+2. 点击右上角的个人头像
+3. 选择 **Account settings**
+4. 切换到 **Security** 标签页
+5. 在 **API token** 下，点击 **Create and manage API tokens**
+6. 点击 **Create API token**
+7. 为其取一个有描述性的标签（例如 `sdkck-cli`），然后点击 **Create**
+
+![Jira 创建 API token 界面](/jira-01.webp)
+
+8. 立即复制该 token —— 它不会再次显示
+
+![Jira 复制 API token 界面](/jira-02.webp)
+
+## 第 2 步：在 Sidekick 中配置身份验证
+
+```bash
+sdkck jira auth add
+```
+
+![Jira 添加身份验证](/jira-03.webp)
+
+系统会提示你输入：
+
+- **Jira domain** —— 你的 Jira 基础 URL（例如 `https://yourcompany.atlassian.net`）
+- **Email** —— 你 Atlassian 账户的电子邮件地址
+- **API token** —— 你在第 1 步复制的 token
+
+## 第 3 步：验证连接
+
+```bash
+sdkck jira auth test
+```
+
+## 命令示例
+
+```bash
+# Get an issues
+sdkck jira issue get PROJ-123
+
+# Create a new issue
+sdkck jira issue create --fields project='{"key":"PROJ"}' summary="New summary" description="New description" issuetype='{"name":"Dev Task"}'
+
+# Search issues by JQL
+sdkck jira issue search 'project=PROJ AND summary ~ "Error saving file" AND status IN ("ready", "in progress")'
+
+# Add comment to an issue
+sdkck jira issue comment PROJ-123 "# Header\n- Item 1"
+```
+
+## 发现所有命令
+
+```bash
+sdkck help jira
+```
+
+## 故障排查
+
+**身份验证错误 —— 401 Unauthorized**
+
+- 确认该 API token 属于你输入为 email 的那个账户
+- 确保该 token 尚未被吊销或过期
+
+**域名格式**
+
+- 包含 `https://` 且末尾不带斜杠：`https://yourcompany.atlassian.net`
+
+**看不到任何项目**
+
+- 确认该 Atlassian 账户有权限浏览目标项目

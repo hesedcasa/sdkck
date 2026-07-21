@@ -4,17 +4,22 @@ import Link from 'next/link'
 import {usePathname} from 'next/navigation'
 import {useEffect, useMemo, useState} from 'react'
 
-import {allDocsPages, navigation} from '@/lib/docs-navigation'
+import {getNavigation, localeFromPathname} from '@/lib/docs-navigation'
 import {cn} from '@/lib/utils'
 
 export function DocsMobileNav() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+  const locale = localeFromPathname(pathname)
+  const navigation = useMemo(() => getNavigation(locale), [locale])
 
   const currentPage = useMemo(() => {
-    const page = allDocsPages.find((p) => p.href === pathname)
-    return page ?? allDocsPages[0]
-  }, [pathname])
+    const pages = navigation.flatMap((section) => section.items)
+    const page = pages.find((p) => p.href === pathname)
+    return page ?? pages[0]
+  }, [navigation, pathname])
+
+  const tocLabel = locale === 'zh' ? '目录' : 'Table of Contents'
 
   useEffect(() => {
     setOpen(false)
@@ -63,7 +68,7 @@ export function DocsMobileNav() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-sm font-semibold">Table of Contents</h2>
+              <h2 className="text-sm font-semibold">{tocLabel}</h2>
               <button
                 aria-label="Close menu"
                 className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"

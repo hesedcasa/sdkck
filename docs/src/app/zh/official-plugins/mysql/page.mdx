@@ -1,0 +1,71 @@
+# MySQL (`@hesed/mysql`)
+
+`@hesed/mysql` 插件让你可以在终端中查询和管理 MySQL 数据库。它已随 Sidekick 预装。
+
+## 前提条件
+
+- 一个 MySQL 服务器（本地或远程）
+- 具有适当权限的数据库凭据
+
+## 第 1 步：收集你的数据库凭据
+
+你需要从数据库管理员或云服务提供商处获取以下信息：
+
+| 字段     | 示例                                |
+| -------- | ----------------------------------- |
+| Host     | `db.yourcompany.com` or `localhost` |
+| Port     | `3306`（默认）                      |
+| Database | `production_db`                     |
+| Username | `sdkck_user`                        |
+| Password | 你的数据库密码                      |
+
+> **安全提示：** 对于生产环境，请使用只读数据库用户，以便在凭据泄露时限制风险暴露。
+
+## 第 2 步：在 Sidekick 中配置认证
+
+```bash
+sdkck mysql auth add
+```
+
+系统会提示你输入 host、port、数据库名、用户名和密码。
+
+## 第 3 步：验证连接
+
+```bash
+sdkck mysql auth test
+```
+
+## 示例命令
+
+```bash
+# 运行查询
+sdkck mysql query "SELECT COUNT(*) FROM users WHERE created_at > NOW() - INTERVAL 7 DAY"
+
+# 列出已连接数据库中的表
+sdkck mysql tables
+
+# 查看表结构
+sdkck mysql describe-table users
+```
+
+## 探索所有命令
+
+```bash
+sdkck help mysql
+```
+
+## 故障排查
+
+**连接被拒绝（Connection refused）**
+
+- 验证 host 是否允许来自你 IP 的连接（检查防火墙或安全组规则）
+- 确认端口是否正确（默认为 `3306`）
+
+**访问被拒绝（Access denied）**
+
+- 仔细核对用户名和密码
+- 确保该用户对目标数据库拥有 `SELECT` 权限
+
+**SSL/TLS 错误**
+
+- 一些托管数据库提供商（例如 AWS RDS、PlanetScale）要求使用 SSL——请查阅你的提供商文档以了解连接字符串选项

@@ -1,0 +1,77 @@
+# Bitbucket（`@hesed/bb`）
+
+`@hesed/bb` 插件让你可以从终端管理 Bitbucket 的拉取请求、仓库和流水线。它已随 Sidekick 预装。
+
+## 前置条件
+
+- 一个 Bitbucket 账户
+- 一个 App password（见下文）
+
+## 第 1 步：获取你的 Bitbucket App password
+
+Bitbucket 使用 App password 进行 API 访问 —— 而非你的账户密码。
+
+1. 登录 [https://bitbucket.org](https://bitbucket.org)
+2. 点击左下角的头像
+3. 进入 **Personal settings**
+4. 在 **Access management** 下选择 **App passwords**
+5. 点击 **Create app password**
+6. 为其取一个标签（例如 `sdkck-cli`）
+7. 选择所需的权限：
+   - **Repositories:** Read, Write
+   - **Pull requests:** Read, Write
+   - **Pipelines:** Read
+8. 点击 **Create**
+
+![Bitbucket 创建 API token 界面](/jira-01.webp)
+
+9. 复制生成的密码 —— 它不会再次显示
+
+![Bitbucket 复制 API token 界面](/jira-02.webp)
+
+## 第 2 步：在 Sidekick 中配置身份验证
+
+```bash
+sdkck bb auth add
+```
+
+系统会提示你输入：
+
+- **Workspace** —— 你的 Bitbucket 工作区 slug（可在你的 Bitbucket URL 中看到）
+- **Username** —— 你的 Bitbucket 用户名
+- **App password** —— 你在第 1 步复制的密码
+
+## 第 3 步：验证连接
+
+```bash
+sdkck bb auth test
+```
+
+## 命令示例
+
+```bash
+# List open pull requests in a repo
+sdkck bb pr list my-workspace my-repo
+
+# Create a pull request
+sdkck bb pr create my-workspace my-repo --title "My PR" --source feature-branch --destination main
+
+# List repositories in your workspace
+sdkck bb pr list my-workspace my-repo
+```
+
+## 发现所有命令
+
+```bash
+sdkck help bb
+```
+
+## 故障排查
+
+**403 Forbidden**
+
+- 确认该 App password 拥有正确的权限（Repositories 和 Pull requests）
+
+**找不到工作区**
+
+- 使用工作区 slug，而非显示名称。slug 会出现在 Bitbucket URL 中：`bitbucket.org/<workspace-slug>/`

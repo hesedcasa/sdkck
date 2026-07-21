@@ -1,0 +1,196 @@
+# 从 API 到命令
+
+导入任何 OpenAPI 规范、Postman 集合或 GraphQL schema，其中的每个操作都会成为一等的 CLI 命令。
+
+## 导入规范
+
+```bash
+# From a URL
+sdkck api import https://petstore3.swagger.io/api/v3/openapi.json
+
+# From a local file
+sdkck api import ./api.yaml --name myapi
+
+# From a Postman collection
+sdkck api import ./postman_collection.json --name myapi
+
+# With authentication
+sdkck api import ./api.yaml --auth-type bearer --token sk-...
+```
+
+![OpenAPI 导入规范](/openapi-01.webp)
+
+`--name` 标志会覆盖默认名称（默认名称派生自规范标题）。
+
+## GraphQL
+
+导入一个 GraphQL schema，即可将每个查询（query）和变更（mutation）作为 CLI 命令使用。
+
+### 自动检测
+
+`api import` 会自动检测 GraphQL 源 —— 大多数情况下无需额外标志：
+
+- **SDL 文件** —— 任何扩展名为 `.graphql`、`.gql` 或 `.graphqls` 的源
+- **实时端点** —— 任何路径以 `/graphql` 结尾的 URL
+- **内省 JSON** —— 使用 `--graphql` 强制启用 GraphQL 模式（因为该文件看起来像普通 JSON）
+
+```bash
+# SDL file (auto-detected by extension)
+sdkck api import ./schema.graphql --name myapi --base-url https://api.example.com/graphql
+
+# Live endpoint (auto-detected by URL path)
+sdkck api import https://api.example.com/graphql --name myapi
+
+# Introspection JSON (must pass --graphql explicitly)
+sdkck api import ./introspection.json --graphql --name myapi --base-url https://api.example.com/graphql
+```
+
+SDL 导入需要用 `--base-url` 指向实时端点，因为文件本身不包含 URL。实时端点导入会自动设置 base URL。
+
+### 选择集（Selection sets）
+
+Sidekick 会为每个操作自动生成一个默认的选择集，会递归进入嵌套的对象类型，最深至 3 层。需要参数的字段会从选择集中省略。使用 `--selection-depth` 控制深度：
+
+```bash
+sdkck api import ./schema.graphql --name myapi --base-url https://api.example.com/graphql --selection-depth 5
+```
+
+### 操作命名
+
+每个查询和变更字段都会成为一个以该字段命名的命令：
+
+```bash
+# After importing a GraphQL schema with a "listPets" query
+sdkck myapi listPets
+
+# And a "createPet" mutation
+sdkck myapi createPet --body name=Fido
+```
+
+如果某个查询和变更共享相同的字段名，变更会加上 `-mutation` 后缀以避免冲突 —— 查询则保留简短的名称。
+
+## 列出已导入的规范
+
+```bash
+# List all imported APIs
+sdkck api list
+
+# List operations for a specific API
+sdkck api list petstore
+```
+
+## 调用操作
+
+```bash
+# Simple call
+sdkck api call petstore listPets
+
+# With path/query parameters
+sdkck api call petstore getPetById --param petId=42
+
+# With request body
+sdkck api call petstore createPet --body name=Fido --body tag=dog
+
+# With extra headers
+sdkck api call petstore listPets --header X-Trace=abc
+
+# Raw response (no JSON formatting)
+sdkck api call petstore listPets --raw
+```
+
+## 动态命令
+
+一旦导入，每个操作都可作为一等命令使用 —— 无需 `api call` 包装。这是使用已导入 API 的推荐方式。
+
+```bash
+# Preferred: use the dynamic command directly
+sdkck petstore listPets
+sdkck petstore getPetById --param petId=42
+sdkck petstore createPet --body name=Fido --body tag=dog
+
+# Equivalent, but more verbose
+sdkck api call petstore listPets
+sdkck api call petstore getPetById --param petId=42
+sdkck api call petstore createPet --body name=Fido --body tag=dog
+```
+
+动态命令在启动时注册，并与内置命令一起出现在 `sdkck help` 和 `sdkck commands` 中 —— 你可以像使用其他任何命令一样使用 tab 补全和 `--help`：
+
+![OpenAPI 动态命令](/openapi-02.webp)
+
+```bash
+# Discover available operations
+sdkck help petstore
+
+# Get help for a specific operation
+sdkck petstore getPetById --help
+```
+
+## 认证
+
+为每个规范单独配置认证：
+
+```bash
+# Bearer token
+sdkck api auth petstore --type bearer --token sk-...
+
+# API key
+sdkck api auth petstore --type apikey --api-key mykey
+sdkck api auth petstore --type apikey --api-key mykey --api-key-header X-API-Key
+
+# Basic auth
+sdkck api auth petstore --type basic --username user --password secret
+
+# Custom headers
+sdkck api auth petstore --type custom --header X-Tenant-ID=acme --header X-App-Key=secret
+
+# Remove auth
+sdkck api auth petstore --type none
+
+# View current settings
+sdkck api auth petstore --show
+```
+
+![OpenAPI 认证](/openapi-03.webp)
+
+## 配置
+
+更新规范的元数据：
+
+```bash
+sdkck api config petstore --base-url https://api.example.com
+sdkck api config petstore --rename mystore
+sdkck api config petstore --title "My Petstore" --description "A pet store API"
+```
+
+![OpenAPI 更新配置](/openapi-04.webp)
+
+## 移除规范
+
+```bash
+sdkck api remove petstore
+```
+
+## 可直接导入的规范
+
+尝试直接导入这些真实的 API：
+
+```bash
+# Notion API
+sdkck api import https://hesedcasa.github.io/sdkck/openapi-notion.json --name notion
+
+# Obsidian Local REST API (self-signed cert — use --insecure)
+sdkck api import https://hesedcasa.github.io/sdkck/openapi-obsidian.json --name obsidian --insecure
+
+# Stripe API
+sdkck api import https://raw.githubusercontent.com/stripe/openapi/refs/heads/master/latest/openapi.spec3.json --name stripe
+
+# Vercel API
+sdkck api import https://openapi.vercel.sh/ --name vercel
+
+# Context7 API
+sdkck api import https://raw.githubusercontent.com/upstash/context7/refs/heads/master/docs/openapi.json --name context7
+
+# Linear GraphQL API
+sdkck api import https://raw.githubusercontent.com/linear/linear/refs/heads/master/packages/sdk/src/schema.graphql --name linear --base-url https://api.linear.app/graphql
+```

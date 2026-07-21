@@ -3,11 +3,12 @@
 import Link from 'next/link'
 import {usePathname} from 'next/navigation'
 
-import {navigation} from '@/lib/docs-navigation'
+import {getNavigation, localeFromPathname} from '@/lib/docs-navigation'
 import {cn} from '@/lib/utils'
 
 export function DocsSidebar() {
   const pathname = usePathname()
+  const navigation = getNavigation(localeFromPathname(pathname))
 
   return (
     <nav className="space-y-6 pb-8">

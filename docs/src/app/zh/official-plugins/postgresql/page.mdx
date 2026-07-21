@@ -1,0 +1,77 @@
+# PostgreSQL (`@hesed/psql`)
+
+`@hesed/psql` 插件让你可以在终端中查询和管理 PostgreSQL 数据库。它已随 Sidekick 预装。
+
+## 前提条件
+
+- 一个 PostgreSQL 服务器（本地或远程）
+- 具有适当权限的数据库凭据
+
+## 第 1 步：收集你的数据库凭据
+
+你需要从数据库管理员或云服务提供商处获取以下信息：
+
+| 字段     | 示例                                |
+| -------- | ----------------------------------- |
+| Host     | `db.yourcompany.com` or `localhost` |
+| Port     | `5432`（默认）                      |
+| Database | `production_db`                     |
+| Username | `sdkck_user`                        |
+| Password | 你的数据库密码                      |
+
+> **安全提示：** 对于生产环境，请使用只读数据库用户，以便在凭据泄露时限制风险暴露。
+
+## 第 2 步：在 Sidekick 中配置认证
+
+```bash
+sdkck psql auth add
+```
+
+![PostgreSQL 添加认证](/psql-01.webp)
+
+系统会提示你输入 host、port、数据库名、用户名和密码。
+
+## 第 3 步：验证连接
+
+```bash
+sdkck psql auth test
+```
+
+## 示例命令
+
+```bash
+# 运行查询
+sdkck psql query "SELECT COUNT(*) FROM users WHERE created_at > NOW() - INTERVAL '7 days'"
+
+# 列出已连接数据库中的表
+sdkck psql tables
+
+# 查看表结构
+sdkck psql describe-table orders --format json --profile prod
+```
+
+## 探索所有命令
+
+```bash
+sdkck help psql
+```
+
+## 故障排查
+
+**连接被拒绝（Connection refused）**
+
+- 验证 host 是否允许来自你 IP 的连接
+- 确认端口是否正确（默认为 `5432`）
+- 对于托管数据库（例如 Supabase、Neon、AWS RDS），请检查你的 IP 是否已加入允许列表
+
+**认证失败（Authentication failed）**
+
+- 仔细核对用户名和密码
+- 确保该用户对目标数据库拥有 `CONNECT` 和 `SELECT` 权限
+
+**需要 SSL（SSL required）**
+
+- 许多云端 PostgreSQL 提供商要求使用 SSL。如果你看到 `SSL connection is required`，你的提供商可能会提供带 `?sslmode=require` 的连接字符串——请查看 Sidekick `psql` 帮助以了解 SSL 选项：
+  ```bash
+  sdkck psql auth add --help
+  ```

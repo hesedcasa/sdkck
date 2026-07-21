@@ -1,0 +1,57 @@
+# AI 智能体集成
+
+Sidekick 专为 AI 智能体工作流打造。下面介绍如何将它连接到你的智能体。
+
+## Claude Code 插件
+
+将 Sidekick 作为 Claude Code 插件安装：
+
+```bash
+claude plugin marketplace add hesedcasa/sdkck
+claude plugin install sidekick@sidekick
+```
+
+## MCP 服务器
+
+将 Sidekick 作为 MCP 服务器运行，把每一条 CLI 命令暴露为一个工具。添加到你的 `.mcp.json`：
+
+```json
+{
+  "mcpServers": {
+    "sdkck": {
+      "command": "sdkck",
+      "args": ["mcp", "start"]
+    }
+  }
+}
+```
+
+会暴露两个工具：
+
+- **`search_tools`** — 对所有可用命令进行关键字搜索；返回匹配的命令 ID 及描述
+- **`run_command`** — 通过 ID 并附带一个 JSON 参数对象来执行任意命令
+
+命令 ID 同时接受 `"api import"` 和 `"api:import"` — 两者都会解析到同一条命令。
+
+## AGENT.md 说明
+
+将以下内容添加到你的 `AGENT.md` 或 `CLAUDE.md`，让你的智能体知道要使用 Sidekick：
+
+```
+Before any tool call run `sdkck commands | grep <keywords>` to find the available tools in sdkck,
+e.g.: `sdkck commands | grep -i "jira|issue"`
+```
+
+## 智能体工作流示例
+
+```
+Agent: I need to check recent Sentry errors and create a Jira ticket.
+
+> sdkck search "sentry errors"          # Discovers the right command
+> sdkck sentry issues list --recent     # Gets the data
+> sdkck jira issue create ...           # Acts on it
+```
+
+## 兼容工具
+
+Claude Code、Cursor、GitHub Copilot、OpenAI Codex、Google Gemini、opencode，以及任何能够运行 shell 命令的智能体。

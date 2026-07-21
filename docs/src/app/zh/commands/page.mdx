@@ -1,0 +1,71 @@
+# 命令
+
+Sidekick 提供内置命令，并从导入的 OpenAPI 规范中动态注册命令。
+
+## 内置命令
+
+| 命令                  | 说明                 |
+| ------------------------ | --------------------------- |
+| `sdkck commands`         | 列出所有可用命令 |
+| `sdkck help [COMMAND]`   | 显示某个命令的帮助  |
+| `sdkck search QUERY`     | 搜索命令         |
+| `sdkck version`          | 显示版本信息           |
+| `sdkck update [CHANNEL]` | 更新 CLI              |
+
+## API 命令
+
+| 命令                           | 说明                                                   |
+| --------------------------------- | ------------------------------------------------------------- |
+| `sdkck api import SOURCE`         | 导入 OpenAPI 规范、Postman 集合或 GraphQL schema |
+| `sdkck api list [NAME]`           | 列出已导入的规范和操作                            |
+| `sdkck api call NAME OPERATIONID` | 调用已导入的操作                                    |
+| `sdkck api auth NAME`             | 为某个规范配置认证                            |
+| `sdkck api config NAME`           | 更新规范配置                                     |
+| `sdkck api remove NAME`           | 移除已导入的规范                                     |
+
+## 权限命令
+
+| 命令                             | 说明                |
+| ----------------------------------- | -------------------------- |
+| `sdkck permission allow PATTERN`    | 允许某个命令模式    |
+| `sdkck permission disallow PATTERN` | 禁止某个命令模式 |
+| `sdkck permission list`             | 列出所有权限规则  |
+| `sdkck permission export FILE`      | 将规则导出为 JSON       |
+| `sdkck permission import FILE`      | 从 JSON 导入规则     |
+| `sdkck permission reset`            | 重置所有规则          |
+
+## 插件命令
+
+| 命令                         | 说明                   |
+| ------------------------------- | ----------------------------- |
+| `sdkck plugins`                 | 列出已安装的插件        |
+| `sdkck plugins install PLUGIN`  | 安装插件              |
+| `sdkck plugins remove [PLUGIN]` | 移除插件               |
+| `sdkck plugins link PATH`       | 链接插件以进行开发 |
+
+## MCP 命令
+
+| 命令           | 说明          |
+| ----------------- | -------------------- |
+| `sdkck mcp start` | 启动 MCP 服务器 |
+
+## 动态命令
+
+当你导入一份 OpenAPI 规范时，每个操作都会成为规范名称下的一个命令：
+
+```bash
+# After importing a spec named "petstore"
+sdkck petstore listPets
+sdkck petstore getPetById --param petId=42
+sdkck petstore createPet --body name=Fido
+```
+
+这些动态命令会像内置命令一样出现在 `sdkck help` 和 `sdkck commands` 中。
+
+## 获取帮助
+
+```bash
+sdkck --help              # General help
+sdkck api --help          # Topic help
+sdkck api import --help   # Command-specific help
+```

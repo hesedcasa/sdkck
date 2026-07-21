@@ -1,0 +1,104 @@
+# `extract-api` 技能
+
+`extract-api` 技能能从任何来源读取 API 文档，并将每个操作导入为一等的 `sdkck` 命令。
+
+## 安装
+
+### Claude Code
+
+```bash
+claude plugin marketplace add hesedcasa/sdkck
+claude plugin install sidekick@api
+```
+
+### 其他编码工具
+
+使用 [skills CLI](https://github.com/vercel-labs/skills) 安装，以便与 Cursor、Codex、OpenCode 以及[另外 40 多种智能体](https://github.com/vercel-labs/skills#supported-agents)配合使用：
+
+```bash
+npx skills add hesedcasa/sdkck --skill extract-api
+```
+
+全局安装（在所有项目中可用）：
+
+```bash
+npx skills add hesedcasa/sdkck --skill extract-api -g
+```
+
+指定某个特定的智能体：
+
+```bash
+npx skills add hesedcasa/sdkck --skill extract-api -a cursor
+npx skills add hesedcasa/sdkck --skill extract-api -a codex
+npx skills add hesedcasa/sdkck --skill extract-api -a opencode
+```
+
+## 用法
+
+```bash
+/extract-api {source} [--name {name}]
+```
+
+| 参数 | 说明                                          |
+| -------- | ---------------------------------------------------- |
+| `source` | GitHub URL、HTTP/HTTPS 文档 URL 或本地文件路径  |
+| `--name` | 覆盖 API 名称（默认：从来源推导） |
+
+## 示例
+
+```bash
+# From a hosted OpenAPI spec
+/extract-api https://petstore3.swagger.io/api/v3/openapi.json --name petstore
+
+# From a GitHub repo (auto-detects spec or crawls README/docs)
+/extract-api https://github.com/stripe/openapi --name stripe
+
+# From an online docs site (crawls linked reference pages)
+/extract-api https://developers.notion.com/reference/intro
+
+# From a Postman collection file
+/extract-api ./my-workspace.postman_collection.json --name myapi
+
+# From a GraphQL SDL file
+/extract-api ./schema.graphql --name myapi
+
+# From a live GraphQL endpoint
+/extract-api https://countries.trevorblades.com/graphql --name countries
+
+# From local markdown docs
+/extract-api ./my-project/api-docs.md --name myapi
+```
+
+## 发生了什么
+
+1. **快速路径**——如果来源本身已经是 OpenAPI 规范、Postman 集合或 GraphQL schema（SDL、内省 JSON 或在线端点），则直接导入。
+2. **爬取路径**——如果来源是 GitHub 仓库或文档站点，该技能会探测规范文件、跟踪参考链接，并从发现的内容生成一份 OpenAPI 3.0 文档。
+3. **导入**——运行 `sdkck api import`，并将每个操作注册为 `sdkck <name> <operationId>`。
+4. **认证设置**——从规范中检测认证方案，并显示用于配置凭据的确切 `sdkck api auth` 命令。
+
+## 导入之后
+
+```bash
+# Browse all imported commands
+sdkck help petstore
+
+# Search across them
+sdkck search "petstore list pets"
+
+# Call one
+sdkck petstore listPets --limit 10
+```
+
+## 支持的来源
+
+| 来源                                        | 备注                                                            |
+| --------------------------------------------- | ---------------------------------------------------------------- |
+| OpenAPI 3.0 / 3.1 JSON 或 YAML                | 直接使用——无需提取                             |
+| Swagger 2.0 JSON 或 YAML                      | 直接使用                                                    |
+| Postman Collection v2.1                       | 通过 `@scalar/postman-to-openapi` 在内部转换为 OpenAPI |
+| GraphQL SDL（`.graphql`、`.gql`、`.graphqls`） | 按扩展名自动检测；需要 `--base-url`                |
+| GraphQL 内省 JSON                    | 传入 `--graphql` 以强制使用 GraphQL 模式                        |
+| 在线 GraphQL 端点（`/graphql` URL）        | 自动检测；自动获取内省信息               |
+| GitHub 仓库 URL                         | 探测规范文件；回退到 README + `docs/` 爬取      |
+| HTTP/HTTPS 文档 URL                           | 探测常见规范路径；必要时爬取参考页面   |
+| 本地 `.md`、`.html`、`.txt`                  | 从文本中提取端点并生成 OpenAPI 3.0          |
