@@ -20,6 +20,8 @@ export function DocsMobileNav() {
   }, [pathname])
 
   useEffect(() => {
+    // Close the mobile menu whenever the route changes (a nav link was tapped).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpen(false)
   }, [pathname])
 

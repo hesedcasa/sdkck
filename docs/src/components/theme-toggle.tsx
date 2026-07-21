@@ -8,6 +8,9 @@ export function ThemeToggle() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // Mount guard for next-themes: the theme is only known on the client, so we
+    // flip `mounted` after hydration to avoid an SSR/client markup mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true)
   }, [])
 

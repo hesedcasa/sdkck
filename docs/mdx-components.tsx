@@ -47,6 +47,9 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     img({alt, src, ...props}: React.ComponentPropsWithoutRef<'img'>) {
       const resolvedSrc = typeof src === 'string' ? withBasePath(src) : src
 
+      // Plain <img> is intentional: MDX authors reference arbitrary images and
+      // this is a static export, so next/image's optimization doesn't apply.
+      // eslint-disable-next-line @next/next/no-img-element
       return <img {...props} alt={alt || ''} src={resolvedSrc} />
     },
     table({children, ...props}: React.ComponentPropsWithoutRef<'table'>) {
