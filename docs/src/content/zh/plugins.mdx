@@ -1,0 +1,60 @@
+# 插件
+
+Sidekick 使用 oclif 的插件架构。官方插件会在首次使用时自动安装 —— 无需预先配置。
+
+## 官方插件
+
+| 插件              | 功能说明                                      |
+| ----------------- | --------------------------------------------- |
+| `@hesed/jira`     | 创建、搜索和管理 Jira 问题                     |
+| `@hesed/bb`       | Bitbucket 拉取请求、仓库和流水线              |
+| `@hesed/sentry`   | 错误跟踪与问题管理                             |
+| `@hesed/mysql`    | 查询和管理 MySQL 数据库                        |
+| `@hesed/psql`     | 查询和管理 PostgreSQL 数据库                   |
+| `@hesed/supabase` | Supabase 项目和数据库操作                      |
+| `@hesed/conni`    | Confluence 页面管理                            |
+| `@hesed/webui`    | 用于浏览和执行命令的浏览器界面                 |
+
+## 自动安装（JIT 插件）
+
+官方插件在 `package.json` 中被声明为 JIT 插件。当你调用某个未安装插件的命令时，Sidekick 会自动为你运行 `plugins:install`：
+
+```bash
+# This auto-installs @hesed/jira on first run
+sdkck jira issue create --fields project='{"key":"PROJ"}' summary="New summary" description="New description"
+```
+
+## 手动安装
+
+安装任何兼容 oclif 的插件：
+
+```bash
+# From npm
+sdkck plugins install my-custom-plugin
+
+# From GitHub
+sdkck plugins install myorg/my-custom-plugin
+
+# From a URL
+sdkck plugins install https://github.com/someuser/someplugin
+```
+
+## 插件管理
+
+```bash
+# List installed plugins
+sdkck plugins
+
+# Remove a plugin
+sdkck plugins remove myplugin
+
+# Update all plugins
+sdkck plugins update
+
+# Link a local plugin for development
+sdkck plugins link ./my-plugin
+```
+
+## 创建插件
+
+Sidekick 基于 oclif 构建，因此任何 oclif 插件都可以作为 Sidekick 插件使用。请参阅[创建插件](/creating-plugins)获取指南。

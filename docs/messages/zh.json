@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "sections": {
+      "coreFeatures": "核心功能",
+      "extend": "扩展",
+      "integrations": "集成",
+      "officialPlugins": "官方插件",
+      "skills": "技能"
+    },
+    "items": {
+      "aiAgents": "AI 智能体",
+      "api": "API 转命令",
+      "bitbucket": "Bitbucket",
+      "changelog": "更新日志",
+      "commands": "命令",
+      "confluence": "Confluence",
+      "creatingPlugins": "创建插件",
+      "installation": "安装",
+      "introduction": "简介",
+      "jira": "Jira",
+      "mcp": "MCP 服务器",
+      "mcpClient": "MCP 客户端",
+      "mysql": "MySQL",
+      "permissions": "权限",
+      "plugins": "插件",
+      "postgresql": "PostgreSQL",
+      "quickStart": "快速开始",
+      "search": "搜索",
+      "sentry": "Sentry",
+      "skillsExtractApi": "extract-api",
+      "skillsSidekick": "sidekick",
+      "supabase": "Supabase",
+      "webui": "WebUI"
+    }
+  },
+  "mobileNav": {
+    "toc": "目录",
+    "close": "关闭菜单"
+  },
+  "languageSwitcher": {
+    "label": "语言"
+  }
+}

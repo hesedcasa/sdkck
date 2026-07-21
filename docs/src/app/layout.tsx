@@ -1,23 +1,6 @@
 import type {Metadata} from 'next'
 
-import {Geist_Mono, Inter} from 'next/font/google'
-
 import './globals.css'
-import {DocsMobileNav} from '@/components/docs-mobile-nav'
-import {DocsSidebar} from '@/components/docs-sidebar'
-import {Header} from '@/components/header'
-import {HtmlLangSync} from '@/components/html-lang-sync'
-import {ThemeProvider} from '@/components/theme-provider'
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-})
-
-const geistMono = Geist_Mono({
-  subsets: ['latin'],
-  variable: '--font-geist-mono',
-})
 
 export const metadata: Metadata = {
   description:
@@ -28,30 +11,8 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${inter.variable} ${geistMono.variable} bg-white text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100`}
-      >
-        <ThemeProvider>
-          <HtmlLangSync />
-          <Header />
-          <DocsMobileNav />
-          <div className="max-w-5xl mx-auto px-6 py-8 lg:py-12 flex gap-16">
-            <aside className="w-52 shrink-0 hidden lg:block sticky top-20 h-[calc(100vh-5rem)] overflow-y-auto">
-              <DocsSidebar />
-            </aside>
-            <div className="flex-1 min-w-0 max-w-3xl pb-20">
-              <article className="prose">{children}</article>
-            </div>
-          </div>
-        </ThemeProvider>
-      </body>
-    </html>
-  )
+// The <html>/<body> tags live in app/[locale]/layout.tsx so the lang attribute
+// can be set per locale. This root layout only passes children through.
+export default function RootLayout({children}: Readonly<{children: React.ReactNode}>) {
+  return children
 }

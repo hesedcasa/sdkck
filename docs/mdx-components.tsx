@@ -1,8 +1,7 @@
 import type {MDXComponents} from 'mdx/types'
 
-import Link from 'next/link'
-
 import {CodeBlock} from '@/components/code-block'
+import {Link} from '@/i18n/navigation'
 
 const BASE_PATH = '/sdkck'
 

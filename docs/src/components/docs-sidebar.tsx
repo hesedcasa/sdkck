@@ -1,22 +1,23 @@
 'use client'
 
-import Link from 'next/link'
-import {usePathname} from 'next/navigation'
+import {useTranslations} from 'next-intl'
 
-import {getNavigation, localeFromPathname} from '@/lib/docs-navigation'
+import {Link, usePathname} from '@/i18n/navigation'
+import {navigation} from '@/lib/docs-navigation'
 import {cn} from '@/lib/utils'
 
 export function DocsSidebar() {
   const pathname = usePathname()
-  const navigation = getNavigation(localeFromPathname(pathname))
+  const tItems = useTranslations('nav.items')
+  const tSections = useTranslations('nav.sections')
 
   return (
     <nav className="space-y-6 pb-8">
       {navigation.map((section, sectionIndex) => (
-        <div key={section.title ?? sectionIndex}>
-          {section.title && (
+        <div key={section.titleKey ?? sectionIndex}>
+          {section.titleKey && (
             <h4 className="text-xs font-normal text-muted-foreground/50 uppercase tracking-wider mb-2">
-              {section.title}
+              {tSections(section.titleKey)}
             </h4>
           )}
           <ul className="space-y-1">
@@ -31,7 +32,7 @@ export function DocsSidebar() {
                     )}
                     href={item.href}
                   >
-                    {item.name}
+                    {tItems(item.key)}
                   </Link>
                 </li>
               )

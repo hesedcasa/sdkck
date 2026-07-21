@@ -10,8 +10,8 @@ import {fileURLToPath} from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const source = resolve(__dirname, '../../CHANGELOG.md')
-const target = resolve(__dirname, '../src/app/changelog/page.mdx')
-const zhTarget = resolve(__dirname, '../src/app/zh/changelog/page.mdx')
+const target = resolve(__dirname, '../src/content/en/changelog.mdx')
+const zhTarget = resolve(__dirname, '../src/content/zh/changelog.mdx')
 
 const content = readFileSync(source, 'utf8')
 

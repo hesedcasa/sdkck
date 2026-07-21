@@ -1,0 +1,51 @@
+# 安装
+
+使用 npm 全局安装 Sidekick：
+
+```bash
+npm install -g sdkck
+```
+
+## 环境要求
+
+- **Node.js** v18 或更高版本
+
+## 验证安装
+
+```bash
+sdkck version
+# sdkck/0.12.0 linux-x64 node-v22.x.x
+```
+
+## 可选依赖
+
+### OpenAI API 密钥（用于语义搜索）
+
+设置 `OPENAI_API_KEY` 环境变量以启用 AI 驱动的语义搜索。未设置时，搜索会回退到模糊匹配。
+
+```bash
+export OPENAI_API_KEY=sk-...
+sdkck search "create Jira issue"
+```
+
+## 更新
+
+```bash
+npm update -g sdkck
+
+# Update all plugins
+sdkck plugins update
+```
+
+## 安装插件
+
+```bash
+sdkck plugin install @hesed/gchat
+
+# Install from GitHub url
+sdkck plugins install https://github.com/someuser/someplugin
+```
+
+## 后续步骤
+
+- [快速入门指南](/quick-start) — 导入你的第一个 API 并运行命令

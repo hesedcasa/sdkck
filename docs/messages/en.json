@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "sections": {
+      "coreFeatures": "Core Features",
+      "extend": "Extend",
+      "integrations": "Integrations",
+      "officialPlugins": "Official Plugins",
+      "skills": "Skills"
+    },
+    "items": {
+      "aiAgents": "AI Agents",
+      "api": "API to Commands",
+      "bitbucket": "Bitbucket",
+      "changelog": "Changelog",
+      "commands": "Commands",
+      "confluence": "Confluence",
+      "creatingPlugins": "Creating Plugins",
+      "installation": "Installation",
+      "introduction": "Introduction",
+      "jira": "Jira",
+      "mcp": "MCP Server",
+      "mcpClient": "MCP Client",
+      "mysql": "MySQL",
+      "permissions": "Permissions",
+      "plugins": "Plugins",
+      "postgresql": "PostgreSQL",
+      "quickStart": "Quick Start",
+      "search": "Search",
+      "sentry": "Sentry",
+      "skillsExtractApi": "extract-api",
+      "skillsSidekick": "sidekick",
+      "supabase": "Supabase",
+      "webui": "WebUI"
+    }
+  },
+  "mobileNav": {
+    "toc": "Table of Contents",
+    "close": "Close menu"
+  },
+  "languageSwitcher": {
+    "label": "Language"
+  }
+}

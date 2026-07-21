@@ -1,0 +1,82 @@
+# Confluence (`@hesed/conni`)
+
+`@hesed/conni` 插件让你可以在终端中管理 Confluence 页面和空间。它已随 Sidekick 预装。
+
+## 前置条件
+
+- 一个能够访问 Confluence 空间的 Atlassian 账户
+- 一个 Jira/Atlassian API 令牌（与 Jira 插件使用的令牌相同 —— 见下文）
+
+## 步骤 1：获取你的 Atlassian API 令牌
+
+如果你已经设置了 [Jira 插件](/official-plugins/jira)，可以复用同一个 API 令牌。否则：
+
+1. 在 [https://id.atlassian.com](https://id.atlassian.com) 登录你的 Atlassian 账户
+2. 点击右上角的个人头像
+3. 选择 **Account settings**
+4. 切换到 **Security** 标签页
+5. 在 **API token** 下，点击 **Create and manage API tokens**
+6. 点击 **Create API token**
+7. 给它起一个标签（例如 `sdkck-cli`），然后点击 **Create**
+
+![Confluence 创建 API 令牌界面](/jira-01.webp)
+
+8. 立即复制令牌 —— 它不会再次显示
+
+![Confluence 复制 API 令牌界面](/jira-02.webp)
+
+## 步骤 2：在 Sidekick 中配置认证
+
+```bash
+sdkck conni auth add
+```
+
+系统会提示你输入：
+
+- **Confluence domain** —— 你的 Atlassian 基础 URL（例如 `https://yourcompany.atlassian.net`）
+- **Email** —— 你的 Atlassian 账户的电子邮箱地址
+- **API token** —— 你在步骤 1 中复制的令牌
+
+## 步骤 3：验证连接
+
+```bash
+sdkck conni auth test
+```
+
+## 命令示例
+
+```bash
+# List spaces in your Confluence instance
+sdkck conni space list
+
+# Search for pages
+sdkck conni content search 'space=DEV AND title ~ "Implement email OTP login" AND creator=currentUser()'
+
+# Get a specific page by ID
+sdkck conni content get 1544060948
+
+# Create a new page
+sdkck conni content create --fields spaceKey="DEV" title="Page with files" body="Content" --attach ./image.png --attach ./report.pdf
+```
+
+## 探索所有命令
+
+```bash
+sdkck help conni
+```
+
+## 故障排查
+
+**401 Unauthorized**
+
+- 确认该 API 令牌属于你输入为 email 的那个账户
+- 检查令牌是否已被吊销
+
+**找不到空间或页面**
+
+- 确认该 Atlassian 账户有权限访问目标 Confluence 空间
+
+**域名格式**
+
+- 包含 `https://` 且末尾不带斜杠：`https://yourcompany.atlassian.net`
+- Confluence Cloud 与 Jira Cloud 托管在同一域名下

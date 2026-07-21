@@ -1,6 +1,6 @@
-import Link from 'next/link'
+import {Link} from '@/i18n/navigation'
 
-import {LanguageToggle} from './language-toggle'
+import {LocaleSwitcher} from './locale-switcher'
 import {ThemeToggle} from './theme-toggle'
 
 export function Header() {
@@ -36,7 +36,7 @@ export function Header() {
           >
             npm
           </a>
-          <LanguageToggle />
+          <LocaleSwitcher />
           <ThemeToggle />
         </nav>
       </div>

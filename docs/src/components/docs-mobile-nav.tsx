@@ -1,25 +1,23 @@
 'use client'
 
-import Link from 'next/link'
-import {usePathname} from 'next/navigation'
+import {useTranslations} from 'next-intl'
 import {useEffect, useMemo, useState} from 'react'
 
-import {getNavigation, localeFromPathname} from '@/lib/docs-navigation'
+import {Link, usePathname} from '@/i18n/navigation'
+import {allDocsPages, navigation} from '@/lib/docs-navigation'
 import {cn} from '@/lib/utils'
 
 export function DocsMobileNav() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
-  const locale = localeFromPathname(pathname)
-  const navigation = useMemo(() => getNavigation(locale), [locale])
+  const tItems = useTranslations('nav.items')
+  const tSections = useTranslations('nav.sections')
+  const tMobile = useTranslations('mobileNav')
 
   const currentPage = useMemo(() => {
-    const pages = navigation.flatMap((section) => section.items)
-    const page = pages.find((p) => p.href === pathname)
-    return page ?? pages[0]
-  }, [navigation, pathname])
-
-  const tocLabel = locale === 'zh' ? '目录' : 'Table of Contents'
+    const page = allDocsPages.find((p) => p.href === pathname)
+    return page ?? allDocsPages[0]
+  }, [pathname])
 
   useEffect(() => {
     setOpen(false)
@@ -38,7 +36,7 @@ export function DocsMobileNav() {
         className="lg:hidden sticky top-14 z-40 w-full px-6 py-3 bg-background/80 backdrop-blur-sm border-b border-border flex items-center justify-between focus:outline-none"
         onClick={() => setOpen(true)}
       >
-        <span className="text-sm font-medium">{currentPage?.name}</span>
+        <span className="text-sm font-medium">{currentPage ? tItems(currentPage.key) : ''}</span>
         <span className="w-8 h-8 flex items-center justify-center">
           <svg
             className="text-muted-foreground"
@@ -68,9 +66,9 @@ export function DocsMobileNav() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-sm font-semibold">{tocLabel}</h2>
+              <h2 className="text-sm font-semibold">{tMobile('toc')}</h2>
               <button
-                aria-label="Close menu"
+                aria-label={tMobile('close')}
                 className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
                 onClick={() => setOpen(false)}
               >
@@ -91,10 +89,10 @@ export function DocsMobileNav() {
             </div>
             <nav className="space-y-6">
               {navigation.map((section, sectionIndex) => (
-                <div key={section.title ?? sectionIndex}>
-                  {section.title && (
+                <div key={section.titleKey ?? sectionIndex}>
+                  {section.titleKey && (
                     <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                      {section.title}
+                      {tSections(section.titleKey)}
                     </h4>
                   )}
                   <ul className="space-y-1">
@@ -109,7 +107,7 @@ export function DocsMobileNav() {
                           )}
                           href={item.href}
                         >
-                          {item.name}
+                          {tItems(item.key)}
                         </Link>
                       </li>
                     ))}
