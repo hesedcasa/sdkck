@@ -85,6 +85,20 @@ function consoleConfigured(): boolean {
   return isEnvTrue(process.env.SDKCK_OTEL_CONSOLE) || process.env.OTEL_TRACES_EXPORTER === 'console'
 }
 
+/**
+ * If `error` is an oclif ExitError (thrown by `this.exit(code)`), return its
+ * exit code; otherwise `undefined`. A zero exit code denotes a successful
+ * command completion even though it surfaces as a thrown error.
+ */
+function oclifExitCode(error: unknown): number | undefined {
+  if (error && typeof error === 'object') {
+    const e = error as {code?: unknown; oclif?: {exit?: unknown}}
+    if (e.code === 'EEXIT' && typeof e.oclif?.exit === 'number') return e.oclif.exit
+  }
+
+  return undefined
+}
+
 /** SpanExporter that appends each finished span as one JSON line to a file. */
 class FileSpanExporter implements SpanExporter {
   constructor(private readonly file: string) {
@@ -272,10 +286,26 @@ export async function instrumentCommand<T>(
       span.setStatus({code: SpanStatusCode.OK})
       return result
     } catch (error) {
+      const exitCode = oclifExitCode(error)
+      if (exitCode === 0) {
+        // `this.exit(0)` throws an oclif ExitError to unwind the stack, but a
+        // zero exit code is a *successful* completion — not a failure. Leave
+        // the outcome as a success and let the error propagate for oclif to
+        // handle.
+        span.setStatus({code: SpanStatusCode.OK})
+        throw error
+      }
+
       status = 'error'
       const err = error instanceof Error ? error : new Error(String(error))
-      // Record the exception on the span → an error trace.
-      span.recordException(err)
+      if (exitCode === undefined) {
+        // A genuine thrown exception — capture the stack as an error trace.
+        span.recordException(err)
+      } else {
+        // A non-zero `this.exit(code)`: a failure, but with no useful stack.
+        span.setAttribute('command.exit_code', exitCode)
+      }
+
       span.setStatus({code: SpanStatusCode.ERROR, message: err.message})
       errorCounter.add(1, {'command.id': commandId, 'error.type': err.name})
       throw error

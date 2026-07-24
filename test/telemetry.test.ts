@@ -133,6 +133,62 @@ describe('telemetry', () => {
     expect(count!.attributes.status).to.equal('error')
   })
 
+  it('treats this.exit(0) (a clean ExitError) as a success, not an error', async () => {
+    initTelemetry({configDir: tmpDir})
+
+    // An oclif ExitError with code 0: a successful termination that surfaces
+    // as a thrown error.
+    const exit0 = Object.assign(new Error('EEXIT: 0'), {code: 'EEXIT', oclif: {exit: 0}})
+    let caught: unknown
+    try {
+      await instrumentCommand({id: 'clean-exit'}, async () => {
+        throw exit0
+      })
+    } catch (error) {
+      caught = error
+    }
+
+    // The ExitError still propagates so oclif can set the process exit code.
+    expect(caught).to.equal(exit0)
+
+    const traces = await readLines<TraceEntry>(tracesFile())
+    expect(traces).to.have.length(1)
+    expect(traces[0].status.code).to.equal(1) // OK, not ERROR
+    expect(traces[0].events).to.have.length(0) // no recorded exception
+
+    const metrics = await readLines<MetricEntry>(metricsFile())
+    expect(metrics.find((m) => m.name === 'sdkck.command.errors')).to.equal(undefined)
+    const count = metrics.find((m) => m.name === 'sdkck.command.count')
+    expect(count!.attributes.status).to.equal('success')
+  })
+
+  it('treats this.exit(nonzero) as an error without a recorded exception', async () => {
+    initTelemetry({configDir: tmpDir})
+
+    const exit2 = Object.assign(new Error('EEXIT: 2'), {code: 'EEXIT', oclif: {exit: 2}})
+    let caught: unknown
+    try {
+      await instrumentCommand({id: 'failed-exit'}, async () => {
+        throw exit2
+      })
+    } catch (error) {
+      caught = error
+    }
+
+    expect(caught).to.equal(exit2)
+
+    const traces = await readLines<TraceEntry>(tracesFile())
+    expect(traces[0].status.code).to.equal(2) // ERROR
+    expect(traces[0].events).to.have.length(0) // no exception event for a bare exit
+    expect(traces[0].attributes['command.exit_code']).to.equal(2)
+
+    const metrics = await readLines<MetricEntry>(metricsFile())
+    const errors = metrics.find((m) => m.name === 'sdkck.command.errors')
+    expect(errors, 'error metric present').to.exist
+    const count = metrics.find((m) => m.name === 'sdkck.command.count')
+    expect(count!.attributes.status).to.equal('error')
+  })
+
   it('falls back to "unknown" when no command id is given', async () => {
     initTelemetry({configDir: tmpDir})
     await instrumentCommand({}, async () => {})
