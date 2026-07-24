@@ -45,6 +45,13 @@ import {dirname, join} from 'node:path'
  *   - `SDKCK_OTEL_CONSOLE=1` (or `OTEL_TRACES_EXPORTER=console`) → stdout.
  *   - otherwise → newline-delimited JSON files under `<configDir>/logs/`.
  * Set `OTEL_SDK_DISABLED=true` to turn instrumentation off entirely.
+ *
+ * Telemetry is safe by default: because spans can be shipped off the machine,
+ * potentially secret-bearing values are NOT captured unless explicitly opted
+ * in. Command arguments are reduced to an argument count (`command.argc`) and
+ * failures record only the exception type. Set `SDKCK_OTEL_CAPTURE_ARGV=1` to
+ * attach the full argv, and `SDKCK_OTEL_CAPTURE_ERRORS=1` to attach exception
+ * messages and stack traces.
  */
 
 const SERVICE_NAME = 'sdkck'
@@ -54,6 +61,10 @@ const METRIC_COMMAND_DURATION = 'sdkck.command.duration'
 const METRIC_COMMAND_ERRORS = 'sdkck.command.errors'
 
 type TelemetryState = {
+  // Opt-in: attach the full command arguments (may contain secrets).
+  captureArgv: boolean
+  // Opt-in: attach exception messages and stack traces (may contain secrets).
+  captureErrors: boolean
   commandCounter: Counter
   durationHistogram: Histogram
   errorCounter: Counter
@@ -243,6 +254,8 @@ export function initTelemetry(opts: {configDir: string; version?: string}): void
   const meter = meterProvider.getMeter(SERVICE_NAME, opts.version)
 
   state = {
+    captureArgv: isEnvTrue(process.env.SDKCK_OTEL_CAPTURE_ARGV),
+    captureErrors: isEnvTrue(process.env.SDKCK_OTEL_CAPTURE_ERRORS),
     commandCounter: meter.createCounter(METRIC_COMMAND_COUNT, {
       description: 'Number of sdkck command invocations',
     }),
@@ -271,11 +284,17 @@ export async function instrumentCommand<T>(
 ): Promise<T> {
   if (!state) return run()
 
-  const {commandCounter, durationHistogram, errorCounter, meterProvider, tracer} = state
+  const {captureArgv, captureErrors, commandCounter, durationHistogram, errorCounter, meterProvider, tracer} = state
   const commandId = info.id ?? 'unknown'
-  const attributes: Record<string, string> = {'command.id': commandId}
+  const attributes: Record<string, number | string> = {'command.id': commandId}
   if (info.plugin) attributes['command.plugin'] = info.plugin
-  if (info.argv && info.argv.length > 0) attributes['command.argv'] = info.argv.join(' ')
+  if (info.argv && info.argv.length > 0) {
+    // The raw argument vector can carry secrets (tokens, passwords, URLs with
+    // embedded credentials). Record only the argument count by default; attach
+    // the full argv only when the operator opts in via SDKCK_OTEL_CAPTURE_ARGV.
+    attributes['command.argc'] = info.argv.length
+    if (captureArgv) attributes['command.argv'] = info.argv.join(' ')
+  }
 
   activeDepth++
   return tracer.startActiveSpan(`command ${commandId}`, {attributes}, async (span) => {
@@ -299,14 +318,23 @@ export async function instrumentCommand<T>(
       status = 'error'
       const err = error instanceof Error ? error : new Error(String(error))
       if (exitCode === undefined) {
-        // A genuine thrown exception — capture the stack as an error trace.
-        span.recordException(err)
+        // A genuine thrown exception — an error trace. The message and stack
+        // can contain secrets (credentials, connection strings, response
+        // bodies), so by default record only the exception type. The full
+        // message and stack are attached only when the operator opts in via
+        // SDKCK_OTEL_CAPTURE_ERRORS.
+        if (captureErrors) {
+          span.recordException(err)
+        } else {
+          span.addEvent('exception', {'exception.type': err.name})
+        }
       } else {
         // A non-zero `this.exit(code)`: a failure, but with no useful stack.
         span.setAttribute('command.exit_code', exitCode)
       }
 
-      span.setStatus({code: SpanStatusCode.ERROR, message: err.message})
+      // The exception type/name is safe to record; the message may not be.
+      span.setStatus({code: SpanStatusCode.ERROR, message: captureErrors ? err.message : err.name})
       errorCounter.add(1, {'command.id': commandId, 'error.type': err.name})
       throw error
     } finally {

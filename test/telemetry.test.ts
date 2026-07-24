@@ -44,6 +44,8 @@ describe('telemetry', () => {
     delete process.env.OTEL_SDK_DISABLED
     delete process.env.SDKCK_OTEL_CONSOLE
     delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT
+    delete process.env.SDKCK_OTEL_CAPTURE_ARGV
+    delete process.env.SDKCK_OTEL_CAPTURE_ERRORS
   })
 
   afterEach(async () => {
@@ -74,7 +76,10 @@ describe('telemetry', () => {
   it('records a span and metrics for a successful command', async () => {
     initTelemetry({configDir: tmpDir, version: '1.2.3'})
 
-    const result = await instrumentCommand({argv: ['--flag'], id: 'demo cmd', plugin: 'my-plugin'}, async () => 'ok')
+    const result = await instrumentCommand(
+      {argv: ['--flag', 'value'], id: 'demo cmd', plugin: 'my-plugin'},
+      async () => 'ok',
+    )
     expect(result).to.equal('ok')
 
     const traces = await readLines<TraceEntry>(tracesFile())
@@ -82,7 +87,9 @@ describe('telemetry', () => {
     expect(traces[0].name).to.equal('command demo cmd')
     expect(traces[0].attributes['command.id']).to.equal('demo cmd')
     expect(traces[0].attributes['command.plugin']).to.equal('my-plugin')
-    expect(traces[0].attributes['command.argv']).to.equal('--flag')
+    // Safe by default: only the argument count, never the raw argv.
+    expect(traces[0].attributes['command.argc']).to.equal(2)
+    expect(traces[0].attributes['command.argv']).to.equal(undefined)
     expect(traces[0].status.code).to.equal(1) // OK
     expect(traces[0].events).to.have.length(0)
     expect(traces[0].durationMs).to.be.a('number')
@@ -98,10 +105,10 @@ describe('telemetry', () => {
     expect(metrics.find((m) => m.name === 'sdkck.command.errors')).to.equal(undefined)
   })
 
-  it('records an error trace and error metric when a command throws', async () => {
+  it('records a redacted error trace and error metric when a command throws', async () => {
     initTelemetry({configDir: tmpDir})
 
-    const boom = new TypeError('kaboom')
+    const boom = new TypeError('secret-token=abc123')
     let caught: unknown
     try {
       await instrumentCommand({id: 'boom'}, async () => {
@@ -117,10 +124,15 @@ describe('telemetry', () => {
     const traces = await readLines<TraceEntry>(tracesFile())
     expect(traces).to.have.length(1)
     expect(traces[0].status.code).to.equal(2) // ERROR
-    expect(traces[0].status.message).to.equal('kaboom')
+    // Safe by default: the type is recorded, but not the (possibly secret) message.
+    expect(traces[0].status.message).to.equal('TypeError')
     expect(traces[0].events).to.have.length(1)
     expect(traces[0].events[0].name).to.equal('exception')
-    expect(traces[0].events[0].attributes['exception.message']).to.equal('kaboom')
+    expect(traces[0].events[0].attributes['exception.type']).to.equal('TypeError')
+    expect(traces[0].events[0].attributes['exception.message']).to.equal(undefined)
+    // The sensitive message must not appear anywhere in the trace.
+    const raw = JSON.stringify(traces[0])
+    expect(raw).to.not.contain('secret-token')
 
     const metrics = await readLines<MetricEntry>(metricsFile())
     const errors = metrics.find((m) => m.name === 'sdkck.command.errors')
@@ -131,6 +143,35 @@ describe('telemetry', () => {
 
     const count = metrics.find((m) => m.name === 'sdkck.command.count')
     expect(count!.attributes.status).to.equal('error')
+  })
+
+  it('captures the full argv when SDKCK_OTEL_CAPTURE_ARGV is set', async () => {
+    process.env.SDKCK_OTEL_CAPTURE_ARGV = '1'
+    initTelemetry({configDir: tmpDir})
+
+    await instrumentCommand({argv: ['--flag', 'value'], id: 'demo'}, async () => 'ok')
+
+    const traces = await readLines<TraceEntry>(tracesFile())
+    expect(traces[0].attributes['command.argv']).to.equal('--flag value')
+    expect(traces[0].attributes['command.argc']).to.equal(2)
+  })
+
+  it('captures the full exception message and stack when SDKCK_OTEL_CAPTURE_ERRORS is set', async () => {
+    process.env.SDKCK_OTEL_CAPTURE_ERRORS = '1'
+    initTelemetry({configDir: tmpDir})
+
+    try {
+      await instrumentCommand({id: 'boom'}, async () => {
+        throw new TypeError('kaboom')
+      })
+    } catch {
+      // expected
+    }
+
+    const traces = await readLines<TraceEntry>(tracesFile())
+    expect(traces[0].status.message).to.equal('kaboom')
+    expect(traces[0].events[0].attributes['exception.message']).to.equal('kaboom')
+    expect(traces[0].events[0].attributes['exception.stacktrace']).to.be.a('string')
   })
 
   it('treats this.exit(0) (a clean ExitError) as a success, not an error', async () => {

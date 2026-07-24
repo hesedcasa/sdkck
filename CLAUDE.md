@@ -87,13 +87,17 @@ Key file: `src/mcp-client-store.ts`.
 
 ### Telemetry (OpenTelemetry)
 
-Every command invocation is instrumented with OpenTelemetry: a trace span per command, a per-command counter + duration histogram, and — when a command throws — a recorded exception (error trace) plus an error counter.
+Every command execution is instrumented with OpenTelemetry: a trace span per command, a per-command counter + duration histogram, and — when a command throws — an exception event (error trace) plus an error counter.
 
-The `setup-telemetry` init hook (`src/hooks/init/setup-telemetry.ts`) initialises the providers and wraps `Command.prototype._run` (the single try/catch/finally around `init()`/`run()`), so both successful completions and thrown errors are captured, including nested runs from `config.runCommand`. Because the CLI is short-lived, metrics are force-flushed when the outermost command finishes rather than on a timer.
+The `setup-telemetry` init hook (`src/hooks/init/setup-telemetry.ts`) initialises the providers and wraps `Command.prototype._run` (the single try/catch/finally around `init()`/`run()`), so both successful completions and thrown errors are captured, including nested runs from `config.runCommand`. Because the CLI is short-lived, metrics are force-flushed when the outermost command finishes rather than on a timer. Note: wrapping `_run` covers every command that actually executes (including the `help` command); oclif's bare root `--help`/`--version` flags short-circuit before any command runs, so those specific invocations are not counted.
+
+`this.exit(code)` throws an oclif `ExitError` to unwind the stack; a zero code is treated as success, a non-zero code as a failure (tagged `command.exit_code`) rather than an exception with a stack.
 
 Key file: `src/telemetry.ts`. Exports: `initTelemetry`, `instrumentCommand`, `shutdownTelemetry` (plus `isTelemetryActive`/`resetTelemetryForTests` test helpers).
 
-Emitted instruments: `sdkck.command.count`, `sdkck.command.duration` (ms), `sdkck.command.errors`. Spans carry `command.id`, `command.plugin`, and `command.argv` attributes.
+Emitted instruments: `sdkck.command.count`, `sdkck.command.duration` (ms), `sdkck.command.errors`. Spans carry `command.id`, `command.plugin`, and `command.argc` attributes.
+
+**Safe by default:** because spans can be shipped off the machine, potentially secret-bearing values are not captured unless explicitly opted in. Command arguments are reduced to a count (`command.argc`) and failures record only the exception *type*. Opt in with `SDKCK_OTEL_CAPTURE_ARGV=1` (attach the full `command.argv`) and `SDKCK_OTEL_CAPTURE_ERRORS=1` (attach exception messages + stack traces).
 
 Exporter selection (chosen at startup so the CLI stays network-free by default):
 
@@ -118,7 +122,7 @@ Commands that depend on external clients (e.g., `Search._llmClient`) use public 
 ## Environment
 
 - **`OPENAI_API_KEY`:** Required to enable LLM-powered semantic search in `sdkck search`. When unset, search falls back to fuzzy matching. The search command uses `gpt-4o` via the `openai` npm package.
-- **OpenTelemetry toggles:** `OTEL_EXPORTER_OTLP_ENDPOINT` (send traces/metrics to an OTLP/HTTP collector), `SDKCK_OTEL_CONSOLE=1` (export to stdout), `OTEL_SDK_DISABLED=true` (disable instrumentation), `OTEL_DEBUG=1` (OTel diagnostic logging). See the Telemetry section above. Defaults to JSON files under `<configDir>/logs/`.
+- **OpenTelemetry toggles:** `OTEL_EXPORTER_OTLP_ENDPOINT` (send traces/metrics to an OTLP/HTTP collector), `SDKCK_OTEL_CONSOLE=1` (export to stdout), `OTEL_SDK_DISABLED=true` (disable instrumentation), `OTEL_DEBUG=1` (OTel diagnostic logging), `SDKCK_OTEL_CAPTURE_ARGV=1` / `SDKCK_OTEL_CAPTURE_ERRORS=1` (opt in to capturing raw arguments / exception messages + stacks, which may contain secrets). See the Telemetry section above. Defaults to JSON files under `<configDir>/logs/`.
 
 ## Gotchas
 
