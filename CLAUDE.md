@@ -85,6 +85,24 @@ Dep: `@modelcontextprotocol/sdk` (^1.29.0). No extra peer dep installs needed.
 
 Key file: `src/mcp-client-store.ts`.
 
+### Telemetry (OpenTelemetry)
+
+Every command invocation is instrumented with OpenTelemetry: a trace span per command, a per-command counter + duration histogram, and — when a command throws — a recorded exception (error trace) plus an error counter.
+
+The `setup-telemetry` init hook (`src/hooks/init/setup-telemetry.ts`) initialises the providers and wraps `Command.prototype._run` (the single try/catch/finally around `init()`/`run()`), so both successful completions and thrown errors are captured, including nested runs from `config.runCommand`. Because the CLI is short-lived, metrics are force-flushed when the outermost command finishes rather than on a timer.
+
+Key file: `src/telemetry.ts`. Exports: `initTelemetry`, `instrumentCommand`, `shutdownTelemetry` (plus `isTelemetryActive`/`resetTelemetryForTests` test helpers).
+
+Emitted instruments: `sdkck.command.count`, `sdkck.command.duration` (ms), `sdkck.command.errors`. Spans carry `command.id`, `command.plugin`, and `command.argv` attributes.
+
+Exporter selection (chosen at startup so the CLI stays network-free by default):
+
+- `OTEL_EXPORTER_OTLP_ENDPOINT` (or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` / `..._METRICS_ENDPOINT`) → OTLP/HTTP.
+- `SDKCK_OTEL_CONSOLE=1` (or `OTEL_TRACES_EXPORTER=console`) → stdout.
+- otherwise → newline-delimited JSON files at `<configDir>/logs/otel-traces.jsonl` and `<configDir>/logs/otel-metrics.jsonl` (the file metric exporter uses delta temporality so each flush records only new activity).
+
+Set `OTEL_SDK_DISABLED=true` to turn instrumentation off entirely, or `OTEL_DEBUG=1` for OTel diagnostic logging.
+
 ## JIT Plugins
 
 The `oclif.jitPlugins` field in `package.json` declares plugins that are auto-installed on first use (e.g., `@hesed/mcp-server`, `@hesed/mcp-client`, `@hesed/jira`, `@hesed/conni`, `@hesed/bb`, `@hesed/sentry`, `@hesed/mysql`, `@hesed/psql`, `@hesed/supabase`). When a JIT plugin's command is invoked, the `jit_plugin_not_installed` hook (`src/hooks/jit_plugin_not_installed/jit-install.ts`) runs `plugins:install <pluginName>@<pluginVersion>` automatically.
@@ -100,6 +118,7 @@ Commands that depend on external clients (e.g., `Search._llmClient`) use public 
 ## Environment
 
 - **`OPENAI_API_KEY`:** Required to enable LLM-powered semantic search in `sdkck search`. When unset, search falls back to fuzzy matching. The search command uses `gpt-4o` via the `openai` npm package.
+- **OpenTelemetry toggles:** `OTEL_EXPORTER_OTLP_ENDPOINT` (send traces/metrics to an OTLP/HTTP collector), `SDKCK_OTEL_CONSOLE=1` (export to stdout), `OTEL_SDK_DISABLED=true` (disable instrumentation), `OTEL_DEBUG=1` (OTel diagnostic logging). See the Telemetry section above. Defaults to JSON files under `<configDir>/logs/`.
 
 ## Gotchas
 
