@@ -46,7 +46,7 @@
     "@types/node": "^25",
     "chai": "^6",
     "chai-as-promised": "^8.0.2",
-    "eslint": "^9",
+    "eslint": "^10",
     "eslint-config-oclif": "^6",
     "eslint-config-prettier": "^10",
     "mocha": "^11",
