@@ -105,7 +105,7 @@ Exporter selection (chosen at startup so the CLI stays network-free by default):
 - `SDKCK_OTEL_CONSOLE=1` (or `OTEL_TRACES_EXPORTER=console`) → stdout.
 - otherwise → newline-delimited JSON files at `<configDir>/logs/otel-traces.jsonl` and `<configDir>/logs/otel-metrics.jsonl` (the file metric exporter uses delta temporality so each flush records only new activity).
 
-Set `OTEL_SDK_DISABLED=true` to turn instrumentation off entirely, or `OTEL_DEBUG=1` for OTel diagnostic logging.
+Set `SDKCK_OTEL_DISABLED=true` to turn instrumentation off for sdkck only (leaving the standard `OTEL_SDK_DISABLED` that other host tools honour untouched), `OTEL_SDK_DISABLED=true` to turn it off entirely, or `OTEL_DEBUG=1` for OTel diagnostic logging.
 
 ## JIT Plugins
 
@@ -122,7 +122,7 @@ Commands that depend on external clients (e.g., `Search._llmClient`) use public 
 ## Environment
 
 - **`OPENAI_API_KEY`:** Required to enable LLM-powered semantic search in `sdkck search`. When unset, search falls back to fuzzy matching. The search command uses `gpt-4o` via the `openai` npm package.
-- **OpenTelemetry toggles:** `OTEL_EXPORTER_OTLP_ENDPOINT` (send traces/metrics to an OTLP/HTTP collector), `SDKCK_OTEL_CONSOLE=1` (export to stdout), `OTEL_SDK_DISABLED=true` (disable instrumentation), `OTEL_DEBUG=1` (OTel diagnostic logging), `SDKCK_OTEL_CAPTURE_ARGV=1` / `SDKCK_OTEL_CAPTURE_ERRORS=1` (opt in to capturing raw arguments / exception messages + stacks, which may contain secrets). See the Telemetry section above. Defaults to JSON files under `<configDir>/logs/`.
+- **OpenTelemetry toggles:** `OTEL_EXPORTER_OTLP_ENDPOINT` (send traces/metrics to an OTLP/HTTP collector), `SDKCK_OTEL_CONSOLE=1` (export to stdout), `SDKCK_OTEL_DISABLED=true` (disable for sdkck only), `OTEL_SDK_DISABLED=true` (disable instrumentation entirely), `OTEL_DEBUG=1` (OTel diagnostic logging), `SDKCK_OTEL_CAPTURE_ARGV=1` / `SDKCK_OTEL_CAPTURE_ERRORS=1` (opt in to capturing raw arguments / exception messages + stacks, which may contain secrets). See the Telemetry section above. Defaults to JSON files under `<configDir>/logs/`.
 
 ## Gotchas
 

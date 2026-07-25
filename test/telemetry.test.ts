@@ -42,6 +42,7 @@ describe('telemetry', () => {
     resetTelemetryForTests()
     tmpDir = await mkdtemp(join(tmpdir(), 'sdkck-telemetry-'))
     delete process.env.OTEL_SDK_DISABLED
+    delete process.env.SDKCK_OTEL_DISABLED
     delete process.env.SDKCK_OTEL_CONSOLE
     delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT
     delete process.env.SDKCK_OTEL_CAPTURE_ARGV
@@ -65,6 +66,16 @@ describe('telemetry', () => {
 
   it('does not activate when OTEL_SDK_DISABLED is set', async () => {
     process.env.OTEL_SDK_DISABLED = 'true'
+    initTelemetry({configDir: tmpDir})
+    expect(isTelemetryActive()).to.equal(false)
+
+    // Callback still runs, and it returns the value untouched.
+    const result = await instrumentCommand({id: 'noop'}, async () => 42)
+    expect(result).to.equal(42)
+  })
+
+  it('does not activate when SDKCK_OTEL_DISABLED is set', async () => {
+    process.env.SDKCK_OTEL_DISABLED = 'true'
     initTelemetry({configDir: tmpDir})
     expect(isTelemetryActive()).to.equal(false)
 

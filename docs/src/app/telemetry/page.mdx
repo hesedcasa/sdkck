@@ -1,0 +1,125 @@
+# Telemetry
+
+Sidekick is instrumented with [OpenTelemetry](https://opentelemetry.io). Every command invocation opens a trace span, records a counter and a duration histogram, and — when the command throws — captures an exception event plus an error counter.
+
+Instrumentation is **on by default but quiet**: with no configuration it writes newline-delimited JSON to local files and never touches the network.
+
+## What gets captured
+
+The `setup-telemetry` init hook wraps `Command.prototype._run`, so every command that actually executes is measured — including nested runs triggered through the MCP server or `search`.
+
+**Metrics**
+
+| Instrument | Type | Unit | Description |
+|------------|------|------|-------------|
+| `sdkck.command.count` | Counter | — | Number of command invocations |
+| `sdkck.command.duration` | Histogram | ms | Duration of command invocations |
+| `sdkck.command.errors` | Counter | — | Number of invocations that failed |
+
+**Span attributes**
+
+| Attribute | Description |
+|-----------|-------------|
+| `command.id` | The command ID (e.g. `api import`) |
+| `command.plugin` | The plugin that provides the command |
+| `command.argc` | Number of arguments passed |
+| `command.exit_code` | Set when a command exits with a non-zero code |
+
+A successful command's span is marked `OK`. A thrown exception is recorded as an error trace; a non-zero `exit(code)` is tagged with `command.exit_code` instead. Calling `exit(0)` is treated as success.
+
+## Safe by default
+
+Because spans can be shipped off the machine, potentially secret-bearing values are **not** captured unless you explicitly opt in.
+
+- Command arguments are reduced to a count (`command.argc`) — the raw argument vector can carry tokens, passwords, or URLs with embedded credentials.
+- Failures record only the exception **type**, not the message or stack.
+
+Opt in when you need the detail:
+
+```bash
+export SDKCK_OTEL_CAPTURE_ARGV=1    # attach the full command.argv
+export SDKCK_OTEL_CAPTURE_ERRORS=1  # attach exception messages + stack traces
+```
+
+## Choosing an exporter
+
+The exporter is selected from the environment at startup so the CLI stays network-free unless you ask otherwise.
+
+### Local files (default)
+
+With nothing configured, traces and metrics are appended as newline-delimited JSON under `<configDir>/logs/`:
+
+- `otel-traces.jsonl`
+- `otel-metrics.jsonl`
+
+The file metric exporter uses delta temporality, so each flush records only new activity rather than repeated cumulative snapshots.
+
+### OTLP/HTTP collector
+
+Set an OTLP endpoint to send traces and metrics to a collector (Jaeger, Grafana, Honeycomb, etc.):
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+sdkck api list
+```
+
+Signal-specific endpoints are also honoured:
+
+```bash
+export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces
+export OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:4318/v1/metrics
+```
+
+**Authenticated collectors.** A local collector needs no auth, but hosted backends usually require an API key. The exporter reads the standard `OTEL_EXPORTER_OTLP_HEADERS` variable — no code change needed — so add your header alongside the endpoint:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io
+export OTEL_EXPORTER_OTLP_HEADERS="x-honeycomb-team=YOUR_API_KEY"
+sdkck api list
+```
+
+Headers are comma-separated `key=value` pairs (`"key1=val1,key2=val2"`), and `OTEL_EXPORTER_OTLP_TRACES_HEADERS` / `OTEL_EXPORTER_OTLP_METRICS_HEADERS` override per signal. Because these carry secrets, keep them in your shell or CI secret store rather than committing them.
+
+### Console
+
+Print spans and metrics to stdout — useful for a quick look while developing:
+
+```bash
+SDKCK_OTEL_CONSOLE=1 sdkck api list
+# or
+OTEL_TRACES_EXPORTER=console sdkck api list
+```
+
+Because the CLI is short-lived, metrics are force-flushed when the outermost command finishes rather than on a timer.
+
+## Turning it off
+
+```bash
+export SDKCK_OTEL_DISABLED=true  # disable telemetry for sdkck only
+export OTEL_SDK_DISABLED=true    # disable instrumentation entirely (standard OTEL var)
+export OTEL_DEBUG=1              # enable OpenTelemetry diagnostic logging
+```
+
+Use `SDKCK_OTEL_DISABLED` when OpenTelemetry is enabled host-wide for other tools but you want sdkck to stay silent — it turns off sdkck's instrumentation without touching the shared `OTEL_SDK_DISABLED` that those other tools honour.
+
+Spans carry `service.name = sdkck` and the CLI version as `service.version`.
+
+## Environment reference
+
+| Variable | Effect |
+|----------|--------|
+| `OTEL_DEBUG` | Enable OpenTelemetry diagnostic logging |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Send traces + metrics to an OTLP/HTTP collector |
+| `OTEL_EXPORTER_OTLP_HEADERS` | Headers sent with OTLP requests, e.g. an API key (may contain secrets) |
+| `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` | OTLP/HTTP endpoint for metrics only |
+| `OTEL_EXPORTER_OTLP_METRICS_HEADERS` | OTLP headers for metrics only |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | OTLP/HTTP endpoint for traces only |
+| `OTEL_EXPORTER_OTLP_TRACES_HEADERS` | OTLP headers for traces only |
+| `OTEL_SDK_DISABLED=true` | Disable instrumentation entirely |
+| `OTEL_TRACES_EXPORTER=console` | Also selects the console exporter |
+| `SDKCK_OTEL_CAPTURE_ARGV` | Attach the full `command.argv` (may contain secrets) |
+| `SDKCK_OTEL_CAPTURE_ERRORS` | Attach exception messages + stack traces (may contain secrets) |
+| `SDKCK_OTEL_CONSOLE` | Export to stdout (`1`/`on`/`true`/`yes`) |
+| `SDKCK_OTEL_DISABLED=true` | Disable telemetry for sdkck only (leaves host-wide OTEL untouched) |
+
+When no OTLP endpoint and no console exporter are configured, telemetry falls back to the local JSON files under `<configDir>/logs/`.
