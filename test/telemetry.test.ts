@@ -1,5 +1,5 @@
 import {expect} from 'chai'
-import {mkdtemp, readFile, rm} from 'node:fs/promises'
+import {access, mkdtemp, readFile, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
@@ -26,6 +26,15 @@ type MetricEntry = {
   value: unknown
 }
 
+async function fileExists(file: string): Promise<boolean> {
+  try {
+    await access(file)
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function readLines<T>(file: string): Promise<T[]> {
   const raw = await readFile(file, 'utf8')
   return raw
@@ -42,7 +51,9 @@ describe('telemetry', () => {
     resetTelemetryForTests()
     tmpDir = await mkdtemp(join(tmpdir(), 'sdkck-telemetry-'))
     delete process.env.OTEL_SDK_DISABLED
-    delete process.env.SDKCK_OTEL_CONSOLE
+    delete process.env.SDKCK_OTEL_DISABLED
+    delete process.env.OTEL_TRACES_EXPORTER
+    delete process.env.OTEL_METRICS_EXPORTER
     delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT
     delete process.env.SDKCK_OTEL_CAPTURE_ARGV
     delete process.env.SDKCK_OTEL_CAPTURE_ERRORS
@@ -65,6 +76,16 @@ describe('telemetry', () => {
 
   it('does not activate when OTEL_SDK_DISABLED is set', async () => {
     process.env.OTEL_SDK_DISABLED = 'true'
+    initTelemetry({configDir: tmpDir})
+    expect(isTelemetryActive()).to.equal(false)
+
+    // Callback still runs, and it returns the value untouched.
+    const result = await instrumentCommand({id: 'noop'}, async () => 42)
+    expect(result).to.equal(42)
+  })
+
+  it('does not activate when SDKCK_OTEL_DISABLED is set', async () => {
+    process.env.SDKCK_OTEL_DISABLED = 'true'
     initTelemetry({configDir: tmpDir})
     expect(isTelemetryActive()).to.equal(false)
 
@@ -103,6 +124,30 @@ describe('telemetry', () => {
     expect(duration, 'duration metric present').to.exist
     expect(duration!.unit).to.equal('ms')
     expect(metrics.find((m) => m.name === 'sdkck.command.errors')).to.equal(undefined)
+  })
+
+  it('sends traces to the console (not the file) when OTEL_TRACES_EXPORTER=console, per signal', async () => {
+    process.env.OTEL_TRACES_EXPORTER = 'console'
+    initTelemetry({configDir: tmpDir})
+
+    await instrumentCommand({id: 'demo'}, async () => 'ok')
+
+    // Traces went to stdout, so no traces file is written...
+    expect(await fileExists(tracesFile())).to.equal(false)
+    // ...but metrics keep their default file exporter — the selection is per signal.
+    expect(await fileExists(metricsFile())).to.equal(true)
+  })
+
+  it('sends metrics to the console (not the file) when OTEL_METRICS_EXPORTER=console, per signal', async () => {
+    process.env.OTEL_METRICS_EXPORTER = 'console'
+    initTelemetry({configDir: tmpDir})
+
+    await instrumentCommand({id: 'demo'}, async () => 'ok')
+
+    // Metrics went to stdout, so no metrics file is written...
+    expect(await fileExists(metricsFile())).to.equal(false)
+    // ...but traces keep their default file exporter.
+    expect(await fileExists(tracesFile())).to.equal(true)
   })
 
   it('records a redacted error trace and error metric when a command throws', async () => {

@@ -42,9 +42,11 @@ import {dirname, join} from 'node:path'
  * network-free by default:
  *   - `OTEL_EXPORTER_OTLP_ENDPOINT` (or the signal-specific
  *     `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` / `..._METRICS_ENDPOINT`) → OTLP/HTTP.
- *   - `SDKCK_OTEL_CONSOLE=1` (or `OTEL_TRACES_EXPORTER=console`) → stdout.
+ *   - `OTEL_TRACES_EXPORTER=console` / `OTEL_METRICS_EXPORTER=console` → stdout
+ *     (per signal).
  *   - otherwise → newline-delimited JSON files under `<configDir>/logs/`.
- * Set `OTEL_SDK_DISABLED=true` to turn instrumentation off entirely.
+ * Set `SDKCK_OTEL_DISABLED=true` to turn instrumentation off for sdkck only, or
+ * the standard `OTEL_SDK_DISABLED=true` to turn it off entirely.
  *
  * Telemetry is safe by default: because spans can be shipped off the machine,
  * potentially secret-bearing values are NOT captured unless explicitly opted
@@ -92,8 +94,12 @@ function otlpEndpointConfigured(): boolean {
   )
 }
 
-function consoleConfigured(): boolean {
-  return isEnvTrue(process.env.SDKCK_OTEL_CONSOLE) || process.env.OTEL_TRACES_EXPORTER === 'console'
+function traceConsoleConfigured(): boolean {
+  return process.env.OTEL_TRACES_EXPORTER === 'console'
+}
+
+function metricConsoleConfigured(): boolean {
+  return process.env.OTEL_METRICS_EXPORTER === 'console'
 }
 
 /**
@@ -197,23 +203,26 @@ class FileMetricExporter implements PushMetricExporter {
 
 function buildTraceExporter(logDir: string): SpanExporter {
   if (otlpEndpointConfigured()) return new OTLPTraceExporter()
-  if (consoleConfigured()) return new ConsoleSpanExporter()
+  if (traceConsoleConfigured()) return new ConsoleSpanExporter()
   return new FileSpanExporter(join(logDir, 'otel-traces.jsonl'))
 }
 
 function buildMetricExporter(logDir: string): PushMetricExporter {
   if (otlpEndpointConfigured()) return new OTLPMetricExporter()
-  if (consoleConfigured()) return new ConsoleMetricExporter()
+  if (metricConsoleConfigured()) return new ConsoleMetricExporter()
   return new FileMetricExporter(join(logDir, 'otel-metrics.jsonl'))
 }
 
 /**
  * Initialise the tracer and meter providers. Safe to call more than once — only
- * the first call takes effect. Honours `OTEL_SDK_DISABLED`.
+ * the first call takes effect. Honours `SDKCK_OTEL_DISABLED` and `OTEL_SDK_DISABLED`.
  */
 export function initTelemetry(opts: {configDir: string; version?: string}): void {
   if (state || disabled) return
-  if (isEnvTrue(process.env.OTEL_SDK_DISABLED)) {
+  // `SDKCK_OTEL_DISABLED` turns telemetry off for sdkck specifically, without
+  // affecting the standard `OTEL_SDK_DISABLED` that other OpenTelemetry-enabled
+  // tools on the host may rely on.
+  if (isEnvTrue(process.env.SDKCK_OTEL_DISABLED) || isEnvTrue(process.env.OTEL_SDK_DISABLED)) {
     disabled = true
     return
   }
