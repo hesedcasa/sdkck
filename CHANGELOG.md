@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.34.1](https://github.com/hesedcasa/sdkck/compare/v0.34.0...v0.34.1) (2026-07-25)
+
+
+### 📄 Documentation
+
+* clarify OTLP auth header wording in telemetry guide ([9653b87](https://github.com/hesedcasa/sdkck/commit/9653b8795565c94a2b45e01c3ab8dfd1e98a4623))
+
 ## [0.34.0](https://github.com/hesedcasa/sdkck/compare/v0.33.0...v0.34.0) (2026-07-25)
 
 
