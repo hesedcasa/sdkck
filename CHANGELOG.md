@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.34.0](https://github.com/hesedcasa/sdkck/compare/v0.33.0...v0.34.0) (2026-07-25)
+
+
+### 🎉 Features
+
+* add OpenTelemetry docs guide and SDKCK_OTEL_DISABLED toggle ([#188](https://github.com/hesedcasa/sdkck/issues/188)) ([02e6697](https://github.com/hesedcasa/sdkck/commit/02e66978dfe61cb3f1caf8ce3b6c01e504a9b373))
+
 ## [0.33.0](https://github.com/hesedcasa/sdkck/compare/v0.32.4...v0.33.0) (2026-07-25)
 
 
