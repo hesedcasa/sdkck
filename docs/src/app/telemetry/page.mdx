@@ -70,7 +70,7 @@ export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces
 export OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:4318/v1/metrics
 ```
 
-**Authenticated collectors.** A local collector needs no auth, but hosted backends usually require an API key. The exporter reads the standard `OTEL_EXPORTER_OTLP_HEADERS` variable — no code change needed — so add your header alongside the endpoint:
+**Authenticated collectors.** Most hosted backends require an API key for authentication. The exporter reads the standard `OTEL_EXPORTER_OTLP_HEADERS` environment variable for this purpose. Add your authentication header alongside the endpoint:
 
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io
