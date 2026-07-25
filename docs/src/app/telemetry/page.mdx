@@ -82,13 +82,14 @@ Headers are comma-separated `key=value` pairs (`"key1=val1,key2=val2"`), and `OT
 
 ### Console
 
-Print spans and metrics to stdout — useful for a quick look while developing:
+Print to stdout — useful for a quick look while developing. Selection is per signal, using the standard OpenTelemetry exporter variables:
 
 ```bash
-SDKCK_OTEL_CONSOLE=1 sdkck api list
-# or
-OTEL_TRACES_EXPORTER=console sdkck api list
+OTEL_TRACES_EXPORTER=console sdkck api list    # traces to stdout
+OTEL_METRICS_EXPORTER=console sdkck api list   # metrics to stdout
 ```
+
+Set both to send traces and metrics to the console at once.
 
 Because the CLI is short-lived, metrics are force-flushed when the outermost command finishes rather than on a timer.
 
@@ -115,11 +116,11 @@ Spans carry `service.name = sdkck` and the CLI version as `service.version`.
 | `OTEL_EXPORTER_OTLP_METRICS_HEADERS` | OTLP headers for metrics only |
 | `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | OTLP/HTTP endpoint for traces only |
 | `OTEL_EXPORTER_OTLP_TRACES_HEADERS` | OTLP headers for traces only |
+| `OTEL_METRICS_EXPORTER=console` | Print metrics to stdout |
 | `OTEL_SDK_DISABLED=true` | Disable instrumentation entirely |
-| `OTEL_TRACES_EXPORTER=console` | Also selects the console exporter |
+| `OTEL_TRACES_EXPORTER=console` | Print traces to stdout |
 | `SDKCK_OTEL_CAPTURE_ARGV` | Attach the full `command.argv` (may contain secrets) |
 | `SDKCK_OTEL_CAPTURE_ERRORS` | Attach exception messages + stack traces (may contain secrets) |
-| `SDKCK_OTEL_CONSOLE` | Export to stdout (`1`/`on`/`true`/`yes`) |
 | `SDKCK_OTEL_DISABLED=true` | Disable telemetry for sdkck only (leaves host-wide OTEL untouched) |
 
 When no OTLP endpoint and no console exporter are configured, telemetry falls back to the local JSON files under `<configDir>/logs/`.
