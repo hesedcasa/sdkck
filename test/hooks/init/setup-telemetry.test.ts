@@ -1,4 +1,3 @@
-import {Command} from '@oclif/core'
 import {expect} from 'chai'
 import {mkdtemp, readFile, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
@@ -9,17 +8,41 @@ import {resetTelemetryForTests, shutdownTelemetry} from '../../../src/telemetry.
 
 type HookOpts = Parameters<typeof hook>[0]
 
-function makeOpts(configDir: string): HookOpts {
+// A minimal stand-in for oclif's Config: it exposes the two members the hook
+// touches (`runCommand` and `findCommand`) plus the fields initTelemetry reads.
+// Deliberately NOTHING here references Command.prototype — the whole point of
+// instrumenting at runCommand is that it is agnostic to which @oclif/core copy
+// a command class extends.
+type FakeCommand = {id?: string; pluginName?: string}
+
+function makeConfig(
+  configDir: string,
+  opts: {
+    commands?: Record<string, FakeCommand>
+    runCommand?: (id: string, argv?: string[], cachedCommand?: unknown) => Promise<unknown>
+  } = {},
+) {
+  return {
+    configDir,
+    findCommand(id: string): FakeCommand | undefined {
+      return opts.commands?.[id]
+    },
+    runCommand: opts.runCommand ?? (async (): Promise<string> => 'done'),
+    version: '9.9.9',
+  }
+}
+
+function makeOpts(config: ReturnType<typeof makeConfig>): HookOpts {
   return {
     argv: [],
-    config: {configDir, version: '9.9.9'} as unknown as HookOpts['config'],
+    config: config as unknown as HookOpts['config'],
     context: {} as HookOpts['context'],
     id: undefined,
   }
 }
 
 type TraceEntry = {
-  attributes: Record<string, string>
+  attributes: Record<string, number | string>
   name: string
   status: {code: number}
 }
@@ -44,71 +67,84 @@ async function tracesFileExists(configDir: string): Promise<boolean> {
 
 describe('init/setup-telemetry hook', () => {
   let tmpDir: string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let origRun: any
 
   beforeEach(async () => {
     resetTelemetryForTests()
     tmpDir = await mkdtemp(join(tmpdir(), 'sdkck-telemetry-hook-'))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    origRun = (Command.prototype as any)._run
     delete process.env.OTEL_SDK_DISABLED
   })
 
   afterEach(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(Command.prototype as any)._run = origRun
     await shutdownTelemetry()
     resetTelemetryForTests()
     await rm(tmpDir, {force: true, recursive: true})
   })
 
-  it('wraps Command.prototype._run and traces a command invocation', async () => {
-    // Install a controllable stub as the "original" so the wrapper closes over
-    // it rather than the real _run (which needs a full command lifecycle).
-    const stubThisCalls: unknown[] = []
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(Command.prototype as any)._run = async function (this: unknown): Promise<string> {
-      stubThisCalls.push(this)
-      return 'done'
+  it('wraps config.runCommand and traces a command invocation, regardless of which @oclif/core the command uses', async () => {
+    // The "original" runCommand records how it was called and returns a value.
+    // It never goes through Command.prototype._run — mirroring a JIT/data-dir
+    // plugin command that extends a different @oclif/core's Command.
+    const calls: unknown[][] = []
+    const original = async (...args: unknown[]): Promise<string> => {
+      calls.push(args)
+      return 'result'
     }
 
-    await hook.call({} as never, makeOpts(tmpDir))
+    const config = makeConfig(tmpDir, {
+      commands: {'jira:issue': {id: 'jira:issue', pluginName: 'jira'}},
+      runCommand: original as never,
+    })
 
-    // The hook replaced _run with a wrapper.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const wrapped = (Command.prototype as any)._run as (this: unknown) => Promise<unknown>
+    await hook.call({} as never, makeOpts(config))
 
-    const fakeCommand = {argv: ['--x'], ctor: {id: 'fake cmd', plugin: {name: 'fake-plugin'}}, id: 'fake cmd'}
-    const result = await wrapped.call(fakeCommand)
+    // The hook replaced runCommand with an instrumenting wrapper.
+    expect(config.runCommand).to.not.equal(original)
 
-    expect(result).to.equal('done')
-    expect(stubThisCalls).to.deep.equal([fakeCommand])
+    const result = await config.runCommand('jira:issue', ['SATHREE-42869'])
+
+    expect(result).to.equal('result')
+    // The wrapper forwarded the exact arguments to the original.
+    expect(calls).to.deep.equal([['jira:issue', ['SATHREE-42869'], null]])
 
     const traces = await readTraces(tmpDir)
     expect(traces).to.have.length(1)
-    expect(traces[0].name).to.equal('command fake cmd')
-    expect(traces[0].attributes['command.id']).to.equal('fake cmd')
-    expect(traces[0].attributes['command.plugin']).to.equal('fake-plugin')
+    expect(traces[0].name).to.equal('command jira:issue')
+    expect(traces[0].attributes['command.id']).to.equal('jira:issue')
+    expect(traces[0].attributes['command.plugin']).to.equal('jira')
+    // Safe by default: only the argument count.
+    expect(traces[0].attributes['command.argc']).to.equal(1)
     expect(traces[0].status.code).to.equal(1) // OK
+  })
+
+  it('falls back to the raw id when the command is not resolvable (e.g. pre-install JIT run)', async () => {
+    const config = makeConfig(tmpDir, {commands: {}})
+    await hook.call({} as never, makeOpts(config))
+
+    await config.runCommand('mysql:query', ['SELECT 1'])
+
+    const traces = await readTraces(tmpDir)
+    expect(traces).to.have.length(1)
+    expect(traces[0].attributes['command.id']).to.equal('mysql:query')
+    expect(traces[0].attributes['command.plugin']).to.equal(undefined)
+  })
+
+  it('does not wrap runCommand twice when the init hook fires more than once', async () => {
+    const config = makeConfig(tmpDir)
+    await hook.call({} as never, makeOpts(config))
+    const wrappedOnce = config.runCommand
+    await hook.call({} as never, makeOpts(config))
+    expect(config.runCommand).to.equal(wrappedOnce)
   })
 
   it('produces no telemetry when OTEL_SDK_DISABLED is set', async () => {
     process.env.OTEL_SDK_DISABLED = 'true'
+    const config = makeConfig(tmpDir)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(Command.prototype as any)._run = async function (this: unknown): Promise<string> {
-      return 'ok'
-    }
-
-    await hook.call({} as never, makeOpts(tmpDir))
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const wrapped = (Command.prototype as any)._run as (this: unknown) => Promise<unknown>
-    const result = await wrapped.call({argv: [], ctor: {id: 'x'}, id: 'x'})
+    await hook.call({} as never, makeOpts(config))
+    const result = await config.runCommand('x')
 
     // Callback still runs and returns its value untouched.
-    expect(result).to.equal('ok')
+    expect(result).to.equal('done')
     expect(await tracesFileExists(tmpDir)).to.equal(false)
   })
 })

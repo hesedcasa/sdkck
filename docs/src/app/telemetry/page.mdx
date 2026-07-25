@@ -6,7 +6,7 @@ Instrumentation is **on by default but quiet**: with no configuration it writes 
 
 ## What gets captured
 
-The `setup-telemetry` init hook wraps `Command.prototype._run`, so every command that actually executes is measured — including nested runs triggered through the MCP server or `search`.
+The `setup-telemetry` init hook wraps the root config's `runCommand` — the single point every command is dispatched through — so every command that actually executes is measured. That includes built-in commands, JIT/installed plugin commands (Jira, MySQL, etc.), and nested runs triggered through the MCP server or `search`.
 
 **Metrics**
 

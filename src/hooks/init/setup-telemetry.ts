@@ -1,33 +1,42 @@
-import {Command, Hook} from '@oclif/core'
+import {Hook} from '@oclif/core'
 
 import {initTelemetry, instrumentCommand} from '../../telemetry.js'
 
-// Tag the wrapper so the prototype is wrapped exactly once, even if the init
-// hook fires more than once in a single process.
+// Tag the wrapper so runCommand is wrapped exactly once per config, even if the
+// init hook fires more than once in a single process.
 const WRAPPED = Symbol.for('sdkck.telemetry.wrapped')
 
+type RunCommand = ((id: string, argv?: string[], cachedCommand?: unknown) => Promise<unknown>) & {
+  [WRAPPED]?: boolean
+}
+
 const hook: Hook<'init'> = async function (opts) {
-  initTelemetry({configDir: opts.config.configDir, version: opts.config.version})
+  const {config} = opts
+  initTelemetry({configDir: config.configDir, version: config.version})
 
+  // Instrument at Config.runCommand rather than Command.prototype._run. Every
+  // command is dispatched through the root config's runCommand — including
+  // JIT/user plugins that are installed under the data dir and resolve their
+  // OWN copy of @oclif/core. Wrapping a Command prototype would only ever cover
+  // one @oclif/core instance, silently leaving those plugin commands
+  // un-instrumented; wrapping runCommand covers them all.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const current = (Command.prototype as any)._run as ((this: Command) => Promise<unknown>) & {[WRAPPED]?: boolean}
-  if (current[WRAPPED]) return
+  const cfg = config as any
+  const current = cfg.runCommand as RunCommand | undefined
+  if (typeof current !== 'function' || current[WRAPPED]) return
 
-  // Wrap Command.prototype._run so every command invocation — including nested
-  // runs triggered via config.runCommand — is traced and measured. _run has a
-  // single try/catch/finally around init()/run(), so wrapping it captures both
-  // successful completions and thrown errors (error traces).
-  const originalRun = current
-  const wrapper = function (this: Command): Promise<unknown> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ctor = this.ctor as any
-    return instrumentCommand({argv: this.argv, id: ctor?.id ?? this.id, plugin: ctor?.plugin?.name}, () =>
-      originalRun.call(this),
+  const originalRunCommand = current.bind(config)
+  const wrapper = function (id: string, argv: string[] = [], cachedCommand: unknown = null): Promise<unknown> {
+    // Resolve the command up front for accurate id/plugin attributes. This is a
+    // plain lookup that executes nothing, and it falls back gracefully when the
+    // command isn't resolvable yet (e.g. a JIT plugin's first, pre-install run).
+    const cmd = cfg.findCommand?.(id) as undefined | {id?: string; pluginName?: string}
+    return instrumentCommand({argv, id: cmd?.id ?? id, plugin: cmd?.pluginName}, () =>
+      originalRunCommand(id, argv, cachedCommand),
     )
-  } as ((this: Command) => Promise<unknown>) & {[WRAPPED]?: boolean}
+  } as RunCommand
   wrapper[WRAPPED] = true
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ;(Command.prototype as any)._run = wrapper
+  cfg.runCommand = wrapper
 }
 
 export default hook
