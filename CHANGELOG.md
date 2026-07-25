@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.33.0](https://github.com/hesedcasa/sdkck/compare/v0.32.4...v0.33.0) (2026-07-25)
+
+
+### 🎉 Features
+
+* add OpenTelemetry instrumentation for every command ([#186](https://github.com/hesedcasa/sdkck/issues/186)) ([acda2a4](https://github.com/hesedcasa/sdkck/commit/acda2a47114cfe8766a866ac97a564295d276060))
+
+
+### 🛠️ Fixes
+
+* command not found suggestion ([c9c537d](https://github.com/hesedcasa/sdkck/commit/c9c537dabfd34ff77e15601f0d62b8d98060f3c0))
+
 ## [0.32.4](https://github.com/hesedcasa/sdkck/compare/v0.32.3...v0.32.4) (2026-07-17)
 
 
