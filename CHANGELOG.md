@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.35.0](https://github.com/hesedcasa/sdkck/compare/v0.34.1...v0.35.0) (2026-07-28)
+
+
+### 🎉 Features
+
+* add Infisical Agent Vault SDK for credential injection ([#191](https://github.com/hesedcasa/sdkck/issues/191)) ([8c49f8b](https://github.com/hesedcasa/sdkck/commit/8c49f8b997eb38e3af2ff1af43580de8c5f9f491))
+
 ## [0.34.1](https://github.com/hesedcasa/sdkck/compare/v0.34.0...v0.34.1) (2026-07-25)
 
 
