@@ -43,16 +43,12 @@ html {
   scroll-padding-top: 4rem;
 }
 
+/* Follows the class-based theme (next-themes), not the OS preference — a
+   prefers-color-scheme query would leave the highlight black-on-black for
+   anyone on a light OS who picks the dark theme. */
 ::selection {
-  background-color: #000;
-  color: #fff;
-}
-
-@media (prefers-color-scheme: dark) {
-  ::selection {
-    background-color: #fff;
-    color: #000;
-  }
+  background-color: var(--primary);
+  color: var(--primary-foreground);
 }
 
 /* Table scroll wrapper */

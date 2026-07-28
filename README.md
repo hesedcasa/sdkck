@@ -79,6 +79,28 @@ One CLI to search, connect, and command every tool in your stack. Zero context w
 
 - Fine-grained control over which commands plugins can execute. Allow, disallow, import, and export permission rules. Perfect for enterprise environments and shared agent setups.
 
+### Credential Brokering (Agent Vault)
+
+- Run every command without giving it a real secret. Point Sidekick at an [Infisical Agent Vault](https://github.com/Infisical/agent-vault) broker and all outbound traffic — Sidekick's, every plugin's, and any subprocess it spawns — routes through its proxy, which injects the real credential on the wire.
+
+  ```bash
+  export AGENT_VAULT_ADDR=http://localhost:14321
+  export AGENT_VAULT_TOKEN=av_agt_...
+  export AGENT_VAULT_VAULT=my-project
+
+  # Nothing else to configure — every invocation is brokered from here on
+  sdkck jira issue PROJ-123
+  ```
+
+- Store **placeholders** where a credential would normally go. Only the placeholder ever touches disk; the proxy swaps in the real value:
+
+  ```bash
+  sdkck jira auth add --profile default --host https://your.atlassian.net \
+    --email ATLASSIAN_EMAIL --apiToken ATLASSIAN_API_TOKEN
+  ```
+
+- **Fails closed** — if no credential can be resolved the command does not run, rather than sending unbrokered requests. Use `SDKCK_AGENT_VAULT_DISABLED=1` to skip brokering for one invocation.
+
 ## Why Sidekick?
 
 AI agents waste most of their context window loading tool schemas they'll never use.
