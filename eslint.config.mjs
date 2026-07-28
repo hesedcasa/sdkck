@@ -12,5 +12,14 @@ export default [
     ignores: ['docs/**'],
   },
   ...oclif,
+  {
+    // The Agent Vault SDK is built on the global fetch/Response/Headers trio.
+    // package.json still declares engines >=18, where the rule considers them
+    // experimental, but the CLI targets Node 22 (.nvmrc) and CI runs 22-24.
+    files: ['src/agent-vault/**/*.ts', 'test/agent-vault/**/*.ts'],
+    rules: {
+      'n/no-unsupported-features/node-builtins': 'off',
+    },
+  },
   prettier,
 ]

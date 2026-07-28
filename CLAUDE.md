@@ -107,6 +107,36 @@ Exporter selection (chosen at startup so the CLI stays network-free by default):
 
 Set `SDKCK_OTEL_DISABLED=true` to turn instrumentation off for sdkck only (leaving the standard `OTEL_SDK_DISABLED` that other host tools honour untouched), `OTEL_SDK_DISABLED=true` to turn it off entirely, or `OTEL_DEBUG=1` for OTel diagnostic logging.
 
+### Agent Vault SDK (`src/agent-vault/`)
+
+A TypeScript client for [Infisical Agent Vault](https://github.com/Infisical/agent-vault), a credential broker that keeps real secrets out of agent processes. Agent Vault runs a management API (`:14321`) and a transparent MITM proxy (`:14322`); traffic sent through the proxy has the real credential substituted in flight, so the caller only ever holds a scoped session token.
+
+This is the interception/injection half of the upstream SDK — session minting plus proxy configuration. Vault, credential and service-rule management is not implemented here; configure those through the Agent Vault CLI or dashboard.
+
+```typescript
+import {AgentVault} from 'sdkck'
+
+const av = new AgentVault({address: 'http://localhost:14321', token: 'av_agt_...'})
+
+// Mint a session, write the root CA, and route outbound requests through the proxy
+const {certPath, env, session} = await av.vault('my-project').intercept({ttlSeconds: 3600})
+
+// From here a plain request is intercepted and the credential injected:
+await fetch('https://api.stripe.com/v1/charges') // no key in this process
+```
+
+Key files: `src/agent-vault/client.ts` (`AgentVault` — instance-level, `vault(name)` scopes via the `X-Vault` header), `src/agent-vault/vault.ts` (`VaultClient`, `intercept()`), `src/agent-vault/resources/sessions.ts` (`POST /v1/sessions`, CA fetch from `/v1/mitm/ca.pem`, `buildProxyEnv`), `src/agent-vault/proxy.ts` (`interceptRequests`, `writeCaCertificate`, `applyProxyEnv`), `src/agent-vault/http.ts` (fetch wrapper: bearer auth, timeout, `ApiError` mapping), `src/agent-vault/errors.ts`.
+
+Everything is re-exported from `src/index.ts`, so the package doubles as a library. No new dependencies — the client is built on the global `fetch`.
+
+Notes:
+
+- **Token/address resolution:** explicit config > `AGENT_VAULT_TOKEN` / `AGENT_VAULT_ADDR` > `http://localhost:14321` (a missing token throws `AgentVaultError`).
+- **`buildProxyEnv`** sets `HTTPS_PROXY`/`HTTP_PROXY`/`NO_PROXY`, `NODE_USE_ENV_PROXY=1`, `OPENCLAW_PROXY_URL`, and the CA trust variables for Node, Python, curl, Git and Deno (`SSL_CERT_FILE`, `NODE_EXTRA_CA_CERTS`, `REQUESTS_CA_BUNDLE`, `CURL_CA_BUNDLE`, `GIT_SSL_CAINFO`, `DENO_CERT`) — keep it in sync with `augmentEnvWithMITM()` server-side.
+- **Scope of interception:** `intercept()` mutates `process.env` by default, so child processes are covered unconditionally; this process's own `fetch` only honours the proxy variables on Node v22.21.0+ and only when they are set before the first request. Pass `env: {}` to build a child-process environment without touching the current one, and `certPath` to target a container mount path.
+- **MITM disabled:** `sessions.create()` returns `containerConfig: null` when the server runs with `--mitm-port 0`; `interceptRequests` treats that as an error, since there is then nothing to intercept.
+- Errors: `ApiError` (non-2xx control-plane responses, carrying `status`/`code`) extends `AgentVaultError` (missing token, network failure, timeout).
+
 ## JIT Plugins
 
 The `oclif.jitPlugins` field in `package.json` declares plugins that are auto-installed on first use (e.g., `@hesed/mcp-server`, `@hesed/mcp-client`, `@hesed/jira`, `@hesed/conni`, `@hesed/bb`, `@hesed/sentry`, `@hesed/mysql`, `@hesed/psql`, `@hesed/supabase`). When a JIT plugin's command is invoked, the `jit_plugin_not_installed` hook (`src/hooks/jit_plugin_not_installed/jit-install.ts`) runs `plugins:install <pluginName>@<pluginVersion>` automatically.
@@ -121,6 +151,7 @@ Commands that depend on external clients (e.g., `Search._llmClient`) use public 
 
 ## Environment
 
+- **`AGENT_VAULT_TOKEN` / `AGENT_VAULT_ADDR`:** Default token and management API address for the Agent Vault SDK (`src/agent-vault/`). The address falls back to `http://localhost:14321`; a missing token throws.
 - **`OPENAI_API_KEY`:** Required to enable LLM-powered semantic search in `sdkck search`. When unset, search falls back to fuzzy matching. The search command uses `gpt-4o` via the `openai` npm package.
 - **OpenTelemetry toggles:** `OTEL_EXPORTER_OTLP_ENDPOINT` (send traces/metrics to an OTLP/HTTP collector), `OTEL_TRACES_EXPORTER=console` / `OTEL_METRICS_EXPORTER=console` (export to stdout, per signal), `SDKCK_OTEL_DISABLED=true` (disable for sdkck only), `OTEL_SDK_DISABLED=true` (disable instrumentation entirely), `OTEL_DEBUG=1` (OTel diagnostic logging), `SDKCK_OTEL_CAPTURE_ARGV=1` / `SDKCK_OTEL_CAPTURE_ERRORS=1` (opt in to capturing raw arguments / exception messages + stacks, which may contain secrets). See the Telemetry section above. Defaults to JSON files under `<configDir>/logs/`.
 
