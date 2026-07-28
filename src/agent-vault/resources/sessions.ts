@@ -162,17 +162,24 @@ export class SessionsResource {
   }
 
   /**
-   * Cached MITM info, fetched on first use. Only a successful lookup is cached:
-   * a failure clears the slot so the next `create()` retries once the server or
-   * the network recovers.
+   * Cached MITM info, fetched on first use.
+   *
+   * Only a positive lookup is cached. A failure clears the slot so the next
+   * `create()` retries once the server or the network recovers, and so does a
+   * "MITM disabled" answer — a long-lived client must not keep reporting the
+   * proxy as off after the server is restarted with MITM enabled.
    */
   private getMitmInfo(): Promise<MitmInfo | null> {
     if (!this.mitmInfoCache) {
       const pending = this.fetchMitmInfo()
       this.mitmInfoCache = pending
-      pending.catch(() => {
+      const forget = () => {
         if (this.mitmInfoCache === pending) this.mitmInfoCache = null
-      })
+      }
+
+      pending.then((info) => {
+        if (!info) forget()
+      }, forget)
     }
 
     return this.mitmInfoCache

@@ -139,6 +139,27 @@ describe('agent-vault sessions', () => {
       expect((error as ApiError).status).to.equal(503)
     })
 
+    it('does not cache a disabled answer, so enabling MITM later is picked up', async () => {
+      let mitmEnabled = false
+      const fetch = (async (url: string | URL) => {
+        if (String(url).endsWith('/v1/mitm/ca.pem')) {
+          return mitmEnabled ? new Response(CA_PEM, {status: 200}) : new Response('', {status: 404})
+        }
+
+        return new Response(
+          // eslint-disable-next-line camelcase -- wire field names
+          JSON.stringify({av_addr: 'http://localhost:14321', expires_at: '2026-01-01T00:00:00Z', token: 'av_ses_abc'}),
+          {status: 200},
+        )
+      }) as unknown as typeof globalThis.fetch
+
+      const {sessions} = new AgentVault({fetch, token: 'av_agt_abc'}).vault('my-project')
+
+      expect((await sessions.create()).containerConfig).to.equal(null)
+      mitmEnabled = true
+      expect((await sessions.create()).containerConfig?.caCertificate).to.equal(CA_PEM)
+    })
+
     it('does not cache a failed metadata lookup, so a later call recovers', async () => {
       const {caCalls, fetch} = flakyCaFetch(1)
       const {sessions} = new AgentVault({fetch, token: 'av_agt_abc'}).vault('my-project')

@@ -1,5 +1,5 @@
 import {constants as fsConstants} from 'node:fs'
-import {mkdir, mkdtemp, open} from 'node:fs/promises'
+import {mkdir, mkdtemp, open, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {dirname, join} from 'node:path'
 
@@ -9,13 +9,14 @@ import {AgentVaultError} from './errors.js'
 import {buildProxyEnv} from './resources/sessions.js'
 
 /**
- * O_NOFOLLOW makes the open fail rather than follow a symbolic link planted at
- * the certificate path, so a write can never be redirected onto another file.
- * Windows has no such flag; there the bit is simply absent.
+ * The certificate is always written to a file this call creates itself: O_EXCL
+ * fails rather than opening anything that already exists, including a symbolic
+ * link. Unlike O_NOFOLLOW this holds on Windows too, where the no-follow flag
+ * does not exist and a junction would otherwise be followed.
  */
 const CERT_WRITE_FLAGS =
   // eslint-disable-next-line no-bitwise -- open(2) flags are a bit mask
-  fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_TRUNC | (fsConstants.O_NOFOLLOW ?? 0)
+  fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL
 
 /** Private per-process directory holding the default certificate. */
 let defaultCertDir: Promise<string> | undefined
@@ -70,32 +71,34 @@ export interface InterceptResult {
  * Write the root CA certificate so TLS clients can trust the proxy's
  * on-the-fly certificates.
  *
- * An existing file is truncated in place, but a symbolic link is refused: the
- * certificate path is often in a shared temp directory, and following a link
- * planted there would overwrite whatever it points at.
+ * The write never follows a link. Anything already at `certPath` is unlinked
+ * first — which removes a symbolic link itself rather than its target — and the
+ * certificate then goes into a file this call creates exclusively. Repeated
+ * calls therefore still overwrite, but a link planted at the path is replaced
+ * instead of being written through, on every platform.
  *
  * @returns The path written to.
- * @throws {AgentVaultError} when `certPath` is a symbolic link.
+ * @throws {AgentVaultError} when something re-creates the path mid-write.
  */
 export async function writeCaCertificate(config: ContainerConfig, certPath: string): Promise<string> {
   await mkdir(dirname(certPath), {mode: 0o700, recursive: true})
+  await rm(certPath, {force: true})
 
   let handle
   try {
     handle = await open(certPath, CERT_WRITE_FLAGS, 0o600)
   } catch (error) {
-    // O_NOFOLLOW reports ELOOP on Linux and EMLINK on some BSDs.
     const {code} = error as {code?: string}
-    if (code === 'ELOOP' || code === 'EMLINK') {
-      throw new AgentVaultError(`Refusing to write the root CA certificate to ${certPath}: it is a symbolic link.`)
+    if (code === 'EEXIST') {
+      throw new AgentVaultError(
+        `Refusing to write the root CA certificate to ${certPath}: the path was re-created while writing.`,
+      )
     }
 
     throw error
   }
 
   try {
-    // O_CREAT only applies its mode to a new file; tighten a pre-existing one.
-    await handle.chmod(0o600)
     await handle.writeFile(config.caCertificate, 'utf8')
   } finally {
     await handle.close()

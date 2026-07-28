@@ -1,5 +1,5 @@
 import {expect} from 'chai'
-import {mkdtemp, readFile, rm, stat, symlink, writeFile} from 'node:fs/promises'
+import {lstat, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
@@ -69,19 +69,30 @@ describe('agent-vault request interception', () => {
       expect(await readFile(certPath, 'utf8')).to.equal(CA_PEM)
     })
 
-    posixOnly('refuses to follow a symbolic link planted at the certificate path', async () => {
+    posixOnly('replaces a symbolic link instead of writing through it', async () => {
       const victim = join(tmpDir, 'victim.txt')
       const certPath = join(tmpDir, 'ca.pem')
       await writeFile(victim, 'do not clobber me', 'utf8')
       await symlink(victim, certPath)
 
-      const error = await writeCaCertificate({caCertificate: CA_PEM, env: {} as never}, certPath).catch(
-        (error_: unknown) => error_,
-      )
+      await writeCaCertificate({caCertificate: CA_PEM, env: {} as never}, certPath)
 
-      expect(error).to.be.instanceOf(AgentVaultError)
-      expect((error as AgentVaultError).message).to.match(/symbolic link/)
+      // The link is gone, the certificate is a regular file, the target intact.
+      expect((await lstat(certPath)).isSymbolicLink()).to.equal(false)
+      expect(await readFile(certPath, 'utf8')).to.equal(CA_PEM)
       expect(await readFile(victim, 'utf8')).to.equal('do not clobber me')
+    })
+
+    posixOnly('leaves a symlinked directory entry outside the final component alone', async () => {
+      // Only the final component is unlinked; a symlinked parent still resolves.
+      const realDir = join(tmpDir, 'real')
+      const linkDir = join(tmpDir, 'link')
+      await mkdir(realDir)
+      await symlink(realDir, linkDir)
+
+      await writeCaCertificate({caCertificate: CA_PEM, env: {} as never}, join(linkDir, 'ca.pem'))
+
+      expect(await readFile(join(realDir, 'ca.pem'), 'utf8')).to.equal(CA_PEM)
     })
   })
 
