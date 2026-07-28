@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.35.1](https://github.com/hesedcasa/sdkck/compare/v0.35.0...v0.35.1) (2026-07-28)
+
+
+### 📄 Documentation
+
+* add Agent Vault documentation ([#193](https://github.com/hesedcasa/sdkck/issues/193)) ([1388e4d](https://github.com/hesedcasa/sdkck/commit/1388e4da0f8d6ad84ae4a1e455747e0bf72976d7))
+
 ## [0.35.0](https://github.com/hesedcasa/sdkck/compare/v0.34.1...v0.35.0) (2026-07-28)
 
 
