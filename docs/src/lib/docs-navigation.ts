@@ -31,6 +31,7 @@ export const navigation: NavSection[] = [
       {href: '/search', name: 'Search'},
       {href: '/plugins', name: 'Plugins'},
       {href: '/permissions', name: 'Permissions'},
+      {href: '/agent-vault', name: 'Agent Vault'},
       {href: '/telemetry', name: 'Telemetry'},
     ],
     title: 'Core Features',

@@ -1,0 +1,91 @@
+# Agent Vault
+
+Run commands without giving them real secrets. Point Sidekick at an [Infisical Agent Vault](https://github.com/Infisical/agent-vault) broker and outbound traffic routes through its proxy, which substitutes the real credential on the wire. The command only ever holds a placeholder.
+
+Agent Vault runs two listeners: a management API (`:14321`) and a transparent MITM proxy (`:14322`). Sidekick talks to the API to set up a route, then sends everything else through the proxy.
+
+## Turning it on
+
+Set a token and a vault. There is nothing else to configure — brokering applies to every invocation from that point on.
+
+```bash
+export AGENT_VAULT_ADDR=http://localhost:14321
+export AGENT_VAULT_TOKEN=av_agt_...
+export AGENT_VAULT_VAULT=my-project
+
+sdkck jira issue PROJ-123
+```
+
+`AGENT_VAULT_ADDR` defaults to `http://localhost:14321`. Brokering activates only when **both** `AGENT_VAULT_TOKEN` and `AGENT_VAULT_VAULT` are present.
+
+## Use placeholders, not secrets
+
+Configure plugin auth with the vault's credential **keys** rather than their values. The vault holds a service rule matching the host, and the proxy swaps the placeholder for the real credential as the request leaves.
+
+```bash
+sdkck jira auth add --profile default --host https://your.atlassian.net \
+  --email ATLASSIAN_EMAIL --apiToken ATLASSIAN_API_TOKEN
+```
+
+Here the literal strings `ATLASSIAN_EMAIL` and `ATLASSIAN_API_TOKEN` are all that touch disk. `sdkck jira issue PROJ-123` then returns real data, while the same command with brokering disabled fails to authenticate — which is the point.
+
+Credentials and service rules are managed through the Agent Vault CLI or dashboard, not through Sidekick. To see what a vault brokers:
+
+```bash
+curl -H "Authorization: Bearer $AGENT_VAULT_TOKEN" \
+     -H "X-Vault: $AGENT_VAULT_VAULT" \
+     "$AGENT_VAULT_ADDR/discover"
+```
+
+## What is covered
+
+Everything the invocation does, not just Sidekick's own HTTP:
+
+- In-process `fetch` — Sidekick and every plugin
+- Subprocesses — `git`, `curl`, `python`, anything a plugin shells out to
+- Both `https://` and plain `http://` upstreams
+
+This works because the invocation is **re-executed** in a process that _starts_ with the proxy environment. Node reads `NODE_USE_ENV_PROXY` and `NODE_EXTRA_CA_CERTS` at startup, so a process cannot proxy its own `fetch` by setting variables while running. Re-executing covers in-process requests, plugin traffic, and subprocesses through one mechanism.
+
+The cost is one extra process spawn per invocation. Exit codes and stdio pass through unchanged, so nothing about the command's interface changes.
+
+## Fails closed
+
+If a proxy route cannot be established — the token is rejected, the vault does not exist, the broker is unreachable, or the server has MITM disabled — the command **does not run**. Sidekick would otherwise send requests that bypass the broker while the caller believed they were brokered.
+
+```bash
+$ sdkck jira auth test
+Error: Agent Vault interception could not be set up for vault "sdkck", so the
+command was not run: Invalid or expired session
+Set SDKCK_AGENT_VAULT_DISABLED=1 to run without brokered credentials.
+```
+
+To skip brokering for a single invocation:
+
+```bash
+SDKCK_AGENT_VAULT_DISABLED=1 sdkck jira issue PROJ-123
+```
+
+## Token roles
+
+Agent Vault ranks vault roles `proxy` < `member` < `admin`, and Sidekick works with any of them. Which credential it uses is chosen automatically:
+
+| Your token's role  | Credential used                                     |
+| ------------------ | --------------------------------------------------- |
+| `member` / `admin` | A short-lived scoped session, minted per invocation  |
+| `proxy`            | The token itself, after validation against the broker |
+
+A `proxy`-role token cannot mint sessions — the server refuses, because such a token may only proxy requests, and `proxy` is also the role that minting produces. Sidekick therefore tries to mint first, and falls back to using the token directly when the broker declines. A rejected token or a missing vault still fails closed; only a "you may only proxy" refusal triggers the fallback.
+
+No token is cached to disk. The re-executed command does not receive `AGENT_VAULT_TOKEN`; the proxy credential travels inside the proxy URL instead.
+
+## Environment variables
+
+| Variable                       | Description                                                              |
+| ------------------------------ | ------------------------------------------------------------------------ |
+| `AGENT_VAULT_TOKEN`            | Agent Vault token. Required to enable brokering.                          |
+| `AGENT_VAULT_VAULT`            | Vault to broker credentials from. Required to enable brokering.           |
+| `AGENT_VAULT_ADDR`             | Management API address. Defaults to `http://localhost:14321`.              |
+| `SDKCK_AGENT_VAULT_DISABLED`   | Set to `1` to skip brokering for one invocation.                          |
+| `SDKCK_AGENT_VAULT_ACTIVE`     | Set internally on the re-executed command. Do not set by hand.             |
+
