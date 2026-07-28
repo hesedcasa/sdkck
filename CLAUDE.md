@@ -138,6 +138,19 @@ Notes:
 - **Certificate writes:** `writeCaCertificate` unlinks whatever is at `certPath` (removing a symlink itself, not its target) and then creates the file with `O_EXCL`, so the write is never redirected through a link — on Windows too, where `O_NOFOLLOW` does not exist. The default path lives in a private per-process directory (`defaultCertPath()`) instead of a predictable name in the shared temp directory.
 - Errors: `ApiError` (non-2xx control-plane responses, carrying `status`/`code`) extends `AgentVaultError` (missing token, network failure, timeout).
 
+#### Intercepting every command (`setup-agent-vault` init hook)
+
+With `AGENT_VAULT_TOKEN` and `AGENT_VAULT_VAULT` both set, every sdkck invocation runs with its outbound traffic brokered: the `setup-agent-vault` init hook (`src/hooks/init/setup-agent-vault.ts`) mints a session, writes the root CA to a temporary directory, and **re-executes the same invocation** with the proxy environment applied, then exits with the child's status.
+
+The re-exec is the point. Node reads `NODE_USE_ENV_PROXY` and `NODE_EXTRA_CA_CERTS` at process startup, so a process cannot proxy its own `fetch` by mutating `process.env` — verified: pre-start env makes `fetch` dial the proxy, while a runtime mutation goes straight out to DNS. Running the command in a process that _started_ with the environment covers in-process `fetch`, every plugin's HTTP, and any subprocess (git, curl, python), in one mechanism.
+
+Key file: `src/agent-vault-process.ts` — `shouldIntercept(env)` decides whether to intercept and which vault to use; `runIntercepted(options)` does the mint/write/spawn and resolves with the child's exit code (everything is injectable for tests).
+
+- **Fails closed:** if the session cannot be minted the command does not run at all (exit 1) rather than sending unbrokered requests. `SDKCK_AGENT_VAULT_DISABLED=1` is the escape hatch.
+- **The child does not get the instance token:** `AGENT_VAULT_TOKEN` is deleted from the child's environment — it only needs the vault-scoped session token, which rides inside the proxy URL. `SDKCK_AGENT_VAULT_ACTIVE=1` marks the child so it does not intercept itself again.
+- **Cost:** one extra process spawn plus one session mint per invocation. Nothing is cached to disk, so no token is ever persisted.
+- Exit codes and stdio pass through verbatim (the child inherits stdio; a signal-terminated child reports `128 + signum`).
+
 ## JIT Plugins
 
 The `oclif.jitPlugins` field in `package.json` declares plugins that are auto-installed on first use (e.g., `@hesed/mcp-server`, `@hesed/mcp-client`, `@hesed/jira`, `@hesed/conni`, `@hesed/bb`, `@hesed/sentry`, `@hesed/mysql`, `@hesed/psql`, `@hesed/supabase`). When a JIT plugin's command is invoked, the `jit_plugin_not_installed` hook (`src/hooks/jit_plugin_not_installed/jit-install.ts`) runs `plugins:install <pluginName>@<pluginVersion>` automatically.
@@ -153,6 +166,7 @@ Commands that depend on external clients (e.g., `Search._llmClient`) use public 
 ## Environment
 
 - **`AGENT_VAULT_TOKEN` / `AGENT_VAULT_ADDR`:** Default token and management API address for the Agent Vault SDK (`src/agent-vault/`). The address falls back to `http://localhost:14321`; a missing token throws.
+- **`AGENT_VAULT_VAULT`:** Vault to broker credentials from. Setting it together with `AGENT_VAULT_TOKEN` turns on command-wide interception (see the Agent Vault section). `SDKCK_AGENT_VAULT_DISABLED=1` skips it for one invocation; `SDKCK_AGENT_VAULT_ACTIVE` is set internally on the re-executed child and should not be set by hand.
 - **`OPENAI_API_KEY`:** Required to enable LLM-powered semantic search in `sdkck search`. When unset, search falls back to fuzzy matching. The search command uses `gpt-4o` via the `openai` npm package.
 - **OpenTelemetry toggles:** `OTEL_EXPORTER_OTLP_ENDPOINT` (send traces/metrics to an OTLP/HTTP collector), `OTEL_TRACES_EXPORTER=console` / `OTEL_METRICS_EXPORTER=console` (export to stdout, per signal), `SDKCK_OTEL_DISABLED=true` (disable for sdkck only), `OTEL_SDK_DISABLED=true` (disable instrumentation entirely), `OTEL_DEBUG=1` (OTel diagnostic logging), `SDKCK_OTEL_CAPTURE_ARGV=1` / `SDKCK_OTEL_CAPTURE_ERRORS=1` (opt in to capturing raw arguments / exception messages + stacks, which may contain secrets). See the Telemetry section above. Defaults to JSON files under `<configDir>/logs/`.
 

@@ -1,0 +1,153 @@
+import {expect} from 'chai'
+import {readFile} from 'node:fs/promises'
+
+import {
+  DISABLE_ENV,
+  runIntercepted,
+  SENTINEL_ENV,
+  shouldIntercept,
+  TOKEN_ENV,
+  VAULT_ENV,
+} from '../src/agent-vault-process.js'
+import {AgentVault} from '../src/agent-vault/index.js'
+
+const CA_PEM = '-----BEGIN CERTIFICATE-----\nstub\n-----END CERTIFICATE-----\n'
+
+/** An Agent Vault client backed by a stub server, so no network is involved. */
+function stubAgentVault(): AgentVault {
+  const fetch = (async (url: string | URL) => {
+    if (String(url).endsWith('/v1/mitm/ca.pem')) return new Response(CA_PEM, {status: 200})
+
+    return new Response(
+      // eslint-disable-next-line camelcase -- wire field names
+      JSON.stringify({av_addr: 'http://localhost:14321', expires_at: '2026-01-01T00:00:00Z', token: 'av_ses_abc'}),
+      {status: 200},
+    )
+  }) as unknown as typeof globalThis.fetch
+
+  return new AgentVault({address: 'http://localhost:14321', fetch, token: 'av_agt_abc'})
+}
+
+/**
+ * A child that reports what it saw, so assertions cover the real spawn path.
+ * With `node -e`, the extra arguments start at argv[1] rather than argv[2].
+ */
+const REPORT_SCRIPT = `
+const out = {
+  https_proxy: process.env.HTTPS_PROXY,
+  no_proxy: process.env.NO_PROXY,
+  node_use_env_proxy: process.env.NODE_USE_ENV_PROXY,
+  extra_ca: process.env.NODE_EXTRA_CA_CERTS,
+  sentinel: process.env.${SENTINEL_ENV},
+  token: process.env.${TOKEN_ENV} ?? null,
+  vault: process.env.${VAULT_ENV},
+  argv: process.argv.slice(1),
+}
+require('node:fs').writeFileSync(process.env.REPORT_FILE, JSON.stringify(out))
+`
+
+describe('agent-vault process interception', () => {
+  describe('shouldIntercept', () => {
+    it('is on when a token and a vault name are both present', () => {
+      expect(shouldIntercept({[TOKEN_ENV]: 'av_agt_abc', [VAULT_ENV]: 'my-project'})).to.equal('my-project')
+    })
+
+    it('is off when either half is missing', () => {
+      expect(shouldIntercept({[TOKEN_ENV]: 'av_agt_abc'})).to.equal(undefined)
+      expect(shouldIntercept({[VAULT_ENV]: 'my-project'})).to.equal(undefined)
+      expect(shouldIntercept({})).to.equal(undefined)
+    })
+
+    it('is off inside the re-executed child', () => {
+      expect(shouldIntercept({[SENTINEL_ENV]: '1', [TOKEN_ENV]: 'av_agt_abc', [VAULT_ENV]: 'my-project'})).to.equal(
+        undefined,
+      )
+    })
+
+    it('is off when explicitly disabled', () => {
+      expect(shouldIntercept({[DISABLE_ENV]: '1', [TOKEN_ENV]: 'av_agt_abc', [VAULT_ENV]: 'my-project'})).to.equal(
+        undefined,
+      )
+    })
+  })
+
+  describe('runIntercepted', () => {
+    it('re-executes the invocation with the proxy environment in place', async () => {
+      const reportFile = `${process.env.TMPDIR ?? '/tmp'}/sdkck-intercept-report-${process.pid}.json`
+
+      const code = await runIntercepted({
+        agentVault: stubAgentVault(),
+        argv: ['-e', REPORT_SCRIPT, 'some', 'args'],
+        env: {REPORT_FILE: reportFile, [TOKEN_ENV]: 'av_agt_abc', [VAULT_ENV]: 'my-project'},
+        execArgv: [],
+        vault: 'my-project',
+      })
+
+      expect(code).to.equal(0)
+      const seen = JSON.parse(await readFile(reportFile, 'utf8'))
+
+      // The child starts with the proxy variables, which is the whole point:
+      // Node only honours them at startup.
+      expect(seen.https_proxy).to.equal('http://av_ses_abc:my-project@localhost:14322')
+      expect(seen.node_use_env_proxy).to.equal('1')
+      expect(seen.no_proxy).to.equal('localhost,127.0.0.1,localhost')
+      expect(seen.sentinel).to.equal('1')
+      expect(seen.argv).to.deep.equal(['some', 'args'])
+
+      // The instance-level token is withheld: the child only needs the scoped
+      // session token, which rides inside the proxy URL.
+      expect(seen.token).to.equal(null)
+      expect(seen.vault).to.equal('my-project')
+    })
+
+    it('points the CA trust variables at a certificate the child can read', async () => {
+      const reportFile = `${process.env.TMPDIR ?? '/tmp'}/sdkck-intercept-ca-${process.pid}.json`
+
+      await runIntercepted({
+        agentVault: stubAgentVault(),
+        argv: [
+          '-e',
+          `require('node:fs').writeFileSync(process.env.REPORT_FILE, JSON.stringify({
+             extra_ca: process.env.NODE_EXTRA_CA_CERTS,
+             pem: require('node:fs').readFileSync(process.env.NODE_EXTRA_CA_CERTS, 'utf8'),
+           }))`,
+        ],
+        env: {REPORT_FILE: reportFile},
+        execArgv: [],
+        vault: 'my-project',
+      })
+
+      const seen = JSON.parse(await readFile(reportFile, 'utf8'))
+      expect(seen.pem).to.equal(CA_PEM)
+      expect(seen.extra_ca).to.match(/sdkck-agent-vault-.*ca\.pem$/)
+    })
+
+    it('passes the child’s exit code through', async () => {
+      const code = await runIntercepted({
+        agentVault: stubAgentVault(),
+        argv: ['-e', 'process.exit(3)'],
+        env: {},
+        execArgv: [],
+        vault: 'my-project',
+      })
+
+      expect(code).to.equal(3)
+    })
+
+    it('propagates a minting failure so the caller can fail closed', async () => {
+      const fetch = (async () =>
+        new Response(JSON.stringify({error: 'forbidden'}), {status: 403})) as unknown as typeof globalThis.fetch
+
+      const error = await runIntercepted({
+        agentVault: new AgentVault({fetch, token: 'av_agt_abc'}),
+        argv: ['-e', 'process.exit(0)'],
+        env: {},
+        execArgv: [],
+        vault: 'my-project',
+      }).catch((error_: unknown) => error_)
+
+      expect(error).to.be.instanceOf(Error)
+      expect((error as Error).message).to.match(/403|forbidden/)
+    })
+  })
+})
