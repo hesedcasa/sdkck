@@ -77,7 +77,7 @@ Agent Vault ranks vault roles `proxy` < `member` < `admin`, and Sidekick works w
 
 A `proxy`-role token cannot mint sessions — the server refuses, because such a token may only proxy requests, and `proxy` is also the role that minting produces. Sidekick therefore tries to mint first, and falls back to using the token directly when the broker declines. A rejected token or a missing vault still fails closed; only a "you may only proxy" refusal triggers the fallback.
 
-Nothing is cached to disk, so no token is ever persisted. The re-executed command does not receive `AGENT_VAULT_TOKEN`; the proxy credential travels inside the proxy URL instead.
+No token is cached to disk. The re-executed command does not receive `AGENT_VAULT_TOKEN`; the proxy credential travels inside the proxy URL instead.
 
 ## Environment variables
 
