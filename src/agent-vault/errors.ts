@@ -18,17 +18,7 @@ export class ApiError extends AgentVaultError {
   readonly headers: Headers
   readonly status: number
 
-  constructor({
-    code,
-    headers,
-    message,
-    status,
-  }: {
-    code: string
-    headers: Headers
-    message: string
-    status: number
-  }) {
+  constructor({code, headers, message, status}: {code: string; headers: Headers; message: string; status: number}) {
     super(message)
     this.name = 'ApiError'
     this.status = status

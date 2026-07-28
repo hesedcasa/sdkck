@@ -1,6 +1,6 @@
 import {expect} from 'chai'
 
-import {AgentVault, buildProxyEnv} from '../../src/agent-vault/index.js'
+import {AgentVault, ApiError, buildProxyEnv} from '../../src/agent-vault/index.js'
 
 /** The init argument of the global fetch, without redeclaring DOM types. */
 type FetchInit = NonNullable<Parameters<typeof globalThis.fetch>[1]>
@@ -38,6 +38,30 @@ function stubFetch(options?: {caStatus?: number; mitmPort?: string}): {
   }) as unknown as typeof globalThis.fetch
 
   return {calls, fetch}
+}
+
+/** Fails the CA fetch `failures` times, then serves it normally. */
+function flakyCaFetch(failures: number): {caCalls: number[]; fetch: typeof globalThis.fetch} {
+  const caCalls: number[] = []
+
+  const fetch = (async (url: string | URL) => {
+    if (String(url).endsWith('/v1/mitm/ca.pem')) {
+      caCalls.push(caCalls.length)
+      if (caCalls.length <= failures) {
+        return new Response(JSON.stringify({error: 'internal', message: 'temporarily broken'}), {status: 503})
+      }
+
+      return new Response(CA_PEM, {status: 200})
+    }
+
+    return new Response(
+      // eslint-disable-next-line camelcase -- wire field names
+      JSON.stringify({av_addr: 'http://localhost:14321', expires_at: '2026-01-01T00:00:00Z', token: 'av_ses_abc'}),
+      {status: 200},
+    )
+  }) as unknown as typeof globalThis.fetch
+
+  return {caCalls, fetch}
 }
 
 describe('agent-vault sessions', () => {
@@ -102,6 +126,29 @@ describe('agent-vault sessions', () => {
 
     expect(calls.filter((c) => c.url.endsWith('/v1/mitm/ca.pem'))).to.have.length(1)
     expect(calls.filter((c) => c.url.endsWith('/v1/sessions'))).to.have.length(2)
+  })
+
+  describe('MITM metadata failures', () => {
+    it('surfaces a server error instead of reporting MITM as disabled', async () => {
+      const {fetch} = flakyCaFetch(Number.POSITIVE_INFINITY)
+      const {sessions} = new AgentVault({fetch, token: 'av_agt_abc'}).vault('my-project')
+
+      const error = await sessions.create().catch((error_: unknown) => error_)
+
+      expect(error).to.be.instanceOf(ApiError)
+      expect((error as ApiError).status).to.equal(503)
+    })
+
+    it('does not cache a failed metadata lookup, so a later call recovers', async () => {
+      const {caCalls, fetch} = flakyCaFetch(1)
+      const {sessions} = new AgentVault({fetch, token: 'av_agt_abc'}).vault('my-project')
+
+      await sessions.create().catch(() => {})
+      const session = await sessions.create()
+
+      expect(caCalls).to.have.length(2)
+      expect(session.containerConfig?.caCertificate).to.equal(CA_PEM)
+    })
   })
 
   describe('buildProxyEnv', () => {

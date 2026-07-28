@@ -1,6 +1,8 @@
 import type {HttpClient} from '../http.js'
 import type {ScopedSession} from '../types.js'
 
+import {ApiError} from '../errors.js'
+
 /** Options for minting a vault-scoped session. */
 export interface CreateSessionOptions {
   /** Session TTL in seconds (300–604800, i.e. 5 minutes to 7 days). Defaults to the server's 24h. */
@@ -129,10 +131,15 @@ export class SessionsResource {
   /**
    * Fetch the MITM CA certificate and its host/port metadata.
    * Returns `null` when MITM is disabled on the server.
+   *
+   * @throws {ApiError} when the endpoint fails for any other reason — a 5xx or
+   *   an auth failure must not be mistaken for "MITM is off", which would
+   *   silently hand back a session whose traffic is never intercepted.
    */
   private async fetchMitmInfo(): Promise<MitmInfo | null> {
     const resp = await this.httpClient.raw('GET', '/v1/mitm/ca.pem')
-    if (!resp.ok) return null
+    if (resp.status === 404) return null
+    if (!resp.ok) throw await ApiError.fromResponse(resp)
 
     const caCertificate = await resp.text()
 
@@ -154,9 +161,20 @@ export class SessionsResource {
     return {caCertificate, host, port}
   }
 
-  /** Cached MITM info, fetched on first use. */
+  /**
+   * Cached MITM info, fetched on first use. Only a successful lookup is cached:
+   * a failure clears the slot so the next `create()` retries once the server or
+   * the network recovers.
+   */
   private getMitmInfo(): Promise<MitmInfo | null> {
-    this.mitmInfoCache ||= this.fetchMitmInfo()
+    if (!this.mitmInfoCache) {
+      const pending = this.fetchMitmInfo()
+      this.mitmInfoCache = pending
+      pending.catch(() => {
+        if (this.mitmInfoCache === pending) this.mitmInfoCache = null
+      })
+    }
+
     return this.mitmInfoCache
   }
 }

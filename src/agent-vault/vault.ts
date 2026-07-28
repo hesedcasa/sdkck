@@ -25,9 +25,9 @@ interface InternalArgs {
 export class VaultClient {
   /** @internal */
   readonly _httpClient: HttpClient
-/** The vault every request is scoped to. */
+  /** The vault every request is scoped to. */
   readonly name: string
-/** Sessions resource — mints the vault-scoped tokens the proxy authenticates with. */
+  /** Sessions resource — mints the vault-scoped tokens the proxy authenticates with. */
   readonly sessions: SessionsResource
 
   constructor(config: InternalArgs | VaultClientConfig) {

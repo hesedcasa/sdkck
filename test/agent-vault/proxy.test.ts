@@ -1,9 +1,19 @@
 import {expect} from 'chai'
-import {mkdtemp, readFile, rm, stat} from 'node:fs/promises'
+import {mkdtemp, readFile, rm, stat, symlink, writeFile} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
-import {AgentVault, AgentVaultError, applyProxyEnv, interceptRequests, writeCaCertificate} from '../../src/agent-vault/index.js'
+import {
+  AgentVault,
+  AgentVaultError,
+  applyProxyEnv,
+  defaultCertPath,
+  interceptRequests,
+  writeCaCertificate,
+} from '../../src/agent-vault/index.js'
+
+/** Windows has no POSIX permission bits, so mode assertions only run on POSIX. */
+const posixOnly = process.platform === 'win32' ? it.skip : it
 
 const CA_PEM = '-----BEGIN CERTIFICATE-----\nstub\n-----END CERTIFICATE-----\n'
 
@@ -33,14 +43,57 @@ describe('agent-vault request interception', () => {
   })
 
   describe('writeCaCertificate', () => {
-    it('writes the PEM, creating parent directories, with owner-only permissions', async () => {
+    it('writes the PEM, creating parent directories', async () => {
       const certPath = join(tmpDir, 'nested', 'ca.pem')
 
       const written = await writeCaCertificate({caCertificate: CA_PEM, env: {} as never}, certPath)
 
       expect(written).to.equal(certPath)
       expect(await readFile(certPath, 'utf8')).to.equal(CA_PEM)
+    })
+
+    posixOnly('gives the certificate owner-only permissions', async () => {
+      const certPath = join(tmpDir, 'ca.pem')
+
+      await writeCaCertificate({caCertificate: CA_PEM, env: {} as never}, certPath)
+
       expect(((await stat(certPath)).mode % 0o1000).toString(8)).to.equal('600')
+    })
+
+    it('overwrites an existing certificate in place', async () => {
+      const certPath = join(tmpDir, 'ca.pem')
+      await writeFile(certPath, 'stale certificate that is longer than the new one', 'utf8')
+
+      await writeCaCertificate({caCertificate: CA_PEM, env: {} as never}, certPath)
+
+      expect(await readFile(certPath, 'utf8')).to.equal(CA_PEM)
+    })
+
+    posixOnly('refuses to follow a symbolic link planted at the certificate path', async () => {
+      const victim = join(tmpDir, 'victim.txt')
+      const certPath = join(tmpDir, 'ca.pem')
+      await writeFile(victim, 'do not clobber me', 'utf8')
+      await symlink(victim, certPath)
+
+      const error = await writeCaCertificate({caCertificate: CA_PEM, env: {} as never}, certPath).catch(
+        (error_: unknown) => error_,
+      )
+
+      expect(error).to.be.instanceOf(AgentVaultError)
+      expect((error as AgentVaultError).message).to.match(/symbolic link/)
+      expect(await readFile(victim, 'utf8')).to.equal('do not clobber me')
+    })
+  })
+
+  describe('defaultCertPath', () => {
+    it('is a file in a private directory, stable within the process', async () => {
+      const first = await defaultCertPath()
+      const second = await defaultCertPath()
+
+      expect(first).to.equal(second)
+      expect(first.startsWith(tmpdir())).to.equal(true)
+      // Not the predictable shared path — the directory is created per process.
+      expect(first).to.not.equal(join(tmpdir(), 'agent-vault-ca.pem'))
     })
   })
 
@@ -60,8 +113,11 @@ describe('agent-vault request interception', () => {
     it('mints a session, writes the CA and applies the proxy environment', async () => {
       const certPath = join(tmpDir, 'ca.pem')
       const env: NodeJS.ProcessEnv = {}
-      const {sessions} = new AgentVault({address: 'http://localhost:14321', fetch: stubFetch(), token: 'av_agt_abc'})
-        .vault('my-project')
+      const {sessions} = new AgentVault({
+        address: 'http://localhost:14321',
+        fetch: stubFetch(),
+        token: 'av_agt_abc',
+      }).vault('my-project')
 
       const result = await interceptRequests(sessions, {certPath, env, ttlSeconds: 900})
 
