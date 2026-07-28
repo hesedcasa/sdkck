@@ -15,15 +15,22 @@ import {AgentVault} from '../src/agent-vault/index.js'
 
 const CA_PEM = '-----BEGIN CERTIFICATE-----\nstub\n-----END CERTIFICATE-----\n'
 
-/** An Agent Vault client backed by a stub server, so no network is involved. */
-function stubAgentVault(): AgentVault {
+/**
+ * An Agent Vault client backed by a stub server, so no network is involved.
+ *
+ * `sessionStatus: 403` reproduces a `proxy`-role token, which the broker refuses
+ * to mint sessions from.
+ */
+function stubAgentVault(options?: {sessionStatus?: number}): AgentVault {
   const fetch = (async (url: string | URL) => {
-    if (String(url).endsWith('/v1/mitm/ca.pem')) return new Response(CA_PEM, {status: 200})
+    const target = String(url)
+    if (target.endsWith('/v1/mitm/ca.pem')) return new Response(CA_PEM, {status: 200})
+    if (target.endsWith('/discover')) return new Response(JSON.stringify({vault: 'my-project'}), {status: 200})
 
     return new Response(
       // eslint-disable-next-line camelcase -- wire field names
       JSON.stringify({av_addr: 'http://localhost:14321', expires_at: '2026-01-01T00:00:00Z', token: 'av_ses_abc'}),
-      {status: 200},
+      {status: options?.sessionStatus ?? 200},
     )
   }) as unknown as typeof globalThis.fetch
 
@@ -111,6 +118,29 @@ describe('agent-vault process interception', () => {
       // session token, which rides inside the proxy URL.
       expect(seen.token).to.equal(null)
       expect(seen.vault).to.equal('my-project')
+    })
+
+    it('runs with a proxy-role token, which cannot mint a session at all', async () => {
+      // The role an agent token is normally granted: the broker answers 403 to
+      // POST /v1/sessions, because such a token "can ONLY proxy requests". The
+      // token is itself a valid proxy credential, so the run must still proceed.
+      const reportFile = join(tmpDir, 'proxy-role.json')
+      const script = join(tmpDir, 'proxy-role.cjs')
+      await writeFile(script, REPORT_SCRIPT, 'utf8')
+
+      const code = await runIntercepted({
+        agentVault: stubAgentVault({sessionStatus: 403}),
+        argv: [script],
+        env: {REPORT_FILE: reportFile, [TOKEN_ENV]: 'av_agt_abc', [VAULT_ENV]: 'my-project'},
+        execArgv: [],
+        vault: 'my-project',
+      })
+
+      expect(code).to.equal(0)
+      const seen = JSON.parse(await readFile(reportFile, 'utf8'))
+      expect(seen.https_proxy).to.equal('http://av_agt_abc:my-project@localhost:14322')
+      expect(seen.node_use_env_proxy).to.equal('1')
+      expect(seen.sentinel).to.equal('1')
     })
 
     it('points the CA trust variables at a certificate the child can read', async () => {

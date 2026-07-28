@@ -2,6 +2,8 @@ import type {VaultClientConfig} from './types.js'
 
 import {HttpClient} from './http.js'
 import {type InterceptOptions, interceptRequests, type InterceptResult} from './proxy.js'
+import {DiscoverResource} from './resources/discover.js'
+import {MitmResource} from './resources/mitm.js'
 import {SessionsResource} from './resources/sessions.js'
 
 /** Marker distinguishing the internal construction path. */
@@ -25,6 +27,10 @@ interface InternalArgs {
 export class VaultClient {
   /** @internal */
   readonly _httpClient: HttpClient
+  /** Discover resource — reports what this token can reach, and validates it. */
+  readonly discover: DiscoverResource
+  /** MITM resource — the root CA and the proxy's host and port. */
+  readonly mitm: MitmResource
   /** The vault every request is scoped to. */
   readonly name: string
   /** Sessions resource — mints the vault-scoped tokens the proxy authenticates with. */
@@ -40,7 +46,10 @@ export class VaultClient {
       this.name = vault
     }
 
-    this.sessions = new SessionsResource(this._httpClient, this.name)
+    this.discover = new DiscoverResource(this._httpClient, this.name)
+    // Shared, so the CA is fetched once whichever credential path is taken.
+    this.mitm = new MitmResource(this._httpClient)
+    this.sessions = new SessionsResource(this._httpClient, this.name, this.mitm)
   }
 
   /**
@@ -53,13 +62,14 @@ export class VaultClient {
   }
 
   /**
-   * Mint a session, persist the root CA certificate and route this process's
-   * outbound requests through the Agent Vault proxy, which injects the real
-   * credentials on the way out.
+   * Persist the root CA certificate and route this process's outbound requests
+   * through the Agent Vault proxy, which injects the real credentials on the way
+   * out. Mints a scoped session when the token allows it, otherwise uses the
+   * token as the proxy credential directly.
    *
    * See {@link interceptRequests} for the details and caveats.
    */
   async intercept(options?: InterceptOptions): Promise<InterceptResult> {
-    return interceptRequests(this.sessions, options)
+    return interceptRequests(this, options)
   }
 }

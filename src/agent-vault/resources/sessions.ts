@@ -1,30 +1,14 @@
 import type {HttpClient} from '../http.js'
 import type {ScopedSession} from '../types.js'
 
-import {ApiError} from '../errors.js'
+import {buildContainerConfig, type ContainerConfig, type MitmResource} from './mitm.js'
+
+export type {ContainerConfig} from './mitm.js'
 
 /** Options for minting a vault-scoped session. */
 export interface CreateSessionOptions {
   /** Session TTL in seconds (300–604800, i.e. 5 minutes to 7 days). Defaults to the server's 24h. */
   ttlSeconds?: number
-}
-
-/**
- * Configuration for routing a sandboxed agent's HTTP(S) traffic through Agent
- * Vault's transparent MITM proxy.
- */
-export interface ContainerConfig {
-  /** Root CA certificate PEM. Mount it into the container and point the CA trust variables at it. */
-  caCertificate: string
-  /** Environment variables to inject into the container. */
-  env: {
-    /** Same MITM proxy URL, used for plain `http://` upstreams. */
-    HTTP_PROXY: string
-    /** MITM proxy URL with the scoped token embedded. */
-    HTTPS_PROXY: string
-    /** Hosts that bypass the proxy. */
-    NO_PROXY: string
-  }
 }
 
 /** A minted vault-scoped session. */
@@ -38,9 +22,6 @@ export interface Session {
   /** The vault-scoped session token. */
   token: string
 }
-
-/** MITM proxy port used when the server does not advertise one. */
-const DEFAULT_MITM_PORT = 14_322
 
 /**
  * Expand a {@link ContainerConfig} into the complete env var set for a
@@ -67,23 +48,19 @@ export function buildProxyEnv(config: ContainerConfig, certPath: string): Record
   }
 }
 
-/** Cached MITM metadata — static for the server's lifetime. */
-interface MitmInfo {
-  caCertificate: string
-  host: string
-  port: number
-}
-
 /**
  * Resource for minting vault-scoped session tokens. Maps to `POST /v1/sessions`.
+ *
+ * Minting requires a `member`-or-better token: the server closes this endpoint
+ * to `proxy`-role callers, which "can ONLY proxy requests through Agent Vault".
+ * A proxy-role token is already what minting would hand back, so it needs no
+ * session — see the agent mode of `interceptRequests`.
  */
 export class SessionsResource {
-  /** Cached MITM info promise — fetched once, reused across `create()` calls. */
-  private mitmInfoCache: null | Promise<MitmInfo | null> = null
-
   constructor(
     private readonly httpClient: HttpClient,
     private readonly vaultName: string,
+    private readonly mitm: MitmResource,
   ) {}
 
   /**
@@ -95,6 +72,9 @@ export class SessionsResource {
    * {@link buildProxyEnv} to expand it once the CA mount path is known.
    *
    * `containerConfig` is `null` when the server has MITM disabled.
+   *
+   * Throws an `ApiError` with status 403 when the token holds only the `proxy`
+   * role, which the server refuses to mint from.
    */
   async create(options?: CreateSessionOptions): Promise<Session> {
     const [res, mitmInfo] = await Promise.all([
@@ -103,85 +83,14 @@ export class SessionsResource {
         ttl_seconds: options?.ttlSeconds,
         vault: this.vaultName,
       }),
-      this.getMitmInfo(),
+      this.mitm.info(),
     ])
-
-    let containerConfig: ContainerConfig | null = null
-    if (mitmInfo) {
-      const credentials = `${encodeURIComponent(res.token)}:${encodeURIComponent(this.vaultName)}`
-      const proxyUrl = `http://${credentials}@${mitmInfo.host}:${mitmInfo.port}`
-      containerConfig = {
-        caCertificate: mitmInfo.caCertificate,
-        env: {
-          HTTP_PROXY: proxyUrl,
-          HTTPS_PROXY: proxyUrl,
-          NO_PROXY: `localhost,127.0.0.1,${mitmInfo.host}`,
-        },
-      }
-    }
 
     return {
       address: res.av_addr ?? '',
-      containerConfig,
+      containerConfig: mitmInfo ? buildContainerConfig(mitmInfo, res.token, this.vaultName) : null,
       expiresAt: res.expires_at,
       token: res.token,
     }
-  }
-
-  /**
-   * Fetch the MITM CA certificate and its host/port metadata.
-   * Returns `null` when MITM is disabled on the server.
-   *
-   * @throws {ApiError} when the endpoint fails for any other reason — a 5xx or
-   *   an auth failure must not be mistaken for "MITM is off", which would
-   *   silently hand back a session whose traffic is never intercepted.
-   */
-  private async fetchMitmInfo(): Promise<MitmInfo | null> {
-    const resp = await this.httpClient.raw('GET', '/v1/mitm/ca.pem')
-    if (resp.status === 404) return null
-    if (!resp.ok) throw await ApiError.fromResponse(resp)
-
-    const caCertificate = await resp.text()
-
-    let port = DEFAULT_MITM_PORT
-    const portHeader = resp.headers.get('X-MITM-Port')
-    if (portHeader) {
-      const parsed = Number.parseInt(portHeader, 10)
-      if (parsed > 0 && parsed < 65_536) port = parsed
-    }
-
-    let host = '127.0.0.1'
-    try {
-      const {hostname} = new URL(this.httpClient.getBaseUrl())
-      if (hostname) host = hostname
-    } catch {
-      // Unparseable base URL — fall back to loopback.
-    }
-
-    return {caCertificate, host, port}
-  }
-
-  /**
-   * Cached MITM info, fetched on first use.
-   *
-   * Only a positive lookup is cached. A failure clears the slot so the next
-   * `create()` retries once the server or the network recovers, and so does a
-   * "MITM disabled" answer — a long-lived client must not keep reporting the
-   * proxy as off after the server is restarted with MITM enabled.
-   */
-  private getMitmInfo(): Promise<MitmInfo | null> {
-    if (!this.mitmInfoCache) {
-      const pending = this.fetchMitmInfo()
-      this.mitmInfoCache = pending
-      const forget = () => {
-        if (this.mitmInfoCache === pending) this.mitmInfoCache = null
-      }
-
-      pending.then((info) => {
-        if (!info) forget()
-      }, forget)
-    }
-
-    return this.mitmInfoCache
   }
 }

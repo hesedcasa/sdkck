@@ -3,9 +3,11 @@ import {mkdir, mkdtemp, open, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {dirname, join} from 'node:path'
 
-import type {ContainerConfig, CreateSessionOptions, Session, SessionsResource} from './resources/sessions.js'
+import type {ContainerConfig, CreateSessionOptions, Session} from './resources/sessions.js'
+import type {VaultClient} from './vault.js'
 
-import {AgentVaultError} from './errors.js'
+import {AgentVaultError, ApiError} from './errors.js'
+import {buildContainerConfig} from './resources/mitm.js'
 import {buildProxyEnv} from './resources/sessions.js'
 
 /**
@@ -39,6 +41,19 @@ export async function defaultCertPath(): Promise<string> {
   return join(await defaultCertDir, 'ca.pem')
 }
 
+/**
+ * Which credential the proxy is authenticated with.
+ *
+ * - `session` — mint a short-lived vault-scoped session. Needs a `member`-or-
+ *   better token, and is the stronger option when available: the credential is
+ *   scoped and expires.
+ * - `agent` — use the configured token as the proxy credential directly, after
+ *   validating it. This is what a `proxy`-role token requires, since the server
+ *   refuses to mint from one; it mirrors the agent mode of `agent-vault run`.
+ * - `auto` — mint if the token is allowed to, otherwise fall back to `agent`.
+ */
+export type InterceptMode = 'agent' | 'auto' | 'session'
+
 /** Options for {@link interceptRequests}. */
 export interface InterceptOptions extends CreateSessionOptions {
   /**
@@ -53,6 +68,8 @@ export interface InterceptOptions extends CreateSessionOptions {
    * object to build an env for a child process without touching this one.
    */
   env?: NodeJS.ProcessEnv
+  /** Which credential to authenticate the proxy with. Defaults to `auto`. */
+  mode?: InterceptMode
   /** Skip writing the CA certificate — set when it is already on disk at `certPath`. */
   skipCertWrite?: boolean
 }
@@ -61,10 +78,18 @@ export interface InterceptOptions extends CreateSessionOptions {
 export interface InterceptResult {
   /** Path the root CA certificate was written to. */
   certPath: string
+  /** The proxy route that was applied. */
+  containerConfig: ContainerConfig
   /** The proxy and CA-trust variables that were applied. */
   env: Record<string, string>
-  /** The session backing the proxy credentials, including its expiry. */
-  session: Session
+  /** Which credential ended up authenticating the proxy. */
+  mode: 'agent' | 'session'
+  /**
+   * The session backing the proxy credential, including its expiry — `null` in
+   * agent mode, where the configured token is used as it arrived and no session
+   * was minted.
+   */
+  session: null | Session
 }
 
 /**
@@ -114,7 +139,64 @@ export async function writeCaCertificate(config: ContainerConfig, certPath: stri
  * @param target - Environment to mutate. Defaults to `process.env`.
  */
 export function applyProxyEnv(env: Record<string, string>, target: NodeJS.ProcessEnv = process.env): void {
+  // Drop other spellings of the keys being set. Node's env is case-sensitive on
+  // POSIX, and clients disagree on which spelling wins — curl and libcurl-backed
+  // Python read lowercase `https_proxy` first — so a stale value inherited from
+  // the parent shell could otherwise route around the broker entirely.
+  const claimed = new Set(Object.keys(env).map((key) => key.toUpperCase()))
+  for (const key of Object.keys(target)) {
+    if (!(key in env) && claimed.has(key.toUpperCase())) delete target[key]
+  }
+
   Object.assign(target, env)
+}
+
+/** Whether a failed mint means "this token may only proxy" rather than a real error. */
+function isMintForbidden(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 403
+}
+
+/**
+ * Resolve the proxy route, choosing the credential according to `mode`.
+ *
+ * @throws {AgentVaultError} when MITM is disabled, or when the token is rejected.
+ */
+async function resolveRoute(
+  vault: VaultClient,
+  options: InterceptOptions | undefined,
+): Promise<{containerConfig: ContainerConfig; mode: 'agent' | 'session'; session: null | Session}> {
+  const mode = options?.mode ?? 'auto'
+
+  if (mode !== 'agent') {
+    try {
+      const session = await vault.sessions.create({ttlSeconds: options?.ttlSeconds})
+      if (!session.containerConfig) throw mitmDisabled()
+      return {containerConfig: session.containerConfig, mode: 'session', session}
+    } catch (error) {
+      // A 403 is the server telling us this token may only proxy — which is a
+      // perfectly good credential, so fall back rather than fail. Anything else
+      // is a real failure and must not be mistaken for a proxy-role token.
+      if (mode === 'session' || !isMintForbidden(error)) throw error
+    }
+  }
+
+  // Agent mode: the configured token *is* the proxy credential. Validate it once
+  // here so a bad token fails at startup instead of turning every proxied
+  // request into a 401.
+  const [, mitmInfo] = await Promise.all([vault.discover.validate(), vault.mitm.info()])
+  if (!mitmInfo) throw mitmDisabled()
+
+  return {
+    containerConfig: buildContainerConfig(mitmInfo, vault._httpClient.getToken(), vault.name),
+    mode: 'agent',
+    session: null,
+  }
+}
+
+function mitmDisabled(): AgentVaultError {
+  return new AgentVaultError(
+    'Agent Vault has MITM disabled (started with --mitm-port 0), so requests cannot be intercepted.',
+  )
 }
 
 /**
@@ -142,25 +224,16 @@ export function applyProxyEnv(env: Record<string, string>, target: NodeJS.Proces
  * @throws {AgentVaultError} when the server runs with MITM disabled, since
  *   there is then no proxy to intercept anything.
  */
-export async function interceptRequests(
-  sessions: SessionsResource,
-  options?: InterceptOptions,
-): Promise<InterceptResult> {
-  const session = await sessions.create({ttlSeconds: options?.ttlSeconds})
-
-  if (!session.containerConfig) {
-    throw new AgentVaultError(
-      'Agent Vault has MITM disabled (started with --mitm-port 0), so requests cannot be intercepted.',
-    )
-  }
+export async function interceptRequests(vault: VaultClient, options?: InterceptOptions): Promise<InterceptResult> {
+  const {containerConfig, mode, session} = await resolveRoute(vault, options)
 
   const certPath = options?.certPath ?? (await defaultCertPath())
   if (!options?.skipCertWrite) {
-    await writeCaCertificate(session.containerConfig, certPath)
+    await writeCaCertificate(containerConfig, certPath)
   }
 
-  const env = buildProxyEnv(session.containerConfig, certPath)
+  const env = buildProxyEnv(containerConfig, certPath)
   applyProxyEnv(env, options?.env ?? process.env)
 
-  return {certPath, env, session}
+  return {certPath, containerConfig, env, mode, session}
 }

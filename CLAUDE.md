@@ -111,21 +111,32 @@ Set `SDKCK_OTEL_DISABLED=true` to turn instrumentation off for sdkck only (leavi
 
 A TypeScript client for [Infisical Agent Vault](https://github.com/Infisical/agent-vault), a credential broker that keeps real secrets out of agent processes. Agent Vault runs a management API (`:14321`) and a transparent MITM proxy (`:14322`); traffic sent through the proxy has the real credential substituted in flight, so the caller only ever holds a scoped session token.
 
-This is the interception/injection half of the upstream SDK — session minting plus proxy configuration. Vault, credential and service-rule management is not implemented here; configure those through the Agent Vault CLI or dashboard.
+This is the interception/injection half of the upstream SDK — credential resolution plus proxy configuration. Vault, credential and service-rule management is not implemented here; configure those through the Agent Vault CLI or dashboard.
 
 ```typescript
 import {AgentVault} from 'sdkck'
 
 const av = new AgentVault({address: 'http://localhost:14321', token: 'av_agt_...'})
 
-// Mint a session, write the root CA, and route outbound requests through the proxy
-const {certPath, env, session} = await av.vault('my-project').intercept({ttlSeconds: 3600})
+// Resolve a proxy credential, write the root CA, and route outbound requests through the proxy
+const {certPath, env, mode} = await av.vault('my-project').intercept({ttlSeconds: 3600})
 
 // From here a plain request is intercepted and the credential injected:
 await fetch('https://api.stripe.com/v1/charges') // no key in this process
 ```
 
-Key files: `src/agent-vault/client.ts` (`AgentVault` — instance-level, `vault(name)` scopes via the `X-Vault` header), `src/agent-vault/vault.ts` (`VaultClient`, `intercept()`), `src/agent-vault/resources/sessions.ts` (`POST /v1/sessions`, CA fetch from `/v1/mitm/ca.pem`, `buildProxyEnv`), `src/agent-vault/proxy.ts` (`interceptRequests`, `writeCaCertificate`, `applyProxyEnv`), `src/agent-vault/http.ts` (fetch wrapper: bearer auth, timeout, `ApiError` mapping), `src/agent-vault/errors.ts`.
+**Two credential modes** (`intercept({mode})`), mirroring the two modes of `agent-vault run`:
+
+<!-- prettier-ignore -->
+| mode | credential | needs |
+| --- | --- | --- |
+| `session` | mints a short-lived scoped token (`POST /v1/sessions`) | a `member`/`admin` token |
+| `agent` | uses the configured token directly, validated via `GET /discover` | any `proxy`-role token |
+| `auto` (default) | tries `session`, falls back to `agent` on 403 | anything that can proxy |
+
+Why both: the server ranks roles `proxy: 0 < member: 1 < admin: 2` and **refuses to mint from a `proxy`-role caller** — `handle_sessions.go` says a proxy-role caller "can ONLY proxy requests through Agent Vault — they cannot mint new tokens, even at proxy role." Since `proxy` is also the role minting _produces_, an agent token granted `proxy` is already a finished proxy credential; asking it to mint is circular and 403s. `auto` therefore prefers a scoped session (shorter-lived, strictly better) and falls back to using the token as-is, so both token types work with no configuration. A non-403 mint failure always propagates — a 401 or 5xx must never be mistaken for "this token may only proxy".
+
+Key files: `src/agent-vault/client.ts` (`AgentVault` — instance-level, `vault(name)` scopes via the `X-Vault` header), `src/agent-vault/vault.ts` (`VaultClient`, `intercept()`), `src/agent-vault/resources/sessions.ts` (`POST /v1/sessions`, `buildProxyEnv`), `src/agent-vault/resources/mitm.ts` (CA fetch from `/v1/mitm/ca.pem`, `X-MITM-Port`, `buildContainerConfig` — shared by both modes), `src/agent-vault/resources/discover.ts` (`GET /discover` — agent-mode token validation), `src/agent-vault/proxy.ts` (`interceptRequests`, `writeCaCertificate`, `applyProxyEnv`), `src/agent-vault/http.ts` (fetch wrapper: bearer auth, timeout, `ApiError` mapping), `src/agent-vault/errors.ts`.
 
 Everything is re-exported from `src/index.ts`, so the package doubles as a library. No new dependencies — the client is built on the global `fetch`.
 
@@ -134,21 +145,22 @@ Notes:
 - **Token/address resolution:** explicit config > `AGENT_VAULT_TOKEN` / `AGENT_VAULT_ADDR` > `http://localhost:14321` (a missing token throws `AgentVaultError`).
 - **`buildProxyEnv`** sets `HTTPS_PROXY`/`HTTP_PROXY`/`NO_PROXY`, `NODE_USE_ENV_PROXY=1`, `OPENCLAW_PROXY_URL`, and the CA trust variables for Node, Python, curl, Git and Deno (`SSL_CERT_FILE`, `NODE_EXTRA_CA_CERTS`, `REQUESTS_CA_BUNDLE`, `CURL_CA_BUNDLE`, `GIT_SSL_CAINFO`, `DENO_CERT`) — keep it in sync with `augmentEnvWithMITM()` server-side.
 - **Scope of interception:** `intercept()` mutates `process.env` by default, so child processes are covered unconditionally; this process's own `fetch` only honours the proxy variables on Node v22.21.0+ and only when they are set before the first request. Pass `env: {}` to build a child-process environment without touching the current one, and `certPath` to target a container mount path.
-- **MITM disabled:** only a 404 from `/v1/mitm/ca.pem` means MITM is off — `sessions.create()` then returns `containerConfig: null`, and `interceptRequests` treats that as an error since there is nothing to intercept. Any other failure throws instead of being mistaken for "MITM is off", and is not cached, so the next call retries.
+- **MITM disabled:** only a 404 from `/v1/mitm/ca.pem` means MITM is off — `MitmResource.info()` then resolves `null`, `sessions.create()` returns `containerConfig: null`, and `interceptRequests` treats that as an error since there is nothing to intercept. Any other failure throws instead of being mistaken for "MITM is off", and is not cached, so the next call retries. (Upstream's SDK returns `null` on _any_ failure and caches it forever; this client deliberately does neither.)
+- **`applyProxyEnv` clears other spellings** of the keys it sets before assigning — an inherited lowercase `https_proxy` would otherwise win in curl and libcurl-backed Python, silently routing around the broker. Mirrors `stripEnvKeys(env, mitmInjectedKeys)` server-side. Only variants of keys actually being set are removed.
 - **Certificate writes:** `writeCaCertificate` unlinks whatever is at `certPath` (removing a symlink itself, not its target) and then creates the file with `O_EXCL`, so the write is never redirected through a link — on Windows too, where `O_NOFOLLOW` does not exist. The default path lives in a private per-process directory (`defaultCertPath()`) instead of a predictable name in the shared temp directory.
 - Errors: `ApiError` (non-2xx control-plane responses, carrying `status`/`code`) extends `AgentVaultError` (missing token, network failure, timeout).
 
 #### Intercepting every command (`setup-agent-vault` init hook)
 
-With `AGENT_VAULT_TOKEN` and `AGENT_VAULT_VAULT` both set, every sdkck invocation runs with its outbound traffic brokered: the `setup-agent-vault` init hook (`src/hooks/init/setup-agent-vault.ts`) mints a session, writes the root CA to a temporary directory, and **re-executes the same invocation** with the proxy environment applied, then exits with the child's status.
+With `AGENT_VAULT_TOKEN` and `AGENT_VAULT_VAULT` both set, every sdkck invocation runs with its outbound traffic brokered: the `setup-agent-vault` init hook (`src/hooks/init/setup-agent-vault.ts`) resolves a proxy credential (`auto` mode — see above), writes the root CA to a temporary directory, and **re-executes the same invocation** with the proxy environment applied, then exits with the child's status.
 
 The re-exec is the point. Node reads `NODE_USE_ENV_PROXY` and `NODE_EXTRA_CA_CERTS` at process startup, so a process cannot proxy its own `fetch` by mutating `process.env` — verified: pre-start env makes `fetch` dial the proxy, while a runtime mutation goes straight out to DNS. Running the command in a process that _started_ with the environment covers in-process `fetch`, every plugin's HTTP, and any subprocess (git, curl, python), in one mechanism.
 
-Key file: `src/agent-vault-process.ts` — `shouldIntercept(env)` decides whether to intercept and which vault to use; `runIntercepted(options)` does the mint/write/spawn and resolves with the child's exit code (everything is injectable for tests).
+Key file: `src/agent-vault-process.ts` — `shouldIntercept(env)` decides whether to intercept and which vault to use; `runIntercepted(options)` does the resolve/write/spawn and resolves with the child's exit code (everything is injectable for tests).
 
-- **Fails closed:** if the session cannot be minted the command does not run at all (exit 1) rather than sending unbrokered requests. `SDKCK_AGENT_VAULT_DISABLED=1` is the escape hatch.
-- **The child does not get the instance token:** `AGENT_VAULT_TOKEN` is deleted from the child's environment — it only needs the vault-scoped session token, which rides inside the proxy URL. `SDKCK_AGENT_VAULT_ACTIVE=1` marks the child so it does not intercept itself again.
-- **Cost:** one extra process spawn plus one session mint per invocation. Nothing is cached to disk, so no token is ever persisted.
+- **Fails closed:** if no proxy credential can be resolved — the token is rejected, the vault does not exist, MITM is off — the command does not run at all (exit 1) rather than sending unbrokered requests. `SDKCK_AGENT_VAULT_DISABLED=1` is the escape hatch.
+- **The child does not get `AGENT_VAULT_TOKEN`:** it is deleted from the child's environment; the proxy credential rides inside the proxy URL instead. `SDKCK_AGENT_VAULT_ACTIVE=1` marks the child so it does not intercept itself again. Note the withholding only buys something in `session` mode, where the child gets a short-lived scoped token rather than the instance token — in `agent` mode the same long-lived token is in `HTTPS_PROXY` regardless. The side effect is that the child cannot run `agent-vault vault proposal create` to request new access, which upstream's `agent-vault run` supports by passing the token through.
+- **Cost:** one extra process spawn per invocation, plus one credential resolution (a mint attempt, and in agent mode a `/discover` check). Nothing is cached to disk, so no token is ever persisted.
 - Exit codes and stdio pass through verbatim (the child inherits stdio; a signal-terminated child reports `128 + signum`).
 
 ## JIT Plugins

@@ -93,6 +93,16 @@ export class HttpClient {
     return this.baseUrl
   }
 
+  /**
+   * The bearer token this client authenticates with.
+   *
+   * Needed by the agent-mode credential path, where the token itself is the
+   * proxy credential rather than something used to mint one.
+   */
+  getToken(): string {
+    return this.token
+  }
+
   async post<T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'body'>): Promise<T> {
     return this.request<T>('POST', path, {...options, body})
   }
