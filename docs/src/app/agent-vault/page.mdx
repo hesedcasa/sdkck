@@ -66,6 +66,19 @@ To skip brokering for a single invocation:
 SDKCK_AGENT_VAULT_DISABLED=1 sdkck jira issue PROJ-123
 ```
 
+To keep running when the broker is unavailable, opt in to the fallback:
+
+```bash
+SDKCK_AGENT_VAULT_FALLBACK=1 sdkck jira issue PROJ-123
+```
+
+```
+Warning: Agent Vault unavailable for vault "sdkck": Invalid or expired session.
+Running without brokered credentials.
+```
+
+The command then runs with the credentials it already holds, and its requests leave without the broker — so set this only where that is acceptable. It applies to credential resolution alone: a failure to start the command itself still fails. The fallback run does not receive `AGENT_VAULT_TOKEN` either.
+
 ## Token roles
 
 Agent Vault ranks vault roles `proxy` < `member` < `admin`, and Sidekick works with any of them. Which credential it uses is chosen automatically:
@@ -87,5 +100,6 @@ No token is cached to disk. The re-executed command does not receive `AGENT_VAUL
 | `AGENT_VAULT_VAULT`            | Vault to broker credentials from. Required to enable brokering.           |
 | `AGENT_VAULT_ADDR`             | Management API address. Defaults to `http://localhost:14321`.              |
 | `SDKCK_AGENT_VAULT_DISABLED`   | Set to `1` to skip brokering for one invocation.                          |
+| `SDKCK_AGENT_VAULT_FALLBACK`   | Set to `1` to warn and run unbrokered when no credential resolves.         |
 | `SDKCK_AGENT_VAULT_ACTIVE`     | Set internally on the re-executed command. Do not set by hand.             |
 

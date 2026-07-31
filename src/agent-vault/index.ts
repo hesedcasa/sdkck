@@ -1,7 +1,7 @@
 // Clients
 export {AgentVault} from './client.js'
 // Errors
-export {AgentVaultError, ApiError} from './errors.js'
+export {AgentVaultError, AgentVaultSetupError, ApiError} from './errors.js'
 
 // Request interception — routes traffic through the proxy that injects credentials
 export {applyProxyEnv, defaultCertPath, interceptRequests, writeCaCertificate} from './proxy.js'

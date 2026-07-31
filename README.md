@@ -99,7 +99,7 @@ One CLI to search, connect, and command every tool in your stack. Zero context w
     --email ATLASSIAN_EMAIL --apiToken ATLASSIAN_API_TOKEN
   ```
 
-- **Fails closed** — if no credential can be resolved the command does not run, rather than sending unbrokered requests. Use `SDKCK_AGENT_VAULT_DISABLED=1` to skip brokering for one invocation.
+- **Fails closed** — if no credential can be resolved the command does not run, rather than sending unbrokered requests. Use `SDKCK_AGENT_VAULT_DISABLED=1` to skip brokering for one invocation, or `SDKCK_AGENT_VAULT_FALLBACK=1` to warn and run unbrokered when the broker cannot be reached — real requests then leave without it.
 
 ## Why Sidekick?
 

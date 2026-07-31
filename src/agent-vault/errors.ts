@@ -10,6 +10,22 @@ export class AgentVaultError extends Error {
 }
 
 /**
+ * A failure to resolve the Agent Vault proxy credential: the token was
+ * rejected, the vault does not exist, MITM is disabled, the broker is
+ * unreachable, or the CA certificate could not be written. Raised before any
+ * command has been started, which is what makes it safe to fall back to
+ * running unbrokered — unlike a failure to spawn the child, where the command
+ * may already be running.
+ */
+export class AgentVaultSetupError extends AgentVaultError {
+  constructor(message: string, options?: {cause?: unknown}) {
+    super(message)
+    this.name = 'AgentVaultSetupError'
+    if (options && 'cause' in options) this.cause = options.cause
+  }
+}
+
+/**
  * Error returned by the Agent Vault control-plane API. Wraps a non-2xx HTTP
  * response with its status, machine-readable code and response headers.
  */

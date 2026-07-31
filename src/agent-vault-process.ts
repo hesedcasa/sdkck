@@ -3,12 +3,14 @@ import {mkdtemp, rm} from 'node:fs/promises'
 import {constants, tmpdir} from 'node:os'
 import {join} from 'node:path'
 
-import {AgentVault} from './agent-vault/index.js'
+import {AgentVault, AgentVaultSetupError} from './agent-vault/index.js'
 
 /** Set in the re-executed child so it does not intercept itself again. */
 export const SENTINEL_ENV = 'SDKCK_AGENT_VAULT_ACTIVE'
 /** Escape hatch: skip interception for one invocation. */
 export const DISABLE_ENV = 'SDKCK_AGENT_VAULT_DISABLED'
+/** Opt-in: run the command unbrokered when no proxy credential can be resolved. */
+export const FALLBACK_ENV = 'SDKCK_AGENT_VAULT_FALLBACK'
 /** Vault whose credentials the proxy should broker. */
 export const VAULT_ENV = 'AGENT_VAULT_VAULT'
 /** Instance-level Agent Vault token, used to mint the scoped session. */
@@ -61,8 +63,9 @@ export function shouldIntercept(env: NodeJS.ProcessEnv = process.env): string | 
  * The instance-level token is removed from the child's environment: the child
  * only needs the vault-scoped session token, which travels inside the proxy URL.
  *
- * @throws When the session cannot be minted or the certificate cannot be
- *   written. Callers fail closed rather than run unbrokered.
+ * @throws {AgentVaultSetupError} When no proxy credential can be resolved or the
+ *   certificate cannot be written. Callers fail closed, or fall back to running
+ *   unbrokered when `SDKCK_AGENT_VAULT_FALLBACK` is set.
  */
 export async function runIntercepted(options: InterceptedRunOptions): Promise<number> {
   const sourceEnv = options.env ?? process.env
@@ -73,7 +76,15 @@ export async function runIntercepted(options: InterceptedRunOptions): Promise<nu
   const certDir = await mkdtemp(join(tmpdir(), 'sdkck-agent-vault-'))
 
   try {
-    await agentVault.vault(options.vault).intercept({certPath: join(certDir, 'ca.pem'), env: childEnv})
+    try {
+      await agentVault.vault(options.vault).intercept({certPath: join(certDir, 'ca.pem'), env: childEnv})
+    } catch (error) {
+      // Tagged so callers can tell "no credential" — which happens before the
+      // command starts — from a spawn failure, which may not have.
+      throw error instanceof AgentVaultSetupError
+        ? error
+        : new AgentVaultSetupError(error instanceof Error ? error.message : String(error), {cause: error})
+    }
 
     return await spawnChild({
       argv: options.argv ?? process.argv.slice(1),
@@ -84,7 +95,10 @@ export async function runIntercepted(options: InterceptedRunOptions): Promise<nu
     })
   } finally {
     // The child has exited by now, so the certificate is no longer needed.
-    await rm(certDir, {force: true, recursive: true})
+    // Swallow a cleanup failure (e.g. EBUSY/EPERM on Windows, antivirus holding
+    // the file) — it must never replace an in-flight setup error the caller
+    // needs to decide whether to fall back.
+    await rm(certDir, {force: true, recursive: true}).catch(() => {})
   }
 }
 

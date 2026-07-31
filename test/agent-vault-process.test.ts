@@ -11,7 +11,7 @@ import {
   TOKEN_ENV,
   VAULT_ENV,
 } from '../src/agent-vault-process.js'
-import {AgentVault} from '../src/agent-vault/index.js'
+import {AgentVault, AgentVaultSetupError} from '../src/agent-vault/index.js'
 
 const CA_PEM = '-----BEGIN CERTIFICATE-----\nstub\n-----END CERTIFICATE-----\n'
 
@@ -197,6 +197,41 @@ describe('agent-vault process interception', () => {
 
       expect(error).to.be.instanceOf(Error)
       expect((error as Error).message).to.match(/403|forbidden/)
+    })
+
+    it('reports a credential-resolution failure as a setup error', async () => {
+      // Every request 403s: minting is refused, and the agent-mode fallback's
+      // /discover check is refused too, so no proxy credential can be resolved.
+      const fetch = (async () =>
+        new Response(JSON.stringify({error: 'forbidden'}), {status: 403})) as unknown as typeof globalThis.fetch
+
+      const error = await runIntercepted({
+        agentVault: new AgentVault({fetch, token: 'av_agt_abc'}),
+        argv: [join(tmpDir, 'never-runs.cjs')],
+        env: {},
+        execArgv: [],
+        vault: 'my-project',
+      }).catch((error_: unknown) => error_)
+
+      expect(error).to.be.instanceOf(AgentVaultSetupError)
+      // The reason survives the wrapping — the hook puts it in its warning.
+      expect((error as Error).message).to.match(/403|forbidden/)
+    })
+
+    it('does not report a spawn failure as a setup error', async () => {
+      // The credential resolves; the child is what fails. Falling back here
+      // could run the command twice, so this must stay distinguishable.
+      const error = await runIntercepted({
+        agentVault: stubAgentVault(),
+        argv: [join(tmpDir, 'never-runs.cjs')],
+        env: {},
+        execArgv: [],
+        execPath: join(tmpDir, 'no-such-node'),
+        vault: 'my-project',
+      }).catch((error_: unknown) => error_)
+
+      expect(error).to.be.instanceOf(Error)
+      expect(error).to.not.be.instanceOf(AgentVaultSetupError)
     })
   })
 })
