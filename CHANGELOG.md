@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.0](https://github.com/hesedcasa/sdkck/compare/v0.35.1...v0.36.0) (2026-08-01)
+
+
+### 🎉 Features
+
+* **agent-vault:** fall back to &lt;configDir&gt;/agent-vault.json when env vars are unset ([#200](https://github.com/hesedcasa/sdkck/issues/200)) ([f551308](https://github.com/hesedcasa/sdkck/commit/f551308f5afd2806a51630956a157108accfd1bc))
+
 ## [0.35.1](https://github.com/hesedcasa/sdkck/compare/v0.35.0...v0.35.1) (2026-07-28)
 
 
