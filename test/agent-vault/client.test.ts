@@ -1,4 +1,7 @@
 import {expect} from 'chai'
+import {mkdtemp, rm, writeFile} from 'node:fs/promises'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
 
 import {AgentVault, AgentVaultError, ApiError, VaultClient} from '../../src/agent-vault/index.js'
 
@@ -108,6 +111,89 @@ describe('agent-vault client', () => {
       // Trailing slashes are stripped from the base URL.
       expect(calls[0].url).to.equal('http://127.0.0.1:9999/v1/sessions')
       expect(calls[0].headers.Authorization).to.equal('Bearer av_agt_explicit')
+    })
+  })
+
+  describe('config file fallback', () => {
+    const origToken = process.env.AGENT_VAULT_TOKEN
+    const origAddr = process.env.AGENT_VAULT_ADDR
+    const origConfigDir = process.env.SDKCK_CONFIG_DIR
+    let tmpDir: string
+
+    beforeEach(async () => {
+      delete process.env.AGENT_VAULT_TOKEN
+      delete process.env.AGENT_VAULT_ADDR
+      tmpDir = await mkdtemp(join(tmpdir(), 'sdkck-agent-vault-client-'))
+      process.env.SDKCK_CONFIG_DIR = tmpDir
+    })
+
+    afterEach(async () => {
+      if (origToken === undefined) delete process.env.AGENT_VAULT_TOKEN
+      else process.env.AGENT_VAULT_TOKEN = origToken
+
+      if (origAddr === undefined) delete process.env.AGENT_VAULT_ADDR
+      else process.env.AGENT_VAULT_ADDR = origAddr
+
+      if (origConfigDir === undefined) delete process.env.SDKCK_CONFIG_DIR
+      else process.env.SDKCK_CONFIG_DIR = origConfigDir
+
+      await rm(tmpDir, {force: true, recursive: true})
+    })
+
+    it('falls back to token/address from <configDir>/agent-vault.json', async () => {
+      await writeFile(
+        join(tmpDir, 'agent-vault.json'),
+        JSON.stringify({address: 'https://vault.example.com', token: 'av_agt_file'}),
+        'utf8',
+      )
+      const {calls, fetch} = stubFetch(sessionResponses())
+
+      await new AgentVault({fetch}).vault('my-project').sessions.create()
+
+      expect(calls[0].url).to.equal('https://vault.example.com/v1/sessions')
+      expect(calls[0].headers.Authorization).to.equal('Bearer av_agt_file')
+    })
+
+    it('prefers the environment over the file', async () => {
+      process.env.AGENT_VAULT_TOKEN = 'av_agt_env'
+      await writeFile(join(tmpDir, 'agent-vault.json'), JSON.stringify({token: 'av_agt_file'}), 'utf8')
+      const {calls, fetch} = stubFetch(sessionResponses())
+
+      await new AgentVault({fetch}).vault('my-project').sessions.create()
+
+      expect(calls[0].headers.Authorization).to.equal('Bearer av_agt_env')
+    })
+
+    it('still throws when neither the environment nor the file supply a token', () => {
+      expect(() => new AgentVault()).to.throw(AgentVaultError, /Token is required/)
+    })
+
+    it('throws when the file exists but is malformed', async () => {
+      await writeFile(join(tmpDir, 'agent-vault.json'), '{not json', 'utf8')
+      expect(() => new AgentVault()).to.throw(AgentVaultError, /Could not parse/)
+    })
+
+    it('never reads the file when explicit config already covers token and address', async () => {
+      // A malformed file that would throw if read — proving it wasn't.
+      await writeFile(join(tmpDir, 'agent-vault.json'), '{not json', 'utf8')
+      const {calls, fetch} = stubFetch(sessionResponses())
+
+      await new AgentVault({address: 'http://127.0.0.1:9999', fetch, token: 'av_agt_explicit'})
+        .vault('my-project')
+        .sessions.create()
+
+      expect(calls[0].headers.Authorization).to.equal('Bearer av_agt_explicit')
+    })
+
+    it('never reads the file when the environment already covers token and address', async () => {
+      process.env.AGENT_VAULT_TOKEN = 'av_agt_env'
+      process.env.AGENT_VAULT_ADDR = 'https://vault.example.com'
+      await writeFile(join(tmpDir, 'agent-vault.json'), '{not json', 'utf8')
+      const {calls, fetch} = stubFetch(sessionResponses())
+
+      await new AgentVault({fetch}).vault('my-project').sessions.create()
+
+      expect(calls[0].headers.Authorization).to.equal('Bearer av_agt_env')
     })
   })
 

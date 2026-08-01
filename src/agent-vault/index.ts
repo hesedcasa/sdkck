@@ -1,5 +1,8 @@
 // Clients
 export {AgentVault} from './client.js'
+// Config file — fallback for AGENT_VAULT_TOKEN / AGENT_VAULT_ADDR / AGENT_VAULT_VAULT
+export {readAgentVaultFileConfig, resolveConfigDir} from './config-file.js'
+export type {AgentVaultFileConfig} from './config-file.js'
 // Errors
 export {AgentVaultError, ApiError} from './errors.js'
 

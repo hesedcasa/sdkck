@@ -2,10 +2,14 @@
  * Shared configuration for the Agent Vault clients.
  *
  * Token and address resolve in order: explicit config > environment variable >
- * default (and the token throws when nothing supplies it).
+ * `<configDir>/agent-vault.json` > default (and the token throws when nothing
+ * supplies it).
  */
 export interface ClientConfig {
-  /** Agent Vault server base URL. Falls back to `AGENT_VAULT_ADDR`, then `http://localhost:14321`. */
+  /**
+   * Agent Vault server base URL. Falls back to `AGENT_VAULT_ADDR`, then
+   * `address` in `<configDir>/agent-vault.json`, then `http://localhost:14321`.
+   */
   address?: string
   /** Custom fetch implementation, for tests or non-Node runtimes. */
   fetch?: typeof globalThis.fetch
@@ -13,7 +17,10 @@ export interface ClientConfig {
   headers?: Record<string, string>
   /** Request timeout in milliseconds. Default: 30000. */
   timeout?: number
-  /** Authentication token. Falls back to the `AGENT_VAULT_TOKEN` environment variable. */
+  /**
+   * Authentication token. Falls back to the `AGENT_VAULT_TOKEN` environment
+   * variable, then `token` in `<configDir>/agent-vault.json`.
+   */
   token?: string
 }
 
