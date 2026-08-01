@@ -34,7 +34,13 @@ function makeContext(configDir: string): {context: HookContext; errorMessage: ()
 }
 
 describe('init/setup-agent-vault hook', () => {
-  const envKeys = ['AGENT_VAULT_TOKEN', 'AGENT_VAULT_VAULT', 'AGENT_VAULT_ADDR', 'SDKCK_AGENT_VAULT_DISABLED']
+  const envKeys = [
+    'AGENT_VAULT_TOKEN',
+    'AGENT_VAULT_VAULT',
+    'AGENT_VAULT_ADDR',
+    'SDKCK_AGENT_VAULT_DISABLED',
+    'SDKCK_AGENT_VAULT_ACTIVE',
+  ]
   const originalEnv: Record<string, string | undefined> = {}
   let tmpDir: string
 
@@ -100,6 +106,25 @@ describe('init/setup-agent-vault hook', () => {
       'utf8',
     )
     process.env.SDKCK_AGENT_VAULT_DISABLED = '1'
+    const {context} = makeContext(tmpDir)
+
+    await hook.call(context, makeOpts(tmpDir))
+  })
+
+  // A malformed file must never surface as a broken disable/child bypass —
+  // those checks are meant to run unconditionally, before the file is ever
+  // touched.
+  it('honors SDKCK_AGENT_VAULT_DISABLED without reading the config file at all', async () => {
+    await writeFile(join(tmpDir, 'agent-vault.json'), '{not json', 'utf8')
+    process.env.SDKCK_AGENT_VAULT_DISABLED = '1'
+    const {context} = makeContext(tmpDir)
+
+    await hook.call(context, makeOpts(tmpDir))
+  })
+
+  it('honors the re-executed-child sentinel without reading the config file at all', async () => {
+    await writeFile(join(tmpDir, 'agent-vault.json'), '{not json', 'utf8')
+    process.env.SDKCK_AGENT_VAULT_ACTIVE = '1'
     const {context} = makeContext(tmpDir)
 
     await hook.call(context, makeOpts(tmpDir))

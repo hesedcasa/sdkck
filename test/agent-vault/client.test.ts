@@ -172,6 +172,29 @@ describe('agent-vault client', () => {
       await writeFile(join(tmpDir, 'agent-vault.json'), '{not json', 'utf8')
       expect(() => new AgentVault()).to.throw(AgentVaultError, /Could not parse/)
     })
+
+    it('never reads the file when explicit config already covers token and address', async () => {
+      // A malformed file that would throw if read — proving it wasn't.
+      await writeFile(join(tmpDir, 'agent-vault.json'), '{not json', 'utf8')
+      const {calls, fetch} = stubFetch(sessionResponses())
+
+      await new AgentVault({address: 'http://127.0.0.1:9999', fetch, token: 'av_agt_explicit'})
+        .vault('my-project')
+        .sessions.create()
+
+      expect(calls[0].headers.Authorization).to.equal('Bearer av_agt_explicit')
+    })
+
+    it('never reads the file when the environment already covers token and address', async () => {
+      process.env.AGENT_VAULT_TOKEN = 'av_agt_env'
+      process.env.AGENT_VAULT_ADDR = 'https://vault.example.com'
+      await writeFile(join(tmpDir, 'agent-vault.json'), '{not json', 'utf8')
+      const {calls, fetch} = stubFetch(sessionResponses())
+
+      await new AgentVault({fetch}).vault('my-project').sessions.create()
+
+      expect(calls[0].headers.Authorization).to.equal('Bearer av_agt_env')
+    })
   })
 
   describe('vault scoping', () => {

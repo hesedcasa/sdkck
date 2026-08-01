@@ -71,8 +71,16 @@ export class HttpClient {
    */
   static fromConfig(config?: ClientConfig): HttpClient {
     const cfg = config ?? {}
-    const fileConfig = readAgentVaultFileConfig()
-    const token = cfg.token ?? process.env[ENV_TOKEN] ?? fileConfig.token
+    const envToken = process.env[ENV_TOKEN]
+    const envAddr = process.env[ENV_ADDR]
+
+    // Only touch the fallback file when explicit config + env don't already
+    // cover both values — a fully-specified client must not be broken by an
+    // unrelated, malformed agent-vault.json it never needed to read.
+    const needsFileConfig = (cfg.token ?? envToken) === undefined || (cfg.address ?? envAddr) === undefined
+    const fileConfig = needsFileConfig ? readAgentVaultFileConfig() : {}
+
+    const token = cfg.token ?? envToken ?? fileConfig.token
     if (!token) {
       throw new AgentVaultError(
         `Token is required. Provide it in the config, set the ${ENV_TOKEN} environment variable, or add "token" to <configDir>/agent-vault.json.`,
@@ -80,7 +88,7 @@ export class HttpClient {
     }
 
     return new HttpClient({
-      baseUrl: cfg.address ?? process.env[ENV_ADDR] ?? fileConfig.address ?? DEFAULT_ADDRESS,
+      baseUrl: cfg.address ?? envAddr ?? fileConfig.address ?? DEFAULT_ADDRESS,
       fetchFn: cfg.fetch,
       headers: cfg.headers,
       timeout: cfg.timeout,

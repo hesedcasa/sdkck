@@ -1,6 +1,13 @@
 import {Hook} from '@oclif/core'
 
-import {ADDR_ENV, DISABLE_ENV, runIntercepted, shouldIntercept, TOKEN_ENV} from '../../agent-vault-process.js'
+import {
+  ADDR_ENV,
+  DISABLE_ENV,
+  runIntercepted,
+  SENTINEL_ENV,
+  shouldIntercept,
+  TOKEN_ENV,
+} from '../../agent-vault-process.js'
 import {AgentVault, AgentVaultError, readAgentVaultFileConfig} from '../../agent-vault/index.js'
 
 /**
@@ -20,6 +27,12 @@ import {AgentVault, AgentVaultError, readAgentVaultFileConfig} from '../../agent
  * rather than sending requests that bypass the broker.
  */
 const hook: Hook<'init'> = async function () {
+  // Bypass checks come first and never touch the config file: a malformed,
+  // unrelated agent-vault.json must not block the disable escape hatch, nor
+  // break the re-executed child (which hits this hook again with the
+  // sentinel set).
+  if (process.env[SENTINEL_ENV] || process.env[DISABLE_ENV]) return
+
   // Read once against the real configDir, so the vault name resolved here and
   // the token/address the child is set up with can never disagree with each
   // other about which config file backed them.
