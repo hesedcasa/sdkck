@@ -75,6 +75,23 @@ describe('agent-vault process interception', () => {
         undefined,
       )
     })
+
+    it('falls back to the file config for whichever half is missing from the environment', () => {
+      expect(shouldIntercept({[TOKEN_ENV]: 'av_agt_abc'}, {vault: 'my-project'})).to.equal('my-project')
+      expect(shouldIntercept({[VAULT_ENV]: 'my-project'}, {token: 'av_agt_file'})).to.equal('my-project')
+      expect(shouldIntercept({}, {token: 'av_agt_file', vault: 'my-project'})).to.equal('my-project')
+    })
+
+    it('prefers the environment over the file config', () => {
+      expect(
+        shouldIntercept({[TOKEN_ENV]: 'av_agt_abc', [VAULT_ENV]: 'env-project'}, {vault: 'file-project'}),
+      ).to.equal('env-project')
+    })
+
+    it('is off when neither source supplies both halves', () => {
+      expect(shouldIntercept({[TOKEN_ENV]: 'av_agt_abc'}, {})).to.equal(undefined)
+      expect(shouldIntercept({}, {token: 'av_agt_file'})).to.equal(undefined)
+    })
   })
 
   describe('runIntercepted', () => {

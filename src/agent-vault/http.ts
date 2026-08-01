@@ -1,5 +1,6 @@
 import type {ClientConfig} from './types.js'
 
+import {readAgentVaultFileConfig} from './config-file.js'
 import {AgentVaultError, ApiError} from './errors.js'
 
 type HttpMethod = 'DELETE' | 'GET' | 'HEAD' | 'PATCH' | 'POST' | 'PUT'
@@ -61,22 +62,25 @@ export class HttpClient {
   }
 
   /**
-   * Resolve a {@link ClientConfig} — from explicit values and/or environment
-   * variables — into an `HttpClient`.
+   * Resolve a {@link ClientConfig} — from explicit values, environment
+   * variables, and finally `<configDir>/agent-vault.json` — into an
+   * `HttpClient`.
    *
-   * @throws {AgentVaultError} when no token can be resolved.
+   * @throws {AgentVaultError} when no token can be resolved, or when the
+   *   config file exists but is malformed.
    */
   static fromConfig(config?: ClientConfig): HttpClient {
     const cfg = config ?? {}
-    const token = cfg.token ?? process.env[ENV_TOKEN]
+    const fileConfig = readAgentVaultFileConfig()
+    const token = cfg.token ?? process.env[ENV_TOKEN] ?? fileConfig.token
     if (!token) {
       throw new AgentVaultError(
-        `Token is required. Provide it in the config or set the ${ENV_TOKEN} environment variable.`,
+        `Token is required. Provide it in the config, set the ${ENV_TOKEN} environment variable, or add "token" to <configDir>/agent-vault.json.`,
       )
     }
 
     return new HttpClient({
-      baseUrl: cfg.address ?? process.env[ENV_ADDR] ?? DEFAULT_ADDRESS,
+      baseUrl: cfg.address ?? process.env[ENV_ADDR] ?? fileConfig.address ?? DEFAULT_ADDRESS,
       fetchFn: cfg.fetch,
       headers: cfg.headers,
       timeout: cfg.timeout,

@@ -3,6 +3,8 @@ import {mkdtemp, rm} from 'node:fs/promises'
 import {constants, tmpdir} from 'node:os'
 import {join} from 'node:path'
 
+import type {AgentVaultFileConfig} from './agent-vault/index.js'
+
 import {AgentVault} from './agent-vault/index.js'
 
 /** Set in the re-executed child so it does not intercept itself again. */
@@ -13,6 +15,8 @@ export const DISABLE_ENV = 'SDKCK_AGENT_VAULT_DISABLED'
 export const VAULT_ENV = 'AGENT_VAULT_VAULT'
 /** Instance-level Agent Vault token, used to mint the scoped session. */
 export const TOKEN_ENV = 'AGENT_VAULT_TOKEN'
+/** Agent Vault management API address. */
+export const ADDR_ENV = 'AGENT_VAULT_ADDR'
 
 /** Options for {@link runIntercepted}. Everything is injectable for tests. */
 export interface InterceptedRunOptions {
@@ -36,15 +40,21 @@ export interface InterceptedRunOptions {
  * Whether this invocation should be re-executed with its traffic intercepted,
  * and the vault to broker from.
  *
- * Interception is on whenever an Agent Vault token and a vault name are both in
- * the environment. It is skipped inside the re-executed child, and when
- * `SDKCK_AGENT_VAULT_DISABLED` is set.
+ * Interception is on whenever an Agent Vault token and a vault name are both
+ * available, from the environment or — when the corresponding environment
+ * variable is unset — `fileConfig` (the `<configDir>/agent-vault.json`
+ * fallback; see `readAgentVaultFileConfig`). It is skipped inside the
+ * re-executed child, and when `SDKCK_AGENT_VAULT_DISABLED` is set.
  */
-export function shouldIntercept(env: NodeJS.ProcessEnv = process.env): string | undefined {
+export function shouldIntercept(
+  env: NodeJS.ProcessEnv = process.env,
+  fileConfig: AgentVaultFileConfig = {},
+): string | undefined {
   if (env[SENTINEL_ENV] || env[DISABLE_ENV]) return undefined
 
-  const vault = env[VAULT_ENV]
-  return env[TOKEN_ENV] && vault ? vault : undefined
+  const token = env[TOKEN_ENV] ?? fileConfig.token
+  const vault = env[VAULT_ENV] ?? fileConfig.vault
+  return token && vault ? vault : undefined
 }
 
 /**

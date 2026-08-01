@@ -16,7 +16,19 @@ export AGENT_VAULT_VAULT=my-project
 sdkck jira issue PROJ-123
 ```
 
-`AGENT_VAULT_ADDR` defaults to `http://localhost:14321`. Brokering activates only when **both** `AGENT_VAULT_TOKEN` and `AGENT_VAULT_VAULT` are present.
+`AGENT_VAULT_ADDR` defaults to `http://localhost:14321`. Brokering activates only when **both** a token and a vault are present.
+
+Any of the three can instead come from `<configDir>/agent-vault.json` — consulted only for whichever environment variable is unset, never overriding one that is set:
+
+```json
+{
+  "token": "av_agt_...",
+  "vault": "my-project",
+  "address": "http://localhost:14321"
+}
+```
+
+This is a manual, read-only fallback — there is no command to write it. It's meant for a machine or container where exporting the token as an environment variable isn't convenient, but dropping a file into `<configDir>` is.
 
 ## Use placeholders, not secrets
 
@@ -83,9 +95,10 @@ No token is cached to disk. The re-executed command does not receive `AGENT_VAUL
 
 | Variable                       | Description                                                              |
 | ------------------------------ | ------------------------------------------------------------------------ |
-| `AGENT_VAULT_TOKEN`            | Agent Vault token. Required to enable brokering.                          |
-| `AGENT_VAULT_VAULT`            | Vault to broker credentials from. Required to enable brokering.           |
-| `AGENT_VAULT_ADDR`             | Management API address. Defaults to `http://localhost:14321`.              |
+| `AGENT_VAULT_TOKEN`            | Agent Vault token. Falls back to `token` in `agent-vault.json`. Required to enable brokering. |
+| `AGENT_VAULT_VAULT`            | Vault to broker credentials from. Falls back to `vault` in `agent-vault.json`. Required to enable brokering. |
+| `AGENT_VAULT_ADDR`             | Management API address. Falls back to `address` in `agent-vault.json`, then `http://localhost:14321`. |
+| `SDKCK_CONFIG_DIR`             | Overrides where `agent-vault.json` (and other sdkck config) is read from. |
 | `SDKCK_AGENT_VAULT_DISABLED`   | Set to `1` to skip brokering for one invocation.                          |
 | `SDKCK_AGENT_VAULT_ACTIVE`     | Set internally on the re-executed command. Do not set by hand.             |
 
