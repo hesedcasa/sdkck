@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.1](https://github.com/hesedcasa/sdkck/compare/v0.36.0...v0.36.1) (2026-08-01)
+
+
+### 🛠️ Fixes
+
+* **deps:** bump @hesed/api2cli from ^0.4.1 to ^0.5.1 ([f0cc29b](https://github.com/hesedcasa/sdkck/commit/f0cc29bf7bbfbd8b3121474c1c1f9d01939c3294))
+
 ## [0.36.0](https://github.com/hesedcasa/sdkck/compare/v0.35.1...v0.36.0) (2026-08-01)
 
 
