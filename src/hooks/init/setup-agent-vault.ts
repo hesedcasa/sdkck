@@ -3,6 +3,7 @@ import {Hook} from '@oclif/core'
 import {
   ADDR_ENV,
   DISABLE_ENV,
+  NO_PROXY_ENV,
   runIntercepted,
   SENTINEL_ENV,
   shouldIntercept,
@@ -25,6 +26,11 @@ import {AgentVault, AgentVaultError, readAgentVaultFileConfig} from '../../agent
  *
  * Fails closed. If the session cannot be minted the command does not run,
  * rather than sending requests that bypass the broker.
+ *
+ * `AGENT_VAULT_NO_PROXY` (or `noProxy` in the config file) adds hosts that
+ * bypass the proxy entirely — for internal destinations Agent Vault was never
+ * meant to broker, which its own MITM proxy rejects outright with a 502
+ * rather than forwarding unbrokered.
  */
 const hook: Hook<'init'> = async function () {
   // Bypass checks come first and never touch the config file: a malformed,
@@ -48,7 +54,8 @@ const hook: Hook<'init'> = async function () {
       address: process.env[ADDR_ENV] ?? fileConfig.address,
       token: process.env[TOKEN_ENV] ?? fileConfig.token,
     })
-    exitCode = await runIntercepted({agentVault, vault})
+    const noProxy = process.env[NO_PROXY_ENV] ?? fileConfig.noProxy
+    exitCode = await runIntercepted({agentVault, noProxy, vault})
   } catch (error) {
     const reason = error instanceof AgentVaultError || error instanceof Error ? error.message : String(error)
     this.error(

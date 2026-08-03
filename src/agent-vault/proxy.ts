@@ -70,8 +70,35 @@ export interface InterceptOptions extends CreateSessionOptions {
   env?: NodeJS.ProcessEnv
   /** Which credential to authenticate the proxy with. Defaults to `auto`. */
   mode?: InterceptMode
+  /**
+   * Extra comma-separated hosts to add to `NO_PROXY`, on top of the ones the
+   * broker already returns (`localhost`, `127.0.0.1`, its own host). Requests
+   * to internal-only destinations that Agent Vault was never meant to broker
+   * — e.g. the private-IP SSRF guard on Agent Vault's own MITM proxy rejects
+   * them outright with a 502 — need to bypass the proxy rather than being
+   * blocked by it.
+   */
+  noProxy?: string
   /** Skip writing the CA certificate — set when it is already on disk at `certPath`. */
   skipCertWrite?: boolean
+}
+
+/** Append extra hosts to a `NO_PROXY` value, skipping blanks and duplicates. */
+function mergeNoProxy(base: string, extra?: string): string {
+  if (!extra) return base
+
+  const seen = new Set(
+    base
+      .split(',')
+      .map((host) => host.trim())
+      .filter(Boolean),
+  )
+  const additions = extra
+    .split(',')
+    .map((host) => host.trim())
+    .filter((host) => host && !seen.has(host))
+
+  return additions.length > 0 ? [base, ...additions].join(',') : base
 }
 
 /** What {@link interceptRequests} configured. */
@@ -232,8 +259,18 @@ export async function interceptRequests(vault: VaultClient, options?: InterceptO
     await writeCaCertificate(containerConfig, certPath)
   }
 
+  const targetEnv = options?.env ?? process.env
   const env = buildProxyEnv(containerConfig, certPath)
-  applyProxyEnv(env, options?.env ?? process.env)
+  // Preserve whatever the target environment already had bypassed — otherwise
+  // interception silently pulls previously-direct destinations onto the
+  // proxy, which is exactly the failure mode `noProxy` exists to prevent. Both
+  // spellings: `applyProxyEnv` installs uppercase `NO_PROXY` and drops other
+  // case variants, so a caller supplying only the POSIX-lowercase `no_proxy`
+  // would otherwise have it silently cleared rather than merged in.
+  let noProxy = mergeNoProxy(env.NO_PROXY, targetEnv.NO_PROXY)
+  noProxy = mergeNoProxy(noProxy, targetEnv.no_proxy)
+  env.NO_PROXY = mergeNoProxy(noProxy, options?.noProxy)
+  applyProxyEnv(env, targetEnv)
 
   return {certPath, containerConfig, env, mode, session}
 }

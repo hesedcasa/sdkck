@@ -137,6 +137,49 @@ describe('agent-vault process interception', () => {
       expect(seen.vault).to.equal('my-project')
     })
 
+    it('merges the noProxy option into the child’s NO_PROXY', async () => {
+      const reportFile = join(tmpDir, 'no-proxy-report.json')
+      const script = join(tmpDir, 'no-proxy-report.cjs')
+      await writeFile(script, REPORT_SCRIPT, 'utf8')
+
+      const code = await runIntercepted({
+        agentVault: stubAgentVault(),
+        argv: [script],
+        env: {REPORT_FILE: reportFile, [TOKEN_ENV]: 'av_agt_abc', [VAULT_ENV]: 'my-project'},
+        execArgv: [],
+        noProxy: '10.40.1.11,*.internal',
+        vault: 'my-project',
+      })
+
+      expect(code).to.equal(0)
+      const seen = JSON.parse(await readFile(reportFile, 'utf8'))
+      expect(seen.no_proxy).to.equal('localhost,127.0.0.1,localhost,10.40.1.11,*.internal')
+    })
+
+    it('preserves a NO_PROXY the parent process already had, on top of the configured bypass', async () => {
+      const reportFile = join(tmpDir, 'inherited-no-proxy-report.json')
+      const script = join(tmpDir, 'inherited-no-proxy-report.cjs')
+      await writeFile(script, REPORT_SCRIPT, 'utf8')
+
+      const code = await runIntercepted({
+        agentVault: stubAgentVault(),
+        argv: [script],
+        env: {
+          NO_PROXY: 'parent.internal,10.1.2.3',
+          REPORT_FILE: reportFile,
+          [TOKEN_ENV]: 'av_agt_abc',
+          [VAULT_ENV]: 'my-project',
+        },
+        execArgv: [],
+        noProxy: 'config.internal',
+        vault: 'my-project',
+      })
+
+      expect(code).to.equal(0)
+      const seen = JSON.parse(await readFile(reportFile, 'utf8'))
+      expect(seen.no_proxy).to.equal('localhost,127.0.0.1,localhost,parent.internal,10.1.2.3,config.internal')
+    })
+
     it('runs with a proxy-role token, which cannot mint a session at all', async () => {
       // The role an agent token is normally granted: the broker answers 403 to
       // POST /v1/sessions, because such a token "can ONLY proxy requests". The
