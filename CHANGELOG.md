@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.2](https://github.com/hesedcasa/sdkck/compare/v0.36.1...v0.36.2) (2026-08-03)
+
+
+### 🛠️ Fixes
+
+* **agent-vault:** allow bypassing the proxy for internal-network hosts ([#203](https://github.com/hesedcasa/sdkck/issues/203)) ([fd79e17](https://github.com/hesedcasa/sdkck/commit/fd79e1794050eb58fe3d987102fef5fe61b4a7d8))
+
 ## [0.36.1](https://github.com/hesedcasa/sdkck/compare/v0.36.0...v0.36.1) (2026-08-01)
 
 
