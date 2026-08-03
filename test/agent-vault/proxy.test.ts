@@ -246,6 +246,27 @@ describe('agent-vault request interception', () => {
       expect(env.NO_PROXY).to.equal('localhost,127.0.0.1,localhost,parent.internal,10.1.2.3,config.internal')
     })
 
+    it('preserves a POSIX-lowercase no_proxy the target environment only had in that spelling', async () => {
+      // eslint-disable-next-line camelcase -- the lowercase spelling is the point
+      const env: NodeJS.ProcessEnv = {no_proxy: 'parent.internal,10.1.2.3'}
+
+      await interceptRequests(stubVault(), {certPath: join(tmpDir, 'ca.pem'), env, noProxy: 'config.internal'})
+
+      expect(env.NO_PROXY).to.equal('localhost,127.0.0.1,localhost,parent.internal,10.1.2.3,config.internal')
+      // applyProxyEnv's other-spelling cleanup still applies: only the
+      // canonical uppercase key survives, now carrying the merged list.
+      expect(env.no_proxy).to.equal(undefined)
+    })
+
+    it('merges both NO_PROXY and no_proxy when a caller somehow has both set', async () => {
+      // eslint-disable-next-line camelcase -- the lowercase spelling is the point
+      const env: NodeJS.ProcessEnv = {no_proxy: 'lower.internal', NO_PROXY: 'upper.internal'}
+
+      await interceptRequests(stubVault(), {certPath: join(tmpDir, 'ca.pem'), env})
+
+      expect(env.NO_PROXY).to.equal('localhost,127.0.0.1,localhost,upper.internal,lower.internal')
+    })
+
     it('skips hosts already present in NO_PROXY instead of duplicating them', async () => {
       const env: NodeJS.ProcessEnv = {}
 

@@ -263,8 +263,13 @@ export async function interceptRequests(vault: VaultClient, options?: InterceptO
   const env = buildProxyEnv(containerConfig, certPath)
   // Preserve whatever the target environment already had bypassed — otherwise
   // interception silently pulls previously-direct destinations onto the
-  // proxy, which is exactly the failure mode `noProxy` exists to prevent.
-  env.NO_PROXY = mergeNoProxy(mergeNoProxy(env.NO_PROXY, targetEnv.NO_PROXY), options?.noProxy)
+  // proxy, which is exactly the failure mode `noProxy` exists to prevent. Both
+  // spellings: `applyProxyEnv` installs uppercase `NO_PROXY` and drops other
+  // case variants, so a caller supplying only the POSIX-lowercase `no_proxy`
+  // would otherwise have it silently cleared rather than merged in.
+  let noProxy = mergeNoProxy(env.NO_PROXY, targetEnv.NO_PROXY)
+  noProxy = mergeNoProxy(noProxy, targetEnv.no_proxy)
+  env.NO_PROXY = mergeNoProxy(noProxy, options?.noProxy)
   applyProxyEnv(env, targetEnv)
 
   return {certPath, containerConfig, env, mode, session}
