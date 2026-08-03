@@ -232,6 +232,20 @@ describe('agent-vault request interception', () => {
       expect(env.NO_PROXY).to.equal('localhost,127.0.0.1,localhost,10.40.1.11,*.internal')
     })
 
+    it('preserves NO_PROXY entries already present in the target environment', async () => {
+      // A caller that already had bypasses configured (e.g. inherited from the
+      // parent shell) must not lose them just because interception turned on.
+      const env: NodeJS.ProcessEnv = {NO_PROXY: 'parent.internal,10.1.2.3'}
+
+      await interceptRequests(stubVault(), {
+        certPath: join(tmpDir, 'ca.pem'),
+        env,
+        noProxy: 'config.internal',
+      })
+
+      expect(env.NO_PROXY).to.equal('localhost,127.0.0.1,localhost,parent.internal,10.1.2.3,config.internal')
+    })
+
     it('skips hosts already present in NO_PROXY instead of duplicating them', async () => {
       const env: NodeJS.ProcessEnv = {}
 

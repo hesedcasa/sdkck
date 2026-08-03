@@ -259,9 +259,13 @@ export async function interceptRequests(vault: VaultClient, options?: InterceptO
     await writeCaCertificate(containerConfig, certPath)
   }
 
+  const targetEnv = options?.env ?? process.env
   const env = buildProxyEnv(containerConfig, certPath)
-  env.NO_PROXY = mergeNoProxy(env.NO_PROXY, options?.noProxy)
-  applyProxyEnv(env, options?.env ?? process.env)
+  // Preserve whatever the target environment already had bypassed — otherwise
+  // interception silently pulls previously-direct destinations onto the
+  // proxy, which is exactly the failure mode `noProxy` exists to prevent.
+  env.NO_PROXY = mergeNoProxy(mergeNoProxy(env.NO_PROXY, targetEnv.NO_PROXY), options?.noProxy)
+  applyProxyEnv(env, targetEnv)
 
   return {certPath, containerConfig, env, mode, session}
 }
