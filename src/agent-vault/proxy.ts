@@ -70,8 +70,35 @@ export interface InterceptOptions extends CreateSessionOptions {
   env?: NodeJS.ProcessEnv
   /** Which credential to authenticate the proxy with. Defaults to `auto`. */
   mode?: InterceptMode
+  /**
+   * Extra comma-separated hosts to add to `NO_PROXY`, on top of the ones the
+   * broker already returns (`localhost`, `127.0.0.1`, its own host). Requests
+   * to internal-only destinations that Agent Vault was never meant to broker
+   * — e.g. the private-IP SSRF guard on Agent Vault's own MITM proxy rejects
+   * them outright with a 502 — need to bypass the proxy rather than being
+   * blocked by it.
+   */
+  noProxy?: string
   /** Skip writing the CA certificate — set when it is already on disk at `certPath`. */
   skipCertWrite?: boolean
+}
+
+/** Append extra hosts to a `NO_PROXY` value, skipping blanks and duplicates. */
+function mergeNoProxy(base: string, extra?: string): string {
+  if (!extra) return base
+
+  const seen = new Set(
+    base
+      .split(',')
+      .map((host) => host.trim())
+      .filter(Boolean),
+  )
+  const additions = extra
+    .split(',')
+    .map((host) => host.trim())
+    .filter((host) => host && !seen.has(host))
+
+  return additions.length > 0 ? [base, ...additions].join(',') : base
 }
 
 /** What {@link interceptRequests} configured. */
@@ -233,6 +260,7 @@ export async function interceptRequests(vault: VaultClient, options?: InterceptO
   }
 
   const env = buildProxyEnv(containerConfig, certPath)
+  env.NO_PROXY = mergeNoProxy(env.NO_PROXY, options?.noProxy)
   applyProxyEnv(env, options?.env ?? process.env)
 
   return {certPath, containerConfig, env, mode, session}

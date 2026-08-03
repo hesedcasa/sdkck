@@ -7,6 +7,12 @@ import {AgentVaultError} from './errors.js'
 /** Config-file fallback for `AGENT_VAULT_TOKEN` / `AGENT_VAULT_ADDR` / `AGENT_VAULT_VAULT`. */
 export interface AgentVaultFileConfig {
   address?: string
+  /**
+   * Comma-separated hosts to bypass the proxy for, fallback for
+   * `AGENT_VAULT_NO_PROXY`. Merged into `NO_PROXY` alongside the broker's own
+   * entries (`localhost`, `127.0.0.1`, its host).
+   */
+  noProxy?: string
   token?: string
   vault?: string
 }
@@ -58,12 +64,14 @@ export function readAgentVaultFileConfig(configDir: string = resolveConfigDir())
   }
 
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    throw new AgentVaultError(`${path} must contain a JSON object with optional "token", "address", "vault" fields.`)
+    throw new AgentVaultError(
+      `${path} must contain a JSON object with optional "token", "address", "vault", "noProxy" fields.`,
+    )
   }
 
-  const {address, token, vault} = parsed as Record<string, unknown>
+  const {address, noProxy, token, vault} = parsed as Record<string, unknown>
   const result: AgentVaultFileConfig = {}
-  for (const [key, value] of Object.entries({address, token, vault})) {
+  for (const [key, value] of Object.entries({address, noProxy, token, vault})) {
     if (value === undefined) continue
     if (typeof value !== 'string') {
       throw new AgentVaultError(`${path}: "${key}" must be a string.`)

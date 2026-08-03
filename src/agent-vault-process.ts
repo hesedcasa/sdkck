@@ -13,6 +13,8 @@ export const SENTINEL_ENV = 'SDKCK_AGENT_VAULT_ACTIVE'
 export const DISABLE_ENV = 'SDKCK_AGENT_VAULT_DISABLED'
 /** Vault whose credentials the proxy should broker. */
 export const VAULT_ENV = 'AGENT_VAULT_VAULT'
+/** Extra comma-separated hosts to bypass the proxy for. */
+export const NO_PROXY_ENV = 'AGENT_VAULT_NO_PROXY'
 /** Instance-level Agent Vault token, used to mint the scoped session. */
 export const TOKEN_ENV = 'AGENT_VAULT_TOKEN'
 /** Agent Vault management API address. */
@@ -30,6 +32,8 @@ export interface InterceptedRunOptions {
   execArgv?: string[]
   /** Node binary to re-execute. Defaults to `process.execPath`. */
   execPath?: string
+  /** Extra comma-separated hosts to bypass the proxy for. See {@link NO_PROXY_ENV}. */
+  noProxy?: string
   /** Spawn implementation, for tests. */
   spawnFn?: typeof spawn
   /** Vault name. */
@@ -83,7 +87,9 @@ export async function runIntercepted(options: InterceptedRunOptions): Promise<nu
   const certDir = await mkdtemp(join(tmpdir(), 'sdkck-agent-vault-'))
 
   try {
-    await agentVault.vault(options.vault).intercept({certPath: join(certDir, 'ca.pem'), env: childEnv})
+    await agentVault
+      .vault(options.vault)
+      .intercept({certPath: join(certDir, 'ca.pem'), env: childEnv, noProxy: options.noProxy})
 
     return await spawnChild({
       argv: options.argv ?? process.argv.slice(1),

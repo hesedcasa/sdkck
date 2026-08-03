@@ -220,6 +220,38 @@ describe('agent-vault request interception', () => {
       expect((error as AgentVaultError).message).to.match(/MITM disabled/)
     })
 
+    it('merges noProxy into NO_PROXY, alongside the broker-provided entries', async () => {
+      const env: NodeJS.ProcessEnv = {}
+
+      await interceptRequests(stubVault(), {
+        certPath: join(tmpDir, 'ca.pem'),
+        env,
+        noProxy: '10.40.1.11,*.internal',
+      })
+
+      expect(env.NO_PROXY).to.equal('localhost,127.0.0.1,localhost,10.40.1.11,*.internal')
+    })
+
+    it('skips hosts already present in NO_PROXY instead of duplicating them', async () => {
+      const env: NodeJS.ProcessEnv = {}
+
+      await interceptRequests(stubVault(), {
+        certPath: join(tmpDir, 'ca.pem'),
+        env,
+        noProxy: 'localhost,10.40.1.11',
+      })
+
+      expect(env.NO_PROXY).to.equal('localhost,127.0.0.1,localhost,10.40.1.11')
+    })
+
+    it('leaves NO_PROXY untouched when no extra hosts are given', async () => {
+      const env: NodeJS.ProcessEnv = {}
+
+      await interceptRequests(stubVault(), {certPath: join(tmpDir, 'ca.pem'), env})
+
+      expect(env.NO_PROXY).to.equal('localhost,127.0.0.1,localhost')
+    })
+
     it('is reachable as vault.intercept()', async () => {
       const env: NodeJS.ProcessEnv = {}
       const vault = stubVault()

@@ -51,6 +51,20 @@ describe('agent-vault config file', () => {
       })
     })
 
+    it('reads noProxy from the file', async () => {
+      await writeFile(
+        join(tmpDir, 'agent-vault.json'),
+        JSON.stringify({noProxy: '10.40.1.11,*.internal', token: 'av_agt_file', vault: 'my-project'}),
+        'utf8',
+      )
+
+      expect(readAgentVaultFileConfig(tmpDir)).to.deep.equal({
+        noProxy: '10.40.1.11,*.internal',
+        token: 'av_agt_file',
+        vault: 'my-project',
+      })
+    })
+
     it('ignores fields that are absent from the file', async () => {
       await writeFile(join(tmpDir, 'agent-vault.json'), JSON.stringify({token: 'av_agt_file'}), 'utf8')
 
