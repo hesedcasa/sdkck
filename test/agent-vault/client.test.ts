@@ -5,14 +5,14 @@ import {join} from 'node:path'
 
 import {AgentVault, AgentVaultError, ApiError, VaultClient} from '../../src/agent-vault/index.js'
 
-interface RecordedRequest {
+type RecordedRequest = {
   body: unknown
   headers: Record<string, string>
   method: string
   url: string
 }
 
-interface StubResponse {
+type StubResponse = {
   body?: string
   headers?: Record<string, string>
   json?: unknown
@@ -28,10 +28,9 @@ function stubFetch(responses: StubResponse[]): {calls: RecordedRequest[]; fetch:
   let index = 0
 
   const fetch = (async (url: string | URL, init?: FetchInit) => {
-    const headers: Record<string, string> = {}
-    for (const [key, value] of Object.entries((init?.headers ?? {}) as Record<string, string>)) {
-      headers[key] = value
-    }
+    const headers: Record<string, string> = Object.fromEntries(
+      Object.entries((init?.headers ?? {}) as Record<string, string>),
+    )
 
     calls.push({
       body: typeof init?.body === 'string' ? JSON.parse(init.body) : init?.body,
@@ -61,7 +60,6 @@ const CA_PEM = '-----BEGIN CERTIFICATE-----\nstub\n-----END CERTIFICATE-----\n'
 /** Session response followed by the CA cert fetch — the order `create()` awaits them in. */
 function sessionResponses(overrides?: {caStatus?: number; mitmPort?: string}): StubResponse[] {
   return [
-    // eslint-disable-next-line camelcase -- wire field names
     {json: {av_addr: 'http://localhost:14321', expires_at: '2026-01-01T00:00:00Z', token: 'av_ses_abc'}},
     {
       body: CA_PEM,

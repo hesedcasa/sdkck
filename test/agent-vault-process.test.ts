@@ -28,7 +28,6 @@ function stubAgentVault(options?: {sessionStatus?: number}): AgentVault {
     if (target.endsWith('/discover')) return new Response(JSON.stringify({vault: 'my-project'}), {status: 200})
 
     return new Response(
-      // eslint-disable-next-line camelcase -- wire field names
       JSON.stringify({av_addr: 'http://localhost:14321', expires_at: '2026-01-01T00:00:00Z', token: 'av_ses_abc'}),
       {status: options?.sessionStatus ?? 200},
     )

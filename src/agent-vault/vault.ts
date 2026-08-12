@@ -9,7 +9,7 @@ import {SessionsResource} from './resources/sessions.js'
 /** Marker distinguishing the internal construction path. */
 const INTERNAL = Symbol('VaultClient.internal')
 
-interface InternalArgs {
+type InternalArgs = {
   httpClient: HttpClient
   marker: typeof INTERNAL
   vaultName: string
@@ -57,6 +57,7 @@ export class VaultClient {
    *
    * @internal
    */
+  // eslint-disable-next-line unicorn/prefer-private-class-fields -- called from AgentVault.vault(), so a #private member is out of reach
   static _create(httpClient: HttpClient, vaultName: string): VaultClient {
     return new VaultClient({httpClient, marker: INTERNAL, vaultName})
   }

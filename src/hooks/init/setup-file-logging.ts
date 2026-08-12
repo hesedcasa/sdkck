@@ -1,4 +1,4 @@
-import {Command, Hook} from '@oclif/core'
+import {Command, type Hook} from '@oclif/core'
 
 import {fileLog, initFileLogger} from '../../file-logger.js'
 
@@ -7,6 +7,7 @@ const hook: Hook<'init'> = async function (opts) {
 
   // Tee Command.prototype.warn → log file. Cast away the overloaded types so
   // TypeScript accepts the generic wrapper signature.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- the cast collapses `warn`'s overloads; without it the two-argument call below does not compile
   const originalWarn = Command.prototype.warn as (
     this: Command,
     input: Error | string,
@@ -33,14 +34,14 @@ const hook: Hook<'init'> = async function (opts) {
   console.warn = (...args: unknown[]) => {
     const msg = args.map(String).join(' ')
     if (msg.trim()) fileLog('warn', msg)
-    return origConsoleWarn.apply(console, args as Parameters<typeof console.warn>)
+    origConsoleWarn.apply(console, args as Parameters<typeof console.warn>)
   }
 
   const origConsoleError = console.error
   console.error = (...args: unknown[]) => {
     const msg = args.map(String).join(' ')
     if (msg.trim()) fileLog('error', msg)
-    return origConsoleError.apply(console, args as Parameters<typeof console.error>)
+    origConsoleError.apply(console, args as Parameters<typeof console.error>)
   }
 }
 

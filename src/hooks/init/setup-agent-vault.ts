@@ -1,4 +1,4 @@
-import {Hook} from '@oclif/core'
+import {type Hook} from '@oclif/core'
 
 import {
   ADDR_ENV,
@@ -69,7 +69,7 @@ const hook: Hook<'init'> = async function () {
   // and stop — returning here would let oclif dispatch the command a second
   // time. process.exit is deliberate: this process is only a supervisor, and
   // nothing is buffered because the child inherited its stdio.
-  // eslint-disable-next-line n/no-process-exit, unicorn/no-process-exit -- CLI supervisor, see above
+  // eslint-disable-next-line unicorn/no-process-exit -- CLI supervisor, see above
   process.exit(exitCode)
 }
 

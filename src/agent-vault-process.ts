@@ -3,9 +3,7 @@ import {mkdtemp, rm} from 'node:fs/promises'
 import {constants, tmpdir} from 'node:os'
 import {join} from 'node:path'
 
-import type {AgentVaultFileConfig} from './agent-vault/index.js'
-
-import {AgentVault} from './agent-vault/index.js'
+import {AgentVault, type AgentVaultFileConfig} from './agent-vault/index.js'
 
 /** Set in the re-executed child so it does not intercept itself again. */
 export const SENTINEL_ENV = 'SDKCK_AGENT_VAULT_ACTIVE'
@@ -21,7 +19,7 @@ export const TOKEN_ENV = 'AGENT_VAULT_TOKEN'
 export const ADDR_ENV = 'AGENT_VAULT_ADDR'
 
 /** Options for {@link runIntercepted}. Everything is injectable for tests. */
-export interface InterceptedRunOptions {
+export type InterceptedRunOptions = {
   /** Instance-level client. Defaults to one built from the environment. */
   agentVault?: AgentVault
   /** Arguments for the child, defaulting to this process's (`process.argv.slice(1)`). */
@@ -50,6 +48,7 @@ export interface InterceptedRunOptions {
  * fallback; see `readAgentVaultFileConfig`). It is skipped inside the
  * re-executed child, and when `SDKCK_AGENT_VAULT_DISABLED` is set.
  */
+// eslint-disable-next-line unicorn/consistent-boolean-name -- resolves to the vault name, not a boolean
 export function shouldIntercept(
   env: NodeJS.ProcessEnv = process.env,
   fileConfig: AgentVaultFileConfig = {},
@@ -75,13 +74,13 @@ export function shouldIntercept(
  * The instance-level token is removed from the child's environment: the child
  * only needs the vault-scoped session token, which travels inside the proxy URL.
  *
- * @throws When the session cannot be minted or the certificate cannot be
+ * @throws {Error} When the session cannot be minted or the certificate cannot be
  *   written. Callers fail closed rather than run unbrokered.
  */
 export async function runIntercepted(options: InterceptedRunOptions): Promise<number> {
   const sourceEnv = options.env ?? process.env
   const childEnv: NodeJS.ProcessEnv = {...sourceEnv, [SENTINEL_ENV]: '1'}
-  delete childEnv[TOKEN_ENV]
+  Reflect.deleteProperty(childEnv, TOKEN_ENV)
 
   const agentVault = options.agentVault ?? new AgentVault()
   const certDir = await mkdtemp(join(tmpdir(), 'sdkck-agent-vault-'))
@@ -106,7 +105,7 @@ export async function runIntercepted(options: InterceptedRunOptions): Promise<nu
 
 /** Exit code a shell reports for a process killed by a signal. */
 function signalExitCode(signal: NodeJS.Signals): number {
-  const number = constants.signals[signal as keyof typeof constants.signals]
+  const number = constants.signals[signal]
   return number ? 128 + number : 1
 }
 

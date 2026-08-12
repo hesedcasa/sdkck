@@ -5,7 +5,7 @@ import {join} from 'node:path'
 import {AgentVaultError} from './errors.js'
 
 /** Config-file fallback for `AGENT_VAULT_TOKEN` / `AGENT_VAULT_ADDR` / `AGENT_VAULT_VAULT`. */
-export interface AgentVaultFileConfig {
+export type AgentVaultFileConfig = {
   address?: string
   /**
    * Comma-separated hosts to bypass the proxy for, fallback for

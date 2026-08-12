@@ -18,7 +18,7 @@ function makeOpts(configDir: string): HookOpts {
   }
 }
 
-async function readLogEntries(logDir: string): Promise<{level: string; msg: string; time: string}[]> {
+async function readLogEntries(logDir: string): Promise<Array<{level: string; msg: string; time: string}>> {
   const raw = await readFile(join(logDir, 'logs', 'sdkck.log'), 'utf8')
   return raw
     .trim()
@@ -112,7 +112,10 @@ describe('file logging', () => {
 
     it('still calls the original console.warn after patching', async () => {
       const captured: unknown[][] = []
-      console.warn = (...args: unknown[]) => captured.push(args)
+      console.warn = (...args: unknown[]) => {
+        captured.push(args)
+      }
+
       await hook.call({} as never, makeOpts(tmpDir))
       console.warn('forwarded')
       expect(captured).to.have.length(1)
@@ -121,7 +124,10 @@ describe('file logging', () => {
 
     it('still calls the original console.error after patching', async () => {
       const captured: unknown[][] = []
-      console.error = (...args: unknown[]) => captured.push(args)
+      console.error = (...args: unknown[]) => {
+        captured.push(args)
+      }
+
       await hook.call({} as never, makeOpts(tmpDir))
       console.error('forwarded error')
       expect(captured).to.have.length(1)

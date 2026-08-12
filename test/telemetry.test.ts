@@ -14,7 +14,7 @@ import {
 type TraceEntry = {
   attributes: Record<string, string>
   durationMs: number
-  events: {attributes: Record<string, unknown>; name: string}[]
+  events: Array<{attributes: Record<string, unknown>; name: string}>
   name: string
   status: {code: number; message?: string}
 }

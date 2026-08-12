@@ -1,15 +1,15 @@
 import {
-  Counter,
+  type Counter,
   diag,
   DiagConsoleLogger,
   DiagLogLevel,
-  Histogram,
-  Meter,
+  type Histogram,
+  type Meter,
   metrics as metricsApi,
   SpanStatusCode,
-  Tracer,
+  type Tracer,
 } from '@opentelemetry/api'
-import {ExportResult, ExportResultCode} from '@opentelemetry/core'
+import {type ExportResult, ExportResultCode} from '@opentelemetry/core'
 import {OTLPMetricExporter} from '@opentelemetry/exporter-metrics-otlp-http'
 import {OTLPTraceExporter} from '@opentelemetry/exporter-trace-otlp-http'
 import {Resource} from '@opentelemetry/resources'
@@ -18,15 +18,15 @@ import {
   ConsoleMetricExporter,
   MeterProvider,
   PeriodicExportingMetricReader,
-  PushMetricExporter,
-  ResourceMetrics,
+  type PushMetricExporter,
+  type ResourceMetrics,
 } from '@opentelemetry/sdk-metrics'
 import {
   ConsoleSpanExporter,
   NodeTracerProvider,
-  ReadableSpan,
+  type ReadableSpan,
   SimpleSpanProcessor,
-  SpanExporter,
+  type SpanExporter,
 } from '@opentelemetry/sdk-trace-node'
 import {ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION} from '@opentelemetry/semantic-conventions'
 import {appendFileSync, mkdirSync} from 'node:fs'
@@ -77,7 +77,7 @@ type TelemetryState = {
 }
 
 let state: TelemetryState | undefined
-let disabled = false
+let isDisabled = false
 // Depth of nested command runs (`config.runCommand`) so metrics are only
 // force-flushed once the outermost command completes.
 let activeDepth = 0
@@ -86,7 +86,7 @@ function isEnvTrue(value: string | undefined): boolean {
   return value !== undefined && ['1', 'on', 'true', 'yes'].includes(value.trim().toLowerCase())
 }
 
-function otlpEndpointConfigured(): boolean {
+function hasOtlpEndpoint(): boolean {
   return Boolean(
     process.env.OTEL_EXPORTER_OTLP_ENDPOINT ||
     process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ||
@@ -94,11 +94,11 @@ function otlpEndpointConfigured(): boolean {
   )
 }
 
-function traceConsoleConfigured(): boolean {
+function isTraceConsoleExporter(): boolean {
   return process.env.OTEL_TRACES_EXPORTER === 'console'
 }
 
-function metricConsoleConfigured(): boolean {
+function isMetricConsoleExporter(): boolean {
   return process.env.OTEL_METRICS_EXPORTER === 'console'
 }
 
@@ -202,14 +202,14 @@ class FileMetricExporter implements PushMetricExporter {
 }
 
 function buildTraceExporter(logDir: string): SpanExporter {
-  if (otlpEndpointConfigured()) return new OTLPTraceExporter()
-  if (traceConsoleConfigured()) return new ConsoleSpanExporter()
+  if (hasOtlpEndpoint()) return new OTLPTraceExporter()
+  if (isTraceConsoleExporter()) return new ConsoleSpanExporter()
   return new FileSpanExporter(join(logDir, 'otel-traces.jsonl'))
 }
 
 function buildMetricExporter(logDir: string): PushMetricExporter {
-  if (otlpEndpointConfigured()) return new OTLPMetricExporter()
-  if (metricConsoleConfigured()) return new ConsoleMetricExporter()
+  if (hasOtlpEndpoint()) return new OTLPMetricExporter()
+  if (isMetricConsoleExporter()) return new ConsoleMetricExporter()
   return new FileMetricExporter(join(logDir, 'otel-metrics.jsonl'))
 }
 
@@ -218,12 +218,12 @@ function buildMetricExporter(logDir: string): PushMetricExporter {
  * the first call takes effect. Honours `SDKCK_OTEL_DISABLED` and `OTEL_SDK_DISABLED`.
  */
 export function initTelemetry(opts: {configDir: string; version?: string}): void {
-  if (state || disabled) return
+  if (state || isDisabled) return
   // `SDKCK_OTEL_DISABLED` turns telemetry off for sdkck specifically, without
   // affecting the standard `OTEL_SDK_DISABLED` that other OpenTelemetry-enabled
   // tools on the host may rely on.
   if (isEnvTrue(process.env.SDKCK_OTEL_DISABLED) || isEnvTrue(process.env.OTEL_SDK_DISABLED)) {
-    disabled = true
+    isDisabled = true
     return
   }
 
@@ -235,7 +235,7 @@ export function initTelemetry(opts: {configDir: string; version?: string}): void
 
   const resource = new Resource({
     [ATTR_SERVICE_NAME]: SERVICE_NAME,
-    ...(opts.version ? {[ATTR_SERVICE_VERSION]: opts.version} : {}),
+    ...(opts.version && {[ATTR_SERVICE_VERSION]: opts.version}),
   })
 
   const tracerProvider = new NodeTracerProvider({
@@ -385,6 +385,6 @@ export function isTelemetryActive(): boolean {
 // ts-prune-ignore-next
 export function resetTelemetryForTests(): void {
   state = undefined
-  disabled = false
+  isDisabled = false
   activeDepth = 0
 }

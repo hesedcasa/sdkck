@@ -18,7 +18,7 @@ const posixOnly = process.platform === 'win32' ? it.skip : it
 
 const CA_PEM = '-----BEGIN CERTIFICATE-----\nstub\n-----END CERTIFICATE-----\n'
 
-interface StubOptions {
+type StubOptions = {
   /** Status for `GET /v1/mitm/ca.pem`. 404 means the server runs with MITM disabled. */
   caStatus?: number
   /** Status for `GET /discover`, the agent-mode token check. */
@@ -50,7 +50,6 @@ function stubFetch(options?: StubOptions): StubFetch {
     }
 
     return new Response(
-      // eslint-disable-next-line camelcase -- wire field names
       JSON.stringify({av_addr: 'http://localhost:14321', expires_at: '2026-01-01T00:00:00Z', token: 'av_ses_abc'}),
       {status: options?.sessionStatus ?? 200},
     )
@@ -157,7 +156,6 @@ describe('agent-vault request interception', () => {
       // Some clients (curl, libcurl-backed Python) read the lowercase spelling
       // first, so a stale corporate https_proxy left in the parent environment
       // would silently route around the broker.
-      // eslint-disable-next-line camelcase -- the lowercase spelling is the point
       const target: NodeJS.ProcessEnv = {https_proxy: 'http://corporate:3128', KEEP: 'kept'}
 
       applyProxyEnv({HTTPS_PROXY: 'http://broker:14322'}, target)
@@ -168,7 +166,6 @@ describe('agent-vault request interception', () => {
     })
 
     it('leaves unrelated lowercase variables alone', () => {
-      // eslint-disable-next-line camelcase -- the lowercase spelling is the point
       const target: NodeJS.ProcessEnv = {ssl_cert_file: '/custom/ca.pem'}
 
       applyProxyEnv({HTTPS_PROXY: 'http://broker:14322'}, target)
@@ -247,7 +244,6 @@ describe('agent-vault request interception', () => {
     })
 
     it('preserves a POSIX-lowercase no_proxy the target environment only had in that spelling', async () => {
-      // eslint-disable-next-line camelcase -- the lowercase spelling is the point
       const env: NodeJS.ProcessEnv = {no_proxy: 'parent.internal,10.1.2.3'}
 
       await interceptRequests(stubVault(), {certPath: join(tmpDir, 'ca.pem'), env, noProxy: 'config.internal'})
@@ -259,7 +255,6 @@ describe('agent-vault request interception', () => {
     })
 
     it('merges both NO_PROXY and no_proxy when a caller somehow has both set', async () => {
-      // eslint-disable-next-line camelcase -- the lowercase spelling is the point
       const env: NodeJS.ProcessEnv = {no_proxy: 'lower.internal', NO_PROXY: 'upper.internal'}
 
       await interceptRequests(stubVault(), {certPath: join(tmpDir, 'ca.pem'), env})

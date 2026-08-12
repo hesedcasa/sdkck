@@ -5,7 +5,6 @@ import {AgentVault, AgentVaultError, ApiError} from '../../src/agent-vault/index
 /** Wire shape of `GET /discover`, as the broker returns it. */
 function discoverBody(vault: string) {
   return JSON.stringify({
-    // eslint-disable-next-line camelcase -- wire field names
     available_credentials: ['ATLASSIAN_API_TOKEN', 'ATLASSIAN_EMAIL'],
     services: [{host: 'example.atlassian.net', name: 'atlassian'}],
     vault,
@@ -13,7 +12,7 @@ function discoverBody(vault: string) {
 }
 
 /** Just the request fields these tests assert on. */
-interface StubInit {
+type StubInit = {
   headers?: Record<string, string>
   method?: string
 }
