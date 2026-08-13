@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.3](https://github.com/hesedcasa/sdkck/compare/v0.36.2...v0.36.3) (2026-08-13)
+
+
+### ♻️ Chores
+
+* upgrade ESLint and fix lint/type errors ([#209](https://github.com/hesedcasa/sdkck/issues/209)) ([e580ce4](https://github.com/hesedcasa/sdkck/commit/e580ce4d53dc75dc88ce0836507055e9659d31b9))
+
 ## [0.36.2](https://github.com/hesedcasa/sdkck/compare/v0.36.1...v0.36.2) (2026-08-03)
 
 
