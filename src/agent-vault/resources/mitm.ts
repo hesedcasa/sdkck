@@ -9,7 +9,7 @@ const DEFAULT_MITM_PORT = 14_322
  * Configuration for routing HTTP(S) traffic through Agent Vault's transparent
  * MITM proxy.
  */
-export interface ContainerConfig {
+export type ContainerConfig = {
   /** Root CA certificate PEM. Mount it and point the CA trust variables at it. */
   caCertificate: string
   /** Environment variables carrying the proxy route. */
@@ -24,7 +24,7 @@ export interface ContainerConfig {
 }
 
 /** Where the MITM proxy listens, and the CA that signs its certificates. */
-export interface MitmInfo {
+export type MitmInfo = {
   /** Root CA certificate PEM. */
   caCertificate: string
   /** Host the proxy is reachable on, derived from the control-plane address. */
@@ -74,7 +74,7 @@ export class MitmResource {
    * "MITM disabled" answer — a long-lived client must not keep reporting the
    * proxy as off after the server is restarted with MITM enabled.
    */
-  info(): Promise<MitmInfo | null> {
+  async info(): Promise<MitmInfo | null> {
     if (!this.cache) {
       const pending = this.fetchInfo()
       this.cache = pending
@@ -82,9 +82,11 @@ export class MitmResource {
         if (this.cache === pending) this.cache = null
       }
 
-      pending.then((info) => {
-        if (!info) forget()
-      }, forget)
+      pending
+        .then((info) => {
+          if (!info) forget()
+        })
+        .catch(forget)
     }
 
     return this.cache
@@ -107,7 +109,7 @@ export class MitmResource {
     let port = DEFAULT_MITM_PORT
     const portHeader = response.headers.get('X-MITM-Port')
     if (portHeader) {
-      const parsed = Number.parseInt(portHeader, 10)
+      const parsed = Math.trunc(Number(portHeader))
       if (parsed > 0 && parsed < 65_536) port = parsed
     }
 

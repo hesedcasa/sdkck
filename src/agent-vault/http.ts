@@ -5,21 +5,21 @@ import {AgentVaultError, ApiError} from './errors.js'
 
 type HttpMethod = 'DELETE' | 'GET' | 'HEAD' | 'PATCH' | 'POST' | 'PUT'
 
-interface RequestOptions {
+type RequestOptions = {
   body?: unknown
   headers?: Record<string, string>
   query?: Record<string, boolean | number | string>
   signal?: AbortSignal
 }
 
-interface RawRequestOptions {
+type RawRequestOptions = {
   headers?: Record<string, string>
   query?: Record<string, boolean | number | string>
   signal?: AbortSignal
   timeout?: number
 }
 
-interface HttpClientConfig {
+type HttpClientConfig = {
   baseUrl: string
   fetchFn?: typeof globalThis.fetch
   headers?: Record<string, string>
@@ -77,8 +77,8 @@ export class HttpClient {
     // Only touch the fallback file when explicit config + env don't already
     // cover both values — a fully-specified client must not be broken by an
     // unrelated, malformed agent-vault.json it never needed to read.
-    const needsFileConfig = (cfg.token ?? envToken) === undefined || (cfg.address ?? envAddr) === undefined
-    const fileConfig = needsFileConfig ? readAgentVaultFileConfig() : {}
+    const isFileConfigNeeded = (cfg.token ?? envToken) === undefined || (cfg.address ?? envAddr) === undefined
+    const fileConfig = isFileConfigNeeded ? readAgentVaultFileConfig() : {}
 
     const token = cfg.token ?? envToken ?? fileConfig.token
     if (!token) {
@@ -202,17 +202,20 @@ export class HttpClient {
     url: string
   }): Promise<Response> {
     const controller = new AbortController()
-    const useTimeout = opts.timeoutMs > 0 && Number.isFinite(opts.timeoutMs)
-    let timedOut = false
-    const timeoutId = useTimeout
+    const hasTimeout = opts.timeoutMs > 0 && Number.isFinite(opts.timeoutMs)
+    let isTimedOut = false
+    const timeoutId = hasTimeout
       ? setTimeout(() => {
-          timedOut = true
+          isTimedOut = true
           controller.abort()
         }, opts.timeoutMs)
       : undefined
 
     const callerSignal = opts.signal
-    const onCallerAbort = () => controller.abort()
+    const onCallerAbort = () => {
+      controller.abort()
+    }
+
     if (callerSignal) {
       if (callerSignal.aborted) {
         controller.abort()
@@ -229,7 +232,7 @@ export class HttpClient {
         signal: controller.signal,
       })
     } catch (error) {
-      if (timedOut) {
+      if (isTimedOut) {
         throw new AgentVaultError(`Request timed out after ${opts.timeoutMs}ms: ${opts.label}`)
       }
 

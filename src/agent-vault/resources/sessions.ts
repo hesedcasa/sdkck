@@ -6,13 +6,13 @@ import {buildContainerConfig, type ContainerConfig, type MitmResource} from './m
 export type {ContainerConfig} from './mitm.js'
 
 /** Options for minting a vault-scoped session. */
-export interface CreateSessionOptions {
+export type CreateSessionOptions = {
   /** Session TTL in seconds (300–604800, i.e. 5 minutes to 7 days). Defaults to the server's 24h. */
   ttlSeconds?: number
 }
 
 /** A minted vault-scoped session. */
-export interface Session {
+export type Session = {
   /** Agent Vault server base URL as advertised by the server. */
   address: string
   /** Container configuration for MITM routing. `null` when the server runs with MITM disabled. */
@@ -79,7 +79,6 @@ export class SessionsResource {
   async create(options?: CreateSessionOptions): Promise<Session> {
     const [res, mitmInfo] = await Promise.all([
       this.httpClient.post<ScopedSession>('/v1/sessions', {
-        // eslint-disable-next-line camelcase -- wire field name
         ttl_seconds: options?.ttlSeconds,
         vault: this.vaultName,
       }),

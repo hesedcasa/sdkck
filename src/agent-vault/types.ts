@@ -5,7 +5,7 @@
  * `<configDir>/agent-vault.json` > default (and the token throws when nothing
  * supplies it).
  */
-export interface ClientConfig {
+export type ClientConfig = {
   /**
    * Agent Vault server base URL. Falls back to `AGENT_VAULT_ADDR`, then
    * `address` in `<configDir>/agent-vault.json`, then `http://localhost:14321`.
@@ -34,7 +34,7 @@ export type VaultClientConfig = ClientConfig & {
 }
 
 /** Wire format for `POST /v1/sessions` — snake_case, as the server returns it. */
-export interface ScopedSession {
+export type ScopedSession = {
   av_addr?: string
   expires_at: string
   token: string

@@ -1,4 +1,4 @@
-import {Hook} from '@oclif/core'
+import {type Hook} from '@oclif/core'
 
 import {initTelemetry, instrumentCommand} from '../../telemetry.js'
 
@@ -26,12 +26,12 @@ const hook: Hook<'init'> = async function (opts) {
   if (typeof current !== 'function' || current[WRAPPED]) return
 
   const originalRunCommand = current.bind(config)
-  const wrapper = function (id: string, argv: string[] = [], cachedCommand: unknown = null): Promise<unknown> {
+  const wrapper = async function (id: string, argv: string[] = [], cachedCommand: unknown = null): Promise<unknown> {
     // Resolve the command up front for accurate id/plugin attributes. This is a
     // plain lookup that executes nothing, and it falls back gracefully when the
     // command isn't resolvable yet (e.g. a JIT plugin's first, pre-install run).
     const cmd = cfg.findCommand?.(id) as undefined | {id?: string; pluginName?: string}
-    return instrumentCommand({argv, id: cmd?.id ?? id, plugin: cmd?.pluginName}, () =>
+    return instrumentCommand({argv, id: cmd?.id ?? id, plugin: cmd?.pluginName}, async () =>
       originalRunCommand(id, argv, cachedCommand),
     )
   } as RunCommand

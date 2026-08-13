@@ -7,7 +7,7 @@ type FetchInit = NonNullable<Parameters<typeof globalThis.fetch>[1]>
 
 const CA_PEM = '-----BEGIN CERTIFICATE-----\nstub\n-----END CERTIFICATE-----\n'
 
-interface StubCall {
+type StubCall = {
   body: unknown
   url: string
 }
@@ -31,7 +31,6 @@ function stubFetch(options?: {caStatus?: number; mitmPort?: string}): {
     }
 
     return new Response(
-      // eslint-disable-next-line camelcase -- wire field names
       JSON.stringify({av_addr: 'http://localhost:14321', expires_at: '2026-01-01T00:00:00Z', token: 'av_ses_abc'}),
       {status: 200},
     )
@@ -55,7 +54,6 @@ function flakyCaFetch(failures: number): {caCalls: number[]; fetch: typeof globa
     }
 
     return new Response(
-      // eslint-disable-next-line camelcase -- wire field names
       JSON.stringify({av_addr: 'http://localhost:14321', expires_at: '2026-01-01T00:00:00Z', token: 'av_ses_abc'}),
       {status: 200},
     )
@@ -76,7 +74,6 @@ describe('agent-vault sessions', () => {
       'http://localhost:14321/v1/sessions',
       'http://localhost:14321/v1/mitm/ca.pem',
     ])
-    // eslint-disable-next-line camelcase -- wire field name
     expect(calls[0].body).to.deep.equal({ttl_seconds: 3600, vault: 'my-project'})
 
     expect(session.token).to.equal('av_ses_abc')
@@ -130,7 +127,7 @@ describe('agent-vault sessions', () => {
 
   describe('MITM metadata failures', () => {
     it('surfaces a server error instead of reporting MITM as disabled', async () => {
-      const {fetch} = flakyCaFetch(Number.POSITIVE_INFINITY)
+      const {fetch} = flakyCaFetch(Infinity)
       const {sessions} = new AgentVault({fetch, token: 'av_agt_abc'}).vault('my-project')
 
       const error = await sessions.create().catch((error_: unknown) => error_)
@@ -147,7 +144,6 @@ describe('agent-vault sessions', () => {
         }
 
         return new Response(
-          // eslint-disable-next-line camelcase -- wire field names
           JSON.stringify({av_addr: 'http://localhost:14321', expires_at: '2026-01-01T00:00:00Z', token: 'av_ses_abc'}),
           {status: 200},
         )

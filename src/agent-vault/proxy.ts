@@ -3,12 +3,11 @@ import {mkdir, mkdtemp, open, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {dirname, join} from 'node:path'
 
-import type {ContainerConfig, CreateSessionOptions, Session} from './resources/sessions.js'
 import type {VaultClient} from './vault.js'
 
 import {AgentVaultError, ApiError} from './errors.js'
 import {buildContainerConfig} from './resources/mitm.js'
-import {buildProxyEnv} from './resources/sessions.js'
+import {buildProxyEnv, type ContainerConfig, type CreateSessionOptions, type Session} from './resources/sessions.js'
 
 /**
  * The certificate is always written to a file this call creates itself: O_EXCL
@@ -55,7 +54,7 @@ export async function defaultCertPath(): Promise<string> {
 export type InterceptMode = 'agent' | 'auto' | 'session'
 
 /** Options for {@link interceptRequests}. */
-export interface InterceptOptions extends CreateSessionOptions {
+export type InterceptOptions = CreateSessionOptions & {
   /**
    * Where to write the root CA certificate. Defaults to a file in a private
    * directory created for this process ({@link defaultCertPath}). Pass a path
@@ -102,7 +101,7 @@ function mergeNoProxy(base: string, extra?: string): string {
 }
 
 /** What {@link interceptRequests} configured. */
-export interface InterceptResult {
+export type InterceptResult = {
   /** Path the root CA certificate was written to. */
   certPath: string
   /** The proxy route that was applied. */
@@ -172,7 +171,7 @@ export function applyProxyEnv(env: Record<string, string>, target: NodeJS.Proces
   // the parent shell could otherwise route around the broker entirely.
   const claimed = new Set(Object.keys(env).map((key) => key.toUpperCase()))
   for (const key of Object.keys(target)) {
-    if (!(key in env) && claimed.has(key.toUpperCase())) delete target[key]
+    if (!(key in env) && claimed.has(key.toUpperCase())) Reflect.deleteProperty(target, key)
   }
 
   Object.assign(target, env)

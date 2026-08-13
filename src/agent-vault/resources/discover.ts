@@ -3,7 +3,7 @@ import type {HttpClient} from '../http.js'
 import {AgentVaultError, ApiError} from '../errors.js'
 
 /** A service the vault brokers credentials for. */
-export interface DiscoveredService {
+export type DiscoveredService = {
   /** Host the rule matches, optionally with a port and path glob. */
   host: string
   /** Rule name. */
@@ -11,7 +11,7 @@ export interface DiscoveredService {
 }
 
 /** What a token can reach, as reported by `GET /discover`. */
-export interface Discovery {
+export type Discovery = {
   /** Credential keys stored in the vault. Values are never returned. */
   availableCredentials: string[]
   /** Service rules the proxy will inject credentials for. */
@@ -21,7 +21,7 @@ export interface Discovery {
 }
 
 /** Wire format for `GET /discover` — snake_case, as the server returns it. */
-interface DiscoveryWire {
+type DiscoveryWire = {
   available_credentials?: string[]
   services?: DiscoveredService[]
   vault?: string

@@ -1,7 +1,7 @@
 import {Errors} from '@oclif/core'
 import {expect} from 'chai'
 
-import hook from '../../../src/hooks/jit_plugin_not_installed/jit-install'
+import hook from '../../../src/hooks/jit_plugin_not_installed/jit-install.js'
 
 type HookOpts = Parameters<typeof hook>[0]
 
@@ -19,7 +19,7 @@ function makeOpts(runCommand: (cmd: string, args: string[]) => Promise<void>, pl
 
 describe('jit_plugin_not_installed hook', () => {
   it('calls plugins:install with pluginName@pluginVersion', async () => {
-    const calls: [string, string[]][] = []
+    const calls: Array<[string, string[]]> = []
 
     await hook.call(
       {} as never,
@@ -51,7 +51,6 @@ describe('jit_plugin_not_installed hook', () => {
       await hook.call(
         {} as never,
         makeOpts(async () => {
-          // eslint-disable-next-line no-throw-literal
           throw 'unexpected string error'
         }, '@hesed/bb'),
       )
