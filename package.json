@@ -29,7 +29,7 @@
     "@scalar/openapi-parser": "^0.28.6",
     "@scalar/postman-to-openapi": "^0.7.8",
     "@scalar/types": "^0.15.0",
-    "@toon-format/toon": "^2.3.0",
+    "@toon-format/toon": "^4.1.1",
     "graphql": "^17.0.2",
     "js-yaml": "^4.1.1",
     "openai": "^7.3.0",
