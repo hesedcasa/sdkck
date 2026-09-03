@@ -111,6 +111,7 @@
     "topics": {},
     "hooks": {
       "init": [
+        "./dist/hooks/init/setup-agent-proxy",
         "./dist/hooks/init/setup-agent-vault",
         "./dist/hooks/init/setup-file-logging",
         "./dist/hooks/init/setup-telemetry"

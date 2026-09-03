@@ -9,7 +9,7 @@ export {AgentVaultError, ApiError} from './errors.js'
 // Request interception — routes traffic through the proxy that injects credentials
 export {applyProxyEnv, defaultCertPath, interceptRequests, writeCaCertificate} from './proxy.js'
 
-export type {InterceptMode, InterceptOptions, InterceptResult} from './proxy.js'
+export type {InterceptMode, InterceptOptions, InterceptResult, ProxyRoute} from './proxy.js'
 
 // Discover — what a token can reach, and the validation agent mode relies on
 export {DiscoverResource} from './resources/discover.js'

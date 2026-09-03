@@ -159,10 +159,54 @@ The re-exec is the point. Node reads `NODE_USE_ENV_PROXY` and `NODE_EXTRA_CA_CER
 Key file: `src/agent-vault-process.ts` — `shouldIntercept(env)` decides whether to intercept and which vault to use; `runIntercepted(options)` does the resolve/write/spawn and resolves with the child's exit code (everything is injectable for tests).
 
 - **Fails closed:** if no proxy credential can be resolved — the token is rejected, the vault does not exist, MITM is off — the command does not run at all (exit 1) rather than sending unbrokered requests. `SDKCK_AGENT_VAULT_DISABLED=1` is the escape hatch.
-- **Internal/private-network destinations get a 502, not a bypass:** Agent Vault's MITM proxy has its own SSRF guard that rejects proxying to private IPs outright (confirmed: any RFC1918 address 502s through it, including its own host, while public IPs proxy fine) — it's built to broker credentials to external SaaS APIs, not to reach into internal infra. Since interception is command-wide, a command that legitimately talks to an internal-only service (an internal Jenkins, an internal Zeus/QA host, etc.) breaks the moment interception turns on for it. `AGENT_VAULT_NO_PROXY` (or `noProxy` in `agent-vault.json`, comma-separated hosts) adds bypass entries merged into `NO_PROXY` alongside the broker's own (`localhost`, `127.0.0.1`, its host), so that traffic goes direct instead of failing at the proxy. Merge logic: `mergeNoProxy()` in `src/agent-vault/proxy.ts`.
+- **Internal/private-network destinations get a 502, not a bypass:** Agent Vault's MITM proxy has its own SSRF guard that rejects proxying to private IPs outright (confirmed: any RFC1918 address 502s through it, including its own host, while public IPs proxy fine) — it's built to broker credentials to external SaaS APIs, not to reach into internal infra. Since interception is command-wide, a command that legitimately talks to an internal-only service (an internal Jenkins, an internal Zeus/QA host, etc.) breaks the moment interception turns on for it. `AGENT_VAULT_NO_PROXY` (or `noProxy` in `agent-vault.json`, comma-separated hosts) adds bypass entries merged into `NO_PROXY` alongside the broker's own (`localhost`, `127.0.0.1`, its host), so that traffic goes direct instead of failing at the proxy. Merge logic: `mergeNoProxy()` in `src/proxy-env.ts`, the layer both brokers share.
 - **The child does not get `AGENT_VAULT_TOKEN`:** it is deleted from the child's environment; the proxy credential rides inside the proxy URL instead. `SDKCK_AGENT_VAULT_ACTIVE=1` marks the child so it does not intercept itself again. Note the withholding only buys something in `session` mode, where the child gets a short-lived scoped token rather than the instance token — in `agent` mode the same long-lived token is in `HTTPS_PROXY` regardless. The side effect is that the child cannot run `agent-vault vault proposal create` to request new access, which upstream's `agent-vault run` supports by passing the token through.
 - **Cost:** one extra process spawn per invocation, plus one credential resolution (a mint attempt, and in agent mode a `/discover` check). Nothing is cached to disk, so no token is ever persisted.
 - Exit codes and stdio pass through verbatim (the child inherits stdio; a signal-terminated child reports `128 + signum`).
+
+### Agent Proxy SDK (`src/agent-proxy/`)
+
+A client for [Infisical Agent Proxy](https://infisical.com/docs/documentation/platform/agent-proxy/overview), the commercial successor to Agent Vault. Same bargain — the agent holds a credential that can *proxy* but cannot read secrets, and the real credential is substituted at the network boundary — but a different control plane: credentials are Infisical secrets, and what gets injected into which host is a **proxied service** configured in the Infisical dashboard.
+
+**Compatibility with the Agent Vault client:** the *data plane* is identical, so everything downstream of "which proxy URL and which CA" is shared code (`src/proxy-env.ts`). Both brokers hand the agent an HTTP proxy plus a root CA and expect exactly the same variables — `HTTPS_PROXY`/`HTTP_PROXY`/`NO_PROXY` and `SSL_CERT_FILE`, `NODE_EXTRA_CA_CERTS`, `REQUESTS_CA_BUNDLE`, `CURL_CA_BUNDLE`, `GIT_SSL_CAINFO`, `DENO_CERT`. The *control plane* shares nothing: Agent Vault's `POST /v1/sessions`, `GET /discover`, `GET /v1/mitm/ca.pem` and `X-Vault` header do not exist on Agent Proxy, which authenticates the agent with an Infisical machine identity instead. So the Agent Vault API is reused where it is genuinely the same thing (proxy env, certificate write, `NO_PROXY` merging, the re-exec runner) and reimplemented where it is not.
+
+```typescript
+import {AgentProxy} from 'sdkck'
+
+const proxy = new AgentProxy({address: 'proxy-host:17322'})
+const {certPath, env} = await proxy.intercept()
+
+await fetch('https://api.github.com/user') // no token in this process
+```
+
+| | Agent Vault | Agent Proxy |
+| --- | --- | --- |
+| proxy port | 14322 (control plane 14321) | 17322 |
+| agent credential | scoped session (`av_ses_…`) or agent token | machine identity token (Universal Auth) |
+| credential presentation | proxy URL userinfo → `Proxy-Authorization` | same; a request without it gets a 407 |
+| root CA | `GET /v1/mitm/ca.pem` | `~/.infisical/agent-proxy/mitm-ca.pem`, written by `agent-proxy connect` |
+| what to inject where | vault service rules | proxied services in Infisical |
+
+Key files: `src/agent-proxy/client.ts` (`AgentProxy.intercept()`), `src/agent-proxy/auth.ts` (`loginUniversalAuth` — `POST /api/v1/auth/universal-auth/login`), `src/agent-proxy/ca.ts` (`resolveCaCertificate`, `defaultCaPath`), `src/agent-proxy/route.ts` (`buildAgentProxyRoute`, `parseProxyAddress`), `src/agent-proxy/config-file.ts` (the `agent-proxy.json` fallback), `src/agent-proxy/errors.ts`.
+
+Notes:
+
+- **Credential resolution:** explicit config > `INFISICAL_TOKEN` > `token` in `<configDir>/agent-proxy.json`. With no token, `INFISICAL_UNIVERSAL_AUTH_CLIENT_ID`/`_SECRET` (or `clientId`/`clientSecret` in the file) are exchanged for one via Universal Auth against `INFISICAL_DOMAIN` (default `https://app.infisical.com`). Address resolution follows the same order from `INFISICAL_AGENT_PROXY_ADDRESS`; it has no default, since a proxy meant to sit on your own network has no sensible one.
+- **The address may be bare.** `<proxy-host>:17322` is the documented form, which `new URL()` would read as a scheme, so `parseProxyAddress` fills in `http://` and defaults the port to 17322.
+- **The root CA is read, not fetched.** Distribution is the Infisical CLI's job: `infisical secrets agent-proxy connect` downloads the org root CA to `~/.infisical/agent-proxy/mitm-ca.pem` once, and this client reads it from there (override with `INFISICAL_AGENT_PROXY_CA`, `caPath`, or an inline `caPem`). A file that is not a PEM certificate is rejected up front rather than surfacing as an opaque TLS failure on the first proxied request. Nothing here re-implements the CA distribution endpoint, which is not publicly documented.
+- **This client does not run a proxy, and does not manage Infisical.** Point it at a proxy started by `infisical secrets agent-proxy start`; secrets, proxied services and identity permissions are configured in the dashboard. The agent identity needs `Proxy` on the proxied services and deliberately *no* read access to the secrets behind them.
+- Errors: `AgentProxyApiError` (non-2xx from Infisical, carrying `status`) extends `AgentProxyError`, which extends `AgentVaultError` — the package's umbrella type for a local broker failure, named for the client that came first, so one `catch` covers both brokers and the shared layer.
+
+#### Intercepting every command (`setup-agent-proxy` init hook)
+
+Mirrors the Agent Vault hook exactly, including the re-exec (Node reads `NODE_USE_ENV_PROXY` and `NODE_EXTRA_CA_CERTS` at startup, so a process cannot proxy its own `fetch`), the fail-closed behaviour and the exit-code passthrough. Active whenever an address and a credential are both resolvable from `INFISICAL_*` env vars or `<configDir>/agent-proxy.json`.
+
+Key files: `src/agent-proxy-process.ts` (`shouldIntercept`, `runAgentProxyIntercepted`), `src/hooks/init/setup-agent-proxy.ts`, `src/intercepted-run.ts` (the re-exec runner, shared with Agent Vault).
+
+- **Registered ahead of `setup-agent-vault`,** so an invocation configured for both brokers takes the Agent Proxy. One invocation has one `HTTPS_PROXY`: the child is marked with *both* sentinels (`SDKCK_AGENT_PROXY_ACTIVE` and `SDKCK_AGENT_VAULT_ACTIVE`), so it cannot chain a second broker on top of the first.
+- **The child gets no Infisical credentials:** `INFISICAL_TOKEN`, `INFISICAL_UNIVERSAL_AUTH_CLIENT_ID` and `INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET` are deleted from its environment. The identity token still rides inside the proxy URL — the withholding buys the client secret, which would otherwise let a compromised command mint fresh tokens.
+- **Fails closed:** no credential, an unreadable CA, or a rejected machine identity means the command does not run at all (exit 1). `SDKCK_AGENT_PROXY_DISABLED=1` is the escape hatch.
+- `INFISICAL_AGENT_PROXY_NO_PROXY` (or `noProxy` in the config file) adds bypass hosts, merged into `NO_PROXY` alongside the proxy's own (`localhost`, `127.0.0.1`, its host).
 
 ## JIT Plugins
 
@@ -181,7 +225,11 @@ Commands that depend on external clients (e.g., `Search._llmClient`) use public 
 - **`AGENT_VAULT_TOKEN` / `AGENT_VAULT_ADDR`:** Default token and management API address for the Agent Vault SDK (`src/agent-vault/`). Each falls back to the `token`/`address` fields of `<configDir>/agent-vault.json` when unset, then the address falls back to `http://localhost:14321`; a missing token (from all three sources) throws.
 - **`AGENT_VAULT_VAULT`:** Vault to broker credentials from. Falls back to the `vault` field of `<configDir>/agent-vault.json` when unset. Having a token and a vault resolvable from any combination of env vars and that file turns on command-wide interception (see the Agent Vault section). `SDKCK_AGENT_VAULT_DISABLED=1` skips it for one invocation; `SDKCK_AGENT_VAULT_ACTIVE` is set internally on the re-executed child and should not be set by hand.
 - **`AGENT_VAULT_NO_PROXY`:** Comma-separated hosts that bypass Agent Vault interception entirely. Falls back to the `noProxy` field of `<configDir>/agent-vault.json` when unset. Merged into the child's `NO_PROXY` alongside the broker's own bypass entries. Needed for any internal-only destination — Agent Vault's MITM proxy 502s on private-IP destinations by design (SSRF guard), so a command that talks to internal infra (e.g. an internal Jenkins) must list that host here once interception is on.
-- **`SDKCK_CONFIG_DIR`:** Overrides the directory `agent-vault.json` (and other sdkck config) is read from. Defaults to matching oclif's own `Config.configDir` for this CLI (`XDG_CONFIG_HOME`/`LOCALAPPDATA`/`~/.config`, joined with `sdkck`).
+- **`INFISICAL_AGENT_PROXY_ADDRESS`:** Where the Infisical Agent Proxy listens (`host`, `host:port`, or a full URL; the port defaults to 17322). Falls back to `address` in `<configDir>/agent-proxy.json`. Having this and a credential both resolvable turns on command-wide interception through Agent Proxy, which takes precedence over Agent Vault. `SDKCK_AGENT_PROXY_DISABLED=1` skips it for one invocation; `SDKCK_AGENT_PROXY_ACTIVE` is set internally on the re-executed child and should not be set by hand.
+- **`INFISICAL_TOKEN` / `INFISICAL_UNIVERSAL_AUTH_CLIENT_ID` / `INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET` / `INFISICAL_DOMAIN`:** The agent's machine identity. A token is used as-is; otherwise the client ID and secret are exchanged for one via Universal Auth against `INFISICAL_DOMAIN` (default `https://app.infisical.com`). Each falls back to the matching field of `<configDir>/agent-proxy.json`. None of them reach the re-executed child.
+- **`INFISICAL_AGENT_PROXY_CA`:** Path to the Agent Proxy MITM root CA. Falls back to `caPath` in `agent-proxy.json`, then `~/.infisical/agent-proxy/mitm-ca.pem` — where `infisical secrets agent-proxy connect` writes it.
+- **`INFISICAL_AGENT_PROXY_NO_PROXY`:** Comma-separated hosts that bypass Agent Proxy interception. Falls back to `noProxy` in `agent-proxy.json`.
+- **`SDKCK_CONFIG_DIR`:** Overrides the directory `agent-vault.json`, `agent-proxy.json` (and other sdkck config) are read from. Defaults to matching oclif's own `Config.configDir` for this CLI (`XDG_CONFIG_HOME`/`LOCALAPPDATA`/`~/.config`, joined with `sdkck`).
 - **`OPENAI_API_KEY`:** Required to enable LLM-powered semantic search in `sdkck search`. When unset, search falls back to fuzzy matching. The search command uses `gpt-4o` via the `openai` npm package.
 - **OpenTelemetry toggles:** `OTEL_EXPORTER_OTLP_ENDPOINT` (send traces/metrics to an OTLP/HTTP collector), `OTEL_TRACES_EXPORTER=console` / `OTEL_METRICS_EXPORTER=console` (export to stdout, per signal), `SDKCK_OTEL_DISABLED=true` (disable for sdkck only), `OTEL_SDK_DISABLED=true` (disable instrumentation entirely), `OTEL_DEBUG=1` (OTel diagnostic logging), `SDKCK_OTEL_CAPTURE_ARGV=1` / `SDKCK_OTEL_CAPTURE_ERRORS=1` (opt in to capturing raw arguments / exception messages + stacks, which may contain secrets). See the Telemetry section above. Defaults to JSON files under `<configDir>/logs/`.
 

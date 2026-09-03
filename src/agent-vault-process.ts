@@ -1,9 +1,7 @@
-import {type ChildProcess, spawn} from 'node:child_process'
-import {mkdtemp, rm} from 'node:fs/promises'
-import {constants, tmpdir} from 'node:os'
-import {join} from 'node:path'
+import {type spawn} from 'node:child_process'
 
 import {AgentVault, type AgentVaultFileConfig} from './agent-vault/index.js'
+import {runInterceptedProcess} from './intercepted-run.js'
 
 /** Set in the re-executed child so it does not intercept itself again. */
 export const SENTINEL_ENV = 'SDKCK_AGENT_VAULT_ACTIVE'
@@ -64,12 +62,8 @@ export function shouldIntercept(
  * Re-execute this CLI invocation with every outbound request routed through the
  * Agent Vault proxy, and resolve with the child's exit code.
  *
- * Node reads `NODE_USE_ENV_PROXY` and `NODE_EXTRA_CA_CERTS` when the process
- * starts, so mutating `process.env` in-flight would only cover child processes,
- * not this process's own `fetch` — which is where most commands do their HTTP.
- * Re-executing means the command runs in a process that *started* with the proxy
- * environment, so in-process requests, plugin traffic and any subprocess are all
- * intercepted.
+ * See {@link runInterceptedProcess} for why the command is re-executed rather
+ * than intercepted in place.
  *
  * The instance-level token is removed from the child's environment: the child
  * only needs the vault-scoped session token, which travels inside the proxy URL.
@@ -78,68 +72,19 @@ export function shouldIntercept(
  *   written. Callers fail closed rather than run unbrokered.
  */
 export async function runIntercepted(options: InterceptedRunOptions): Promise<number> {
-  const sourceEnv = options.env ?? process.env
-  const childEnv: NodeJS.ProcessEnv = {...sourceEnv, [SENTINEL_ENV]: '1'}
-  Reflect.deleteProperty(childEnv, TOKEN_ENV)
-
   const agentVault = options.agentVault ?? new AgentVault()
-  const certDir = await mkdtemp(join(tmpdir(), 'sdkck-agent-vault-'))
 
-  try {
-    await agentVault
-      .vault(options.vault)
-      .intercept({certPath: join(certDir, 'ca.pem'), env: childEnv, noProxy: options.noProxy})
-
-    return await spawnChild({
-      argv: options.argv ?? process.argv.slice(1),
-      env: childEnv,
-      execArgv: options.execArgv ?? process.execArgv,
-      execPath: options.execPath ?? process.execPath,
-      spawnFn: options.spawnFn ?? spawn,
-    })
-  } finally {
-    // The child has exited by now, so the certificate is no longer needed.
-    await rm(certDir, {force: true, recursive: true})
-  }
-}
-
-/** Exit code a shell reports for a process killed by a signal. */
-function signalExitCode(signal: NodeJS.Signals): number {
-  const number = constants.signals[signal]
-  return number ? 128 + number : 1
-}
-
-/** Run the child with inherited stdio, forwarding termination signals to it. */
-async function spawnChild(opts: {
-  argv: string[]
-  env: NodeJS.ProcessEnv
-  execArgv: string[]
-  execPath: string
-  spawnFn: typeof spawn
-}): Promise<number> {
-  const child: ChildProcess = opts.spawnFn(opts.execPath, [...opts.execArgv, ...opts.argv], {
-    env: opts.env,
-    stdio: 'inherit',
+  return runInterceptedProcess({
+    argv: options.argv,
+    async configure({certPath, env}) {
+      await agentVault.vault(options.vault).intercept({certPath, env, noProxy: options.noProxy})
+    },
+    env: options.env,
+    execArgv: options.execArgv,
+    execPath: options.execPath,
+    sentinels: [SENTINEL_ENV],
+    spawnFn: options.spawnFn,
+    stripEnv: [TOKEN_ENV],
+    tmpPrefix: 'sdkck-agent-vault-',
   })
-
-  const forward = (signal: NodeJS.Signals) => () => {
-    child.kill(signal)
-  }
-
-  const onInt = forward('SIGINT')
-  const onTerm = forward('SIGTERM')
-  process.on('SIGINT', onInt)
-  process.on('SIGTERM', onTerm)
-
-  try {
-    return await new Promise<number>((resolve, reject) => {
-      child.once('error', reject)
-      child.once('close', (code, signal) => {
-        resolve(signal ? signalExitCode(signal) : (code ?? 1))
-      })
-    })
-  } finally {
-    process.removeListener('SIGINT', onInt)
-    process.removeListener('SIGTERM', onTerm)
-  }
 }

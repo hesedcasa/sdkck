@@ -1,3 +1,4 @@
+import type {ProxyRoute} from '../../proxy-env.js'
 import type {HttpClient} from '../http.js'
 
 import {ApiError} from '../errors.js'
@@ -8,20 +9,12 @@ const DEFAULT_MITM_PORT = 14_322
 /**
  * Configuration for routing HTTP(S) traffic through Agent Vault's transparent
  * MITM proxy.
+ *
+ * Structurally a {@link ProxyRoute} — the broker-neutral shape both Infisical
+ * credential brokers resolve to — under the name Agent Vault's own container
+ * config uses.
  */
-export type ContainerConfig = {
-  /** Root CA certificate PEM. Mount it and point the CA trust variables at it. */
-  caCertificate: string
-  /** Environment variables carrying the proxy route. */
-  env: {
-    /** Same MITM proxy URL, used for plain `http://` upstreams. */
-    HTTP_PROXY: string
-    /** MITM proxy URL with the proxy credential embedded. */
-    HTTPS_PROXY: string
-    /** Hosts that bypass the proxy. */
-    NO_PROXY: string
-  }
-}
+export type ContainerConfig = ProxyRoute
 
 /** Where the MITM proxy listens, and the CA that signs its certificates. */
 export type MitmInfo = {

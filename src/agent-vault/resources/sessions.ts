@@ -3,6 +3,9 @@ import type {ScopedSession} from '../types.js'
 
 import {buildContainerConfig, type ContainerConfig, type MitmResource} from './mitm.js'
 
+// Expanding a route into the full env var set is broker-neutral and shared with
+// the Agent Proxy client; re-exported so this module's surface is unchanged.
+export {buildProxyEnv} from '../../proxy-env.js'
 export type {ContainerConfig} from './mitm.js'
 
 /** Options for minting a vault-scoped session. */
@@ -21,31 +24,6 @@ export type Session = {
   expiresAt: string
   /** The vault-scoped session token. */
   token: string
-}
-
-/**
- * Expand a {@link ContainerConfig} into the complete env var set for a
- * container, including the CA trust variables honoured by Node.js, Python,
- * curl, Git and Deno.
- *
- * @param config - Container config from a minted session.
- * @param certPath - Path the CA certificate is mounted at inside the container.
- */
-export function buildProxyEnv(config: ContainerConfig, certPath: string): Record<string, string> {
-  // Keep in sync with augmentEnvWithMITM() in the Agent Vault server (cmd/run.go).
-  return {
-    CURL_CA_BUNDLE: certPath,
-    DENO_CERT: certPath,
-    GIT_SSL_CAINFO: certPath,
-    HTTP_PROXY: config.env.HTTP_PROXY,
-    HTTPS_PROXY: config.env.HTTPS_PROXY,
-    NO_PROXY: config.env.NO_PROXY,
-    NODE_EXTRA_CA_CERTS: certPath,
-    NODE_USE_ENV_PROXY: '1',
-    OPENCLAW_PROXY_URL: config.env.HTTPS_PROXY,
-    REQUESTS_CA_BUNDLE: certPath,
-    SSL_CERT_FILE: certPath,
-  }
 }
 
 /**
@@ -69,7 +47,7 @@ export class SessionsResource {
    * The returned session carries a `containerConfig` with the MITM proxy URL,
    * the bypass list and the root CA certificate — hand these to a container
    * runtime so the sandboxed agent's traffic routes through Agent Vault. Use
-   * {@link buildProxyEnv} to expand it once the CA mount path is known.
+   * `buildProxyEnv` to expand it once the CA mount path is known.
    *
    * `containerConfig` is `null` when the server has MITM disabled.
    *
