@@ -332,13 +332,42 @@ export async function findConfluencePagesByLabel(label: string, extraCql = ''): 
  * @param pageId The page to purge.
  */
 export async function purgeConfluencePage(pageId: string): Promise<void> {
+  // The first delete is the idempotent step: an active page moves to the
+  // trash, an already-trashed one stays put, and 404 means fully gone.
   const trashed = await atlassianCall('DELETE', `/wiki/rest/api/content/${pageId}`)
-  if (trashed.status === 204 || trashed.status === 404) return
+  if (trashed.status !== 204 && trashed.status !== 404) {
+    throw new Error(`purgeConfluencePage ${pageId} failed: ${trashed.status}`)
+  }
 
-  // It existed, so it is now in the trash; a second delete purges for good.
+  // The trash is not gone: a second delete, scoped to the trashed status,
+  // purges the page for good. It runs whether the first call trashed the page
+  // just now or it was already in the trash — and a 404 here means it was
+  // already purged, which is the goal.
   const purged = await atlassianCall('DELETE', `/wiki/rest/api/content/${pageId}?status=trashed`)
   if (purged.status !== 204 && purged.status !== 404) {
-    throw new Error(`purgeConfluencePage ${pageId} failed: ${trashed.status}/${purged.status}`)
+    throw new Error(`purgeConfluencePage ${pageId} purge failed: ${purged.status}`)
+  }
+}
+
+/**
+ * Purges every page in `ids`, tolerating individual failures until all
+ * purges have been attempted, then throwing if any actually failed.
+ *
+ * Promise.all would abandon the remaining purges on the first rejection;
+ * allSettled ensures a single stuck page never masks failures to purge the
+ * rest — and the throw keeps a partial cleanup from reporting success.
+ *
+ * @param ids The page ids to purge.
+ */
+async function purgeConfluenceAll(ids: string[]): Promise<void> {
+  const results = await Promise.allSettled(ids.map((id) => purgeConfluencePage(id)))
+  const failures = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+  if (failures.length > 0) {
+    throw new Error(
+      `conni cleanup: ${failures.length}/${ids.length} purge(s) failed: ${failures
+        .map((failure) => String(failure.reason))
+        .join('; ')}`,
+    )
   }
 }
 
@@ -599,6 +628,27 @@ export async function closeTrelloBoard(boardId: string): Promise<void> {
 }
 
 /**
+ * Closes every board in `boards`, tolerating individual failures until all
+ * closes have been attempted, then throwing if any actually failed.
+ *
+ * The throw keeps a partial cleanup from reporting success — a board left open
+ * is a fixture the sweep claimed to reclaim.
+ *
+ * @param boards The boards to close.
+ */
+async function closeTrelloBoards(boards: Array<{id: string}>): Promise<void> {
+  const results = await Promise.allSettled(boards.map((board) => closeTrelloBoard(board.id)))
+  const failures = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+  if (failures.length > 0) {
+    throw new Error(
+      `trello cleanup: ${failures.length}/${boards.length} close(s) failed: ${failures
+        .map((failure) => String(failure.reason))
+        .join('; ')}`,
+    )
+  }
+}
+
+/**
  * Lists the account's open boards with just their ids and names — the raw
  * material for name-based fixture lookup.
  *
@@ -651,14 +701,14 @@ const SERVICES: Service[] = [
   {
     async cleanupRun() {
       const ids = await findConfluencePagesByLabel(RUN_LABEL)
-      await Promise.allSettled(ids.map((id) => purgeConfluencePage(id)))
+      await purgeConfluenceAll(ids)
       return ids.length
     },
     hasCredentials: envSet(['ATLASSIAN_URL', 'ATLASSIAN_EMAIL', 'ATLASSIAN_API_TOKEN']),
     name: 'conni',
     async sweepStale() {
       const ids = await findConfluencePagesByLabel(SHARED_LABEL, 'lastmodified <= now("-1h")')
-      await Promise.allSettled(ids.map((id) => purgeConfluencePage(id)))
+      await purgeConfluenceAll(ids)
       return ids.length
     },
   },
@@ -682,7 +732,7 @@ const SERVICES: Service[] = [
   {
     async cleanupRun() {
       const boards = (await openTrelloBoards()).filter((board) => isRunBoardName(board.name, RUN_ID))
-      await Promise.allSettled(boards.map((board) => closeTrelloBoard(board.id)))
+      await closeTrelloBoards(boards)
       return boards.length
     },
     hasCredentials: envSet(['TRELLO_API_KEY', 'TRELLO_SECRET']),
@@ -697,7 +747,7 @@ const SERVICES: Service[] = [
           // stale sweep.
           return epoch !== undefined && epoch < cutoffEpoch
         })
-      await Promise.allSettled(boards.map((board) => closeTrelloBoard(board.id)))
+      await closeTrelloBoards(boards)
       return boards.length
     },
   },

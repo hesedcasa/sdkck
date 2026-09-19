@@ -34,7 +34,9 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
+        # Pinned to a full commit SHA: mutable tags could be retargeted at code
+        # that alters the workspace before the credentialed steps below run.
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           fetch-depth: 2
           # Nothing here pushes, and the default would leave GITHUB_TOKEN in
@@ -42,7 +44,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           cache: npm
           node-version-file: '.nvmrc'
