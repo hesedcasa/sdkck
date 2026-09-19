@@ -1,0 +1,32 @@
+# Local PostgreSQL server for the end-to-end suite. Driven by scripts/e2e.sh.
+#
+#   docker compose -f docker/compose.yaml up -d --build --wait
+#   docker compose -f docker/compose.yaml down -v
+#
+# Both the project name and the host port are overridable, so two runs can share
+# a machine. `scripts/e2e.sh` sets them per run; the `e2e:up` / `e2e:down`
+# scripts stay on the defaults below, which is what makes them a pair.
+name: ${PG_E2E_PROJECT:-pg-e2e}
+
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pg-e2e-postgres:latest
+    ports:
+      # Host port is overridable so the container never fights a local
+      # PostgreSQL; `scripts/e2e.sh` passes 0, which lets Docker pick a free one.
+      # Bound to loopback: the fixture accepts fixed, documented credentials, so
+      # publishing it on every interface would let any network peer reach it for
+      # as long as the container is up (a `--keep` run, indefinitely).
+      - '127.0.0.1:${PG_E2E_PORT:-15432}:5432'
+    tmpfs:
+      # Data lives in RAM: fast startup, and every `up` is a clean database.
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U postgres -d pg_e2e']
+      interval: 3s
+      timeout: 5s
+      start_period: 5s
+      retries: 30

@@ -17,8 +17,13 @@ const config = [
   // mocks don't need full type information and shouldn't fail type-aware rules
   // such as no-unsafe-* / no-base-to-string. Tests are also excluded from
   // tsconfig.json, so the type-aware parser has no project to resolve them in.
+  //
+  // scripts/ gets the same treatment: it holds standalone maintenance scripts
+  // (e.g. the stale-fixture sweep) that run via ts-node and aren't part of the
+  // src/ build project, so there is no tsconfig for the type-aware project
+  // service to resolve them against.
   {
-    files: ['test/**/*.ts'],
+    files: ['test/**/*.ts', 'scripts/**/*.ts'],
     ...tseslint.configs.disableTypeChecked,
   },
   // eslint.config.mjs references non-camel-case option names from
@@ -86,6 +91,9 @@ const config = [
       '@typescript-eslint/no-dynamic-delete': 'off',
       '@typescript-eslint/no-empty-function': 'off',
       '@typescript-eslint/no-extraneous-class': 'off',
+      // `this: Mocha.Context` is how hooks reach this.timeout()/this.skip();
+      // the rule mistakes the typed this-parameter for a done-callback.
+      'mocha/handle-done-callback': 'off',
       'require-unicode-regexp': 'off',
       'unicorn/consistent-boolean-name': 'off',
       'unicorn/no-computed-property-existence-check': 'off',

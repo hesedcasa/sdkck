@@ -9,8 +9,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Common Commands
 
 - **Build:** `npm run build` (cleans `dist/` and compiles TypeScript)
-- **Test:** `npm run test` (runs mocha, then lint via `posttest`)
+- **Test:** `npm run test` (runs mocha, then lint via `posttest`; excludes `test/e2e/**`)
 - **Run single test:** `npx mocha --forbid-only "test/path/to/file.test.ts"`
+- **E2E:** `npm run test:e2e` (host-level suite against live sandboxes — see "Host end-to-end suite" below; needs the sibling plugin repos and, for mysql/psql, Docker)
 - **Lint:** `npm run lint` (ESLint with oclif + prettier configs)
 - **Format:** `npm run format` (ESLint --fix + Prettier write)
 - **Dev run:** `./bin/dev.js <command>` (runs CLI from source via ts-node, no build needed)
@@ -175,6 +176,34 @@ The MCP server (`mcp start`, `mcp token …`) and MCP client (`mcp client …`) 
 Tests directly instantiate command/hook classes rather than using `@oclif/test`'s `runCommand`. The mock config passed to commands must include `runHook: async () => ({failures: [], successes: []})` to satisfy oclif's internal requirements. Use `Parameters<typeof hook>[0]` to extract hook option types for type-safe test helpers.
 
 Commands that depend on external clients (e.g., `Search._llmClient`) use public properties for dependency injection — set them directly in tests to exercise different code paths without real API calls.
+
+### Host end-to-end suite
+
+`test/e2e/` + `scripts/e2e.sh` (`npm run test:e2e`) verify plugins inside this host: the script builds sdkck, installs every selected plugin into a throwaway home, and the tests then drive the built `bin/run.js` as real subprocesses with `SDKCK_CONFIG_DIR` pointed at throwaway per-plugin config dirs and `SDKCK_DATA_DIR`/`SDKCK_CACHE_DIR` at the throwaway home (`E2E_SDKCK_HOME`), so the developer's real sdkck setup is never touched. `npm test` ignores `test/e2e/**`; the suite runs only through the script (or `npm run e2e:mocha` against an existing `--keep` home).
+
+Plugins come from `E2E_PLUGIN_SOURCE`:
+
+- **`local` (default)** — for each sibling plugin repo (`../jira`, `../conni`, `../bb`, `../sentry`, `../trello`, `../mysql`, `../psql`, `../api2cli`; override the parent dir with `E2E_PLUGIN_ROOT`) build it, `npm pack` it (backing up and restoring the repo's README around prepack's `oclif readme`), and install the tarball with `sdkck plugins install file:…`. Pre-installing is what stops the JIT auto-installer from pulling the published release over the build under test, and it is the only way the non-JIT `@hesed/trello` gets in. What a developer iterating across repos wants.
+- **`npm`** — install `@hesed/<name>@latest` straight from the registry (matching what `package.json`'s `jitPlugins` pins, and what a user gets on first use). No sibling checkouts needed; this is what CI runs, proving the host against the published releases.
+
+Fixtures and credentials:
+
+- Secrets load from `.env` at the repo root (gitignored) automatically. Names: `ATLASSIAN_URL`/`ATLASSIAN_EMAIL`/`ATLASSIAN_API_TOKEN` (jira + conni), `BITBUCKET_API_TOKEN`/`BITBUCKET_EMAIL`/`E2E_WORKSPACE` (bb), `SENTRY_API_KEY` (sentry; `SENTRY_URL` is accepted as an alias for the plugin's `SENTRY_HOST` API root, `/api/0` appended when missing), `TRELLO_API_KEY` (`RELLO_API_KEY` accepted as a fallback) + `TRELLO_SECRET` (trello), and `LINEAR_API_KEY`/`VERCEL_API_KEY`/`CONTEXT7_API_KEY` (api — the suite imports and calls all three specs).
+- mysql/psql run the Docker Compose fixtures vendored at `test/e2e/docker/{mysql,psql}/` (copied from the plugin repos — keep them in sync when a plugin changes its seed schema) with a per-run project name and Docker-picked port published as `MQ_E2E_PORT`/`PG_E2E_PORT`, and assert against the seeded `users`/`orders` schema.
+- Each leg writes a `default` profile plus a `broken` (invalid credential) profile; fixtures are named `[e2e-host <run id>]` (`E2E_RUN_ID`), and failure messages redact every known secret.
+
+Fixture reclamation (modelled on the plugin repos' suites, e.g. jira#137):
+
+- **Cleanup goes through the raw-REST oracle in `test/e2e/fixtures.ts`, never the CLI under test** — cleanup that shares the CLI's code path fails exactly when the CLI is broken, which is when it matters most. `fixtures.ts` also seeds what the CLI cannot create (Trello boards) and verifies what the CLI should not be trusted to report (issue-gone checks).
+- **Every fixture carries the shared `e2e-host` label (or name prefix) plus the run label `e2e-host-<run id>`.** Selection is by exact label, never `summary ~`/`title ~` — the tokenized match drops punctuation. JQL/CQL indexes lag, so searches for fresh content poll via `eventually`.
+- **Destructive lookups are structurally scoped**: JQL to `project = "SS"`, CQL to `space = "Sidekick"`, bb name queries to the `e2e-host` prefix, Trello board admission to the full `[e2e-host] run <id> <epoch>` naming contract (the trailing epoch — Trello's own timestamps are unreliable for API-created boards — is also the stale sweep's age key).
+- **`npm run e2e:sweep` reclaims fixtures**: with `E2E_RUN_ID` set, this run's fixtures directly (that is what covers a mocha killed before its `after` hooks ran — the CI job timeout, a local Ctrl-C); always, fixtures older than an hour. `scripts/e2e.sh` runs it from its EXIT trap — a sweep failure surfaces as a non-zero exit unless the tests already failed — and the CI workflow runs it again under `always()` to survive a job-timeout kill. Services whose credentials are absent (an `E2E_PLUGINS` subset run) are skipped, not failed.
+
+Leg-specific pinned behaviors: the psql plugin reads `pg-config.json` (not `psql-config.json`); db writes need `--skip-confirmation` (the safety layer prompts, and a subprocess has no TTY); `api call` prints a `METHOD <url>` request line before the JSON body (stripped by `stripRequestLine`); jira surfaces API failures as non-zero exits while conni rides them on exit 0.
+
+Selection: `E2E_PLUGINS="jira conni" npm run test:e2e` builds/installs only those plugins and greps mocha down to their suites; extra args pass through to mocha (`npm run test:e2e -- --grep trello`); `--keep` leaves the containers and home behind for reuse.
+
+CI: `.github/workflows/run-e2e-tests.yml` runs the whole suite nightly and on demand — nightly, not per-PR, because the runs share one set of live sandboxes and fork PRs cannot read the secrets. It checks out only this repo and runs with `E2E_PLUGIN_SOURCE=npm`, so the nightly signal is "current sdkck main against the latest published `@hesed/*` releases" — the exact combination users get. It is blocked until the secrets listed in the workflow file are added.
 
 ## Environment
 
