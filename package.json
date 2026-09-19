@@ -50,7 +50,7 @@
     "eslint-config-oclif": "^7",
     "eslint-config-prettier": "^10",
     "mocha": "^11",
-    "oclif": "^4",
+    "oclif": "^6",
     "prettier": "^3.8.1",
     "shx": "^0.4.0",
     "ts-node": "^10",
