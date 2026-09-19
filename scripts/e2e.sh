@@ -76,10 +76,6 @@ if [ -f "$REPO_ROOT/.env" ]; then
   set +a
 fi
 
-# The .env at the repo root carries the Trello API key as RELLO_API_KEY; the
-# trello plugin and the test helpers want TRELLO_API_KEY.
-export TRELLO_API_KEY="${TRELLO_API_KEY:-${RELLO_API_KEY:-}}"
-
 plugin_selected() {
   case " $SELECTED " in
     *" $1 "*) return 0 ;;

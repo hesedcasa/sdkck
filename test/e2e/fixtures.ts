@@ -92,18 +92,18 @@ export function requireSentryEnv(): {apiToken: string; host: string} {
 /**
  * Reads the Trello account credentials, throwing when incomplete.
  *
- * The API key is read from `TRELLO_API_KEY` with `RELLO_API_KEY` accepted as a
- * fallback — the .env at the repo root carries the shorter name. TRELLO_SECRET
- * holds the API token despite its name.
+ * TRELLO_SECRET holds the API token despite its name: it is the 64-hex-char
+ * value Trello's authorize flow hands out, not the Power-Up admin page's
+ * OAuth secret, which the API rejects with 401.
  *
  * @returns The API key and token.
  */
 export function requireTrelloEnv(): {apiKey: string; apiToken: string} {
-  const apiKey = process.env.TRELLO_API_KEY || process.env.RELLO_API_KEY
+  const apiKey = process.env.TRELLO_API_KEY
   const apiToken = process.env.TRELLO_SECRET
   if (!apiKey || !apiToken) {
     throw new Error(
-      'Missing TRELLO_API_KEY (or RELLO_API_KEY) or TRELLO_SECRET. ' +
+      'Missing TRELLO_API_KEY or TRELLO_SECRET. ' +
         'scripts/e2e.sh loads .env automatically — check it has these keys, or narrow the run with E2E_PLUGINS.',
     )
   }
@@ -685,7 +685,7 @@ const SERVICES: Service[] = [
       await Promise.allSettled(boards.map((board) => closeTrelloBoard(board.id)))
       return boards.length
     },
-    hasCredentials: envSet(['TRELLO_API_KEY', 'TRELLO_SECRET']) || envSet(['RELLO_API_KEY', 'TRELLO_SECRET']),
+    hasCredentials: envSet(['TRELLO_API_KEY', 'TRELLO_SECRET']),
     name: 'trello',
     async sweepStale(cutoffEpoch) {
       const boards = (await openTrelloBoards())

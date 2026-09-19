@@ -188,7 +188,7 @@ Plugins come from `E2E_PLUGIN_SOURCE`:
 
 Fixtures and credentials:
 
-- Secrets load from `.env` at the repo root (gitignored) automatically. Names: `ATLASSIAN_URL`/`ATLASSIAN_EMAIL`/`ATLASSIAN_API_TOKEN` (jira + conni), `BITBUCKET_API_TOKEN`/`BITBUCKET_EMAIL`/`E2E_WORKSPACE` (bb), `SENTRY_API_KEY` (sentry; `SENTRY_URL` is accepted as an alias for the plugin's `SENTRY_HOST` API root, `/api/0` appended when missing), `TRELLO_API_KEY` (`RELLO_API_KEY` accepted as a fallback) + `TRELLO_SECRET` (trello), and `LINEAR_API_KEY`/`VERCEL_API_KEY`/`CONTEXT7_API_KEY` (api — the suite imports and calls all three specs).
+- Secrets load from `.env` at the repo root (gitignored) automatically. Names: `ATLASSIAN_URL`/`ATLASSIAN_EMAIL`/`ATLASSIAN_API_TOKEN` (jira + conni), `BITBUCKET_API_TOKEN`/`BITBUCKET_EMAIL`/`E2E_WORKSPACE` (bb), `SENTRY_API_KEY` (sentry; `SENTRY_URL` is accepted as an alias for the plugin's `SENTRY_HOST` API root, `/api/0` appended when missing), `TRELLO_API_KEY` + `TRELLO_SECRET` (trello), and `LINEAR_API_KEY`/`VERCEL_API_KEY`/`CONTEXT7_API_KEY` (api — the suite imports and calls all three specs).
 - mysql/psql run the Docker Compose fixtures vendored at `test/e2e/docker/{mysql,psql}/` (copied from the plugin repos — keep them in sync when a plugin changes its seed schema) with a per-run project name and Docker-picked port published as `MQ_E2E_PORT`/`PG_E2E_PORT`, and assert against the seeded `users`/`orders` schema.
 - Each leg writes a `default` profile plus a `broken` (invalid credential) profile; fixtures are named `[e2e-host <run id>]` (`E2E_RUN_ID`), and failure messages redact every known secret.
 
