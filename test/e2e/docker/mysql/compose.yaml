@@ -1,0 +1,32 @@
+# Local MySQL server for the end-to-end suite. Driven by scripts/e2e.sh.
+#
+#   docker compose -f docker/compose.yaml up -d --wait
+#   docker compose -f docker/compose.yaml down -v
+#
+# Both the project name and the host port are overridable, so two runs can share
+# a machine. `scripts/e2e.sh` sets them per run; the `e2e:up` / `e2e:down`
+# scripts stay on the defaults below, which is what makes them a pair.
+name: ${MQ_E2E_PROJECT:-mq-e2e}
+
+services:
+  mysql:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mq-e2e-mysql:latest
+    ports:
+      # Host port is overridable so the container never fights a local MySQL;
+      # `scripts/e2e.sh` passes 0, which lets Docker pick a free one.
+      # Bound to loopback: the fixture accepts fixed, committed credentials, so
+      # publishing it on every interface would let any network peer reach it
+      # for as long as the container is up (a `--keep` run, indefinitely).
+      - '127.0.0.1:${MQ_E2E_PORT:-13306}:3306'
+    tmpfs:
+      # Data lives in RAM: fast startup, and every `up` is a clean database.
+      - /var/lib/mysql
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping --protocol=tcp -h 127.0.0.1 -u root -p"$$MYSQL_ROOT_PASSWORD" --silent']
+      interval: 3s
+      timeout: 5s
+      start_period: 5s
+      retries: 30

@@ -1,0 +1,98 @@
+name: Run end-to-end tests
+
+permissions:
+  contents: read
+
+# Nightly and on demand only. These tests share live sandboxes (one Jira
+# project, one Confluence space, one Bitbucket workspace, one Trello account,
+# one Sentry org), so running them per pull request would let concurrent runs
+# collide, and fork PRs cannot read the secrets they need.
+#
+# The plugins under test are the latest published @hesed/* releases from npm
+# (E2E_PLUGIN_SOURCE=npm), so this proves the host against what users actually
+# get — not unreleased sibling-repo HEADs. The mysql/psql Docker fixtures are
+# vendored in this repo under test/e2e/docker/.
+#
+# Blocked until secrets are added in repo Settings → Secrets and variables →
+# Actions: ATLASSIAN_API_TOKEN, ATLASSIAN_EMAIL, ATLASSIAN_URL,
+# BITBUCKET_API_TOKEN, BITBUCKET_EMAIL, E2E_WORKSPACE, SENTRY_API_KEY,
+# SENTRY_URL, TRELLO_API_KEY, TRELLO_SECRET, LINEAR_API_KEY, VERCEL_API_KEY,
+# CONTEXT7_API_KEY.
+on:
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: sdkck-e2e
+  cancel-in-progress: false
+
+jobs:
+  run-e2e-tests:
+    name: Host end-to-end tests against the live sandboxes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        # Pinned to a full commit SHA: mutable tags could be retargeted at code
+        # that alters the workspace before the credentialed steps below run.
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          fetch-depth: 2
+          # Nothing here pushes, and the default would leave GITHUB_TOKEN in
+          # the workspace git config for every later step to reuse.
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          cache: npm
+          node-version-file: '.nvmrc'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # scripts/e2e.sh builds sdkck, installs @hesed/<plugin>@latest from npm
+      # into a throwaway home, starts the mysql/psql containers, runs mocha,
+      # sweeps fixtures from its EXIT trap, and tears the containers down.
+      #
+      # The sandbox credentials are scoped to the steps that actually talk to
+      # the sandboxes, so nothing before them — actions, `npm ci` lifecycle
+      # scripts, the build, the plugin installs — ever has them in its
+      # environment.
+      - name: Run end-to-end tests
+        run: npm run test:e2e
+        env:
+          ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
+          ATLASSIAN_EMAIL: ${{ secrets.ATLASSIAN_EMAIL }}
+          ATLASSIAN_URL: ${{ secrets.ATLASSIAN_URL }}
+          BITBUCKET_API_TOKEN: ${{ secrets.BITBUCKET_API_TOKEN }}
+          BITBUCKET_EMAIL: ${{ secrets.BITBUCKET_EMAIL }}
+          CONTEXT7_API_KEY: ${{ secrets.CONTEXT7_API_KEY }}
+          E2E_PLUGIN_SOURCE: npm
+          E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+          E2E_WORKSPACE: ${{ secrets.E2E_WORKSPACE }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          SENTRY_API_KEY: ${{ secrets.SENTRY_API_KEY }}
+          SENTRY_URL: ${{ secrets.SENTRY_URL }}
+          TRELLO_API_KEY: ${{ secrets.TRELLO_API_KEY }}
+          TRELLO_SECRET: ${{ secrets.TRELLO_SECRET }}
+          VERCEL_API_KEY: ${{ secrets.VERCEL_API_KEY }}
+
+      # `always()`, so a killed run (the job timeout above skips even the
+      # script's EXIT trap) still gets its fixtures reclaimed. E2E_RUN_ID is
+      # what makes that possible: it pins this run's label so the sweep can
+      # delete this run's fixtures, not just the ones older than an hour.
+      - name: Sweep leftover fixtures
+        if: always()
+        run: npm run e2e:sweep
+        env:
+          ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
+          ATLASSIAN_EMAIL: ${{ secrets.ATLASSIAN_EMAIL }}
+          ATLASSIAN_URL: ${{ secrets.ATLASSIAN_URL }}
+          BITBUCKET_API_TOKEN: ${{ secrets.BITBUCKET_API_TOKEN }}
+          BITBUCKET_EMAIL: ${{ secrets.BITBUCKET_EMAIL }}
+          E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+          E2E_WORKSPACE: ${{ secrets.E2E_WORKSPACE }}
+          TRELLO_API_KEY: ${{ secrets.TRELLO_API_KEY }}
+          TRELLO_SECRET: ${{ secrets.TRELLO_SECRET }}
