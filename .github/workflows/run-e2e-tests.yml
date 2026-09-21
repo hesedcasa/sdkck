@@ -3,10 +3,10 @@ name: Run end-to-end tests
 permissions:
   contents: read
 
-# Nightly and on demand only. These tests share live sandboxes (one Jira
-# project, one Confluence space, one Bitbucket workspace, one Trello account,
-# one Sentry org), so running them per pull request would let concurrent runs
-# collide, and fork PRs cannot read the secrets they need.
+# On demand only. These tests share live sandboxes (one Jira project, one
+# Confluence space, one Bitbucket workspace, one Trello account, one Sentry
+# org), so running them per pull request would let concurrent runs collide,
+# and fork PRs cannot read the secrets they need.
 #
 # The plugins under test are the latest published @hesed/* releases from npm
 # (E2E_PLUGIN_SOURCE=npm), so this proves the host against what users actually
@@ -19,8 +19,6 @@ permissions:
 # SENTRY_URL, TRELLO_API_KEY, TRELLO_SECRET, LINEAR_API_KEY, VERCEL_API_KEY,
 # CONTEXT7_API_KEY.
 on:
-  schedule:
-    - cron: '23 3 * * *'
   workflow_dispatch:
 
 concurrency:
