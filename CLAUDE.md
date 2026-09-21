@@ -203,7 +203,7 @@ Leg-specific pinned behaviors: the psql plugin reads `pg-config.json` (not `psql
 
 Selection: `E2E_PLUGINS="jira conni" npm run test:e2e` builds/installs only those plugins and greps mocha down to their suites; extra args pass through to mocha (`npm run test:e2e -- --grep trello`); `--keep` leaves the containers and home behind for reuse.
 
-CI: `.github/workflows/run-e2e-tests.yml` runs the whole suite nightly and on demand — nightly, not per-PR, because the runs share one set of live sandboxes and fork PRs cannot read the secrets. It checks out only this repo and runs with `E2E_PLUGIN_SOURCE=npm`, so the nightly signal is "current sdkck main against the latest published `@hesed/*` releases" — the exact combination users get. It is blocked until the secrets listed in the workflow file are added.
+CI: `.github/workflows/run-e2e-tests.yml` runs the whole suite on demand (`workflow_dispatch`) — not per-PR, because the runs share one set of live sandboxes and fork PRs cannot read the secrets. It checks out only this repo and runs with `E2E_PLUGIN_SOURCE=npm`, so the signal is "current sdkck main against the latest published `@hesed/*` releases" — the exact combination users get. It is blocked until the secrets listed in the workflow file are added.
 
 ## Environment
 
