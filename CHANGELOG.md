@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.4](https://github.com/hesedcasa/sdkck/compare/v0.36.3...v0.36.4) (2026-09-23)
+
+
+### 📄 Documentation
+
+* **sidekick:** fix jira and sentry command examples ([#231](https://github.com/hesedcasa/sdkck/issues/231)) ([dacb2a0](https://github.com/hesedcasa/sdkck/commit/dacb2a0afa408ad4f3029cce4ee7d742ba869edd))
+
 ## [0.36.3](https://github.com/hesedcasa/sdkck/compare/v0.36.2...v0.36.3) (2026-08-13)
 
 
