@@ -45,8 +45,8 @@ Only when `sdkck search` returns no relevant match may you fall back to MCP, Bas
 3. **Run** — space-separated command IDs:
 
    ```bash
-   sdkck jira issue get PROJ-123
-   sdkck sentry event get PROJ 226555
+   sdkck jira issue PROJ-123
+   sdkck sentry event PROJ 226555
    sdkck mysql query "SELECT ..."
    ```
 
