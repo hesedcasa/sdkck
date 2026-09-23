@@ -217,7 +217,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.36.3 linux-x64 node-v22.23.1
+sdkck/0.36.4 linux-x64 node-v22.23.2
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -603,7 +603,7 @@ DESCRIPTION
   List all sdkck commands.
 ```
 
-_See code: [@oclif/plugin-commands](https://github.com/oclif/plugin-commands/blob/4.1.59/src/commands/commands.ts)_
+_See code: [@oclif/plugin-commands](https://github.com/oclif/plugin-commands/blob/4.2.0/src/commands/commands.ts)_
 
 ## `sdkck help [COMMAND]`
 
@@ -836,7 +836,7 @@ EXAMPLES
   $ sdkck plugins
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.84/src/commands/plugins/index.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.5.2/src/commands/plugins/index.ts)_
 
 ## `sdkck plugins add PLUGIN`
 
@@ -910,7 +910,7 @@ EXAMPLES
   $ sdkck plugins inspect myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.84/src/commands/plugins/inspect.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.5.2/src/commands/plugins/inspect.ts)_
 
 ## `sdkck plugins install PLUGIN`
 
@@ -959,7 +959,7 @@ EXAMPLES
     $ sdkck plugins install someuser/someplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.84/src/commands/plugins/install.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.5.2/src/commands/plugins/install.ts)_
 
 ## `sdkck plugins link PATH`
 
@@ -990,7 +990,7 @@ EXAMPLES
   $ sdkck plugins link myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.84/src/commands/plugins/link.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.5.2/src/commands/plugins/link.ts)_
 
 ## `sdkck plugins remove [PLUGIN]`
 
@@ -1031,7 +1031,7 @@ FLAGS
   --reinstall  Reinstall all plugins after uninstalling.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.84/src/commands/plugins/reset.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.5.2/src/commands/plugins/reset.ts)_
 
 ## `sdkck plugins uninstall [PLUGIN]`
 
@@ -1059,7 +1059,7 @@ EXAMPLES
   $ sdkck plugins uninstall myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.84/src/commands/plugins/uninstall.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.5.2/src/commands/plugins/uninstall.ts)_
 
 ## `sdkck plugins unlink [PLUGIN]`
 
@@ -1103,7 +1103,7 @@ DESCRIPTION
   Update installed plugins.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.4.84/src/commands/plugins/update.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/5.5.2/src/commands/plugins/update.ts)_
 
 ## `sdkck search QUERY`
 
@@ -1134,7 +1134,7 @@ EXAMPLES
   $ sdkck search "update jira" --details
 ```
 
-_See code: [@hesed/search](https://github.com/hesedcasa/search/blob/v0.2.2/src/commands/search.ts)_
+_See code: [@hesed/search](https://github.com/hesedcasa/search/blob/v0.2.3/src/commands/search.ts)_
 
 ## `sdkck synonyms export [FILE]`
 
@@ -1156,7 +1156,7 @@ EXAMPLES
   $ sdkck synonyms export ./my-synonyms.json
 ```
 
-_See code: [@hesed/search](https://github.com/hesedcasa/search/blob/v0.2.2/src/commands/synonyms/export.ts)_
+_See code: [@hesed/search](https://github.com/hesedcasa/search/blob/v0.2.3/src/commands/synonyms/export.ts)_
 
 ## `sdkck synonyms import FILE`
 
@@ -1181,7 +1181,7 @@ EXAMPLES
   $ sdkck synonyms import ./synonyms.json --merge
 ```
 
-_See code: [@hesed/search](https://github.com/hesedcasa/search/blob/v0.2.2/src/commands/synonyms/import.ts)_
+_See code: [@hesed/search](https://github.com/hesedcasa/search/blob/v0.2.3/src/commands/synonyms/import.ts)_
 
 ## `sdkck version`
 
