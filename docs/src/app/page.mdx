@@ -23,6 +23,8 @@ sdkck search "create Jira issue"
 - **Plugin system** — Official plugins auto-install on first use
 - **Permission system** — Fine-grained control over which commands agents can execute
 - **MCP server** — Expose the entire plugin ecosystem as an MCP server
+- **[Agent Vault](/agent-vault)** — Run commands without giving them real secrets; a vault broker swaps credentials on the wire
+- **[Telemetry](/telemetry)** — OpenTelemetry traces and metrics for every command invocation, local and quiet by default
 
 ## Works with
 
@@ -52,13 +54,13 @@ sdkck jira issue get PROJ-123 --toon
 
 Node.js CLI built on [oclif](https://oclif.io) with a plugin architecture:
 
-3. **Plugin system** — Official plugins (`@hesed/*`) are declared as JIT plugins and auto-install on first use.
-4. **MCP server** — Built on the [Model Context Protocol SDK](https://modelcontextprotocol.io/docs/sdk), exposing all commands over stdio for seamless integration.
-5. **Permission system** — A glob-based allowlist at controls which commands are visible and executable.
+1. **Plugin system** — Official plugins (`@hesed/*`) are declared as JIT plugins and auto-install on first use.
+2. **MCP server** — Built on the [Model Context Protocol SDK](https://modelcontextprotocol.io/docs/sdk), exposing all commands over stdio for seamless integration.
+3. **Permission system** — A glob-based allowlist that controls which commands are visible and executable — the first matching rule wins, and unmatched commands are allowed by default.
 
 ## Platforms
 
-Published as an npm package. Runs on macOS, Linux, and Windows wherever **Node.js v18+** is installed.
+Published as an npm package. Runs on macOS, Linux, and Windows wherever **Node.js 22+** (>=22.0.0) is installed.
 
 ## Next steps
 

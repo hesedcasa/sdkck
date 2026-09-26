@@ -4,13 +4,12 @@ Sidekick provides built-in commands and dynamically registers commands from impo
 
 ## Built-in commands
 
-| Command                  | Description                 |
-| ------------------------ | --------------------------- |
-| `sdkck commands`         | List all available commands |
-| `sdkck help [COMMAND]`   | Display help for a command  |
-| `sdkck search QUERY`     | Search for commands         |
-| `sdkck version`          | Show version info           |
-| `sdkck update [CHANNEL]` | Update the CLI              |
+| Command                | Description                 |
+| ---------------------- | --------------------------- |
+| `sdkck commands`       | List all available commands |
+| `sdkck help [COMMAND]` | Display help for a command  |
+| `sdkck search QUERY`   | Search for commands         |
+| `sdkck version`        | Show version info           |
 
 ## API commands
 
@@ -19,29 +18,45 @@ Sidekick provides built-in commands and dynamically registers commands from impo
 | `sdkck api import SOURCE`         | Import an OpenAPI spec, Postman collection, or GraphQL schema |
 | `sdkck api list [NAME]`           | List imported specs and operations                            |
 | `sdkck api call NAME OPERATIONID` | Call an imported operation                                    |
-| `sdkck api auth NAME`             | Configure authentication for a spec                           |
+| `sdkck api auth add API`          | Add an auth profile for an imported API                       |
 | `sdkck api config NAME`           | Update spec configuration                                     |
 | `sdkck api remove NAME`           | Remove an imported spec                                       |
 
 ## Permission commands
 
-| Command                             | Description                |
-| ----------------------------------- | -------------------------- |
-| `sdkck permission allow PATTERN`    | Allow a command pattern    |
-| `sdkck permission disallow PATTERN` | Disallow a command pattern |
-| `sdkck permission list`             | List all permission rules  |
-| `sdkck permission export FILE`      | Export rules to JSON       |
-| `sdkck permission import FILE`      | Import rules from JSON     |
-| `sdkck permission reset`            | Reset all rules            |
+| Command                             | Description                                                   |
+| ----------------------------------- | ------------------------------------------------------------- |
+| `sdkck permission allow PATTERN`    | Allow a command pattern                                       |
+| `sdkck permission check COMMAND`    | Check whether a command is allowed and which rule decides it  |
+| `sdkck permission disallow PATTERN` | Disallow a command pattern                                    |
+| `sdkck permission export FILE`      | Export rules to JSON                                          |
+| `sdkck permission import FILE`      | Import rules from JSON                                        |
+| `sdkck permission list`             | List all permission rules                                     |
+| `sdkck permission remove PATTERN`   | Remove a rule from the permission list                        |
+| `sdkck permission reset`            | Reset all rules                                               |
 
 ## Plugin commands
 
-| Command                         | Description                   |
-| ------------------------------- | ----------------------------- |
-| `sdkck plugins`                 | List installed plugins        |
-| `sdkck plugins install PLUGIN`  | Install a plugin              |
-| `sdkck plugins remove [PLUGIN]` | Remove a plugin               |
-| `sdkck plugins link PATH`       | Link a plugin for development |
+| Command                            | Description                                            |
+| ---------------------------------- | ------------------------------------------------------ |
+| `sdkck plugins`                    | List installed plugins                                 |
+| `sdkck plugins add PLUGIN`         | Install a plugin (alias of `plugins install`)          |
+| `sdkck plugins install PLUGIN`     | Install a plugin                                       |
+| `sdkck plugins link PATH`          | Link a plugin for development                          |
+| `sdkck plugins remove [PLUGIN]`    | Remove a plugin (alias of `plugins uninstall`)         |
+| `sdkck plugins reset`              | Remove all user-installed and linked plugins           |
+| `sdkck plugins uninstall [PLUGIN]` | Remove a plugin                                        |
+| `sdkck plugins unlink [PLUGIN]`    | Remove a linked plugin (alias of `plugins uninstall`)  |
+| `sdkck plugins update`             | Update installed plugins                               |
+
+## Synonym commands
+
+Custom synonyms improve `sdkck search` matching:
+
+| Command                        | Description                                    |
+| ------------------------------ | ---------------------------------------------- |
+| `sdkck synonyms export [FILE]` | Export stored synonyms to JSON file or stdout  |
+| `sdkck synonyms import FILE`   | Import synonyms from a JSON file               |
 
 ## MCP commands
 
