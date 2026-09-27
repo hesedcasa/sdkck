@@ -1,15 +1,19 @@
 'use client'
 
 import {useTheme} from 'next-themes'
-import {useEffect, useState} from 'react'
+import {useSyncExternalStore} from 'react'
+
+const emptySubscribe = () => () => {}
 
 export function ThemeToggle() {
   const {setTheme, theme} = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  // False during SSR and hydration, true afterwards — same rendering as the
+  // mounted flag, without calling setState inside an effect.
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  )
 
   if (!mounted) {
     return <div className="w-8 h-8" />

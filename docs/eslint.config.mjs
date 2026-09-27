@@ -1,18 +1,18 @@
 import {includeIgnoreFile} from '@eslint/compat'
-import {FlatCompat} from '@eslint/eslintrc'
+import nextCoreWebVitals from 'eslint-config-next/core-web-vitals'
+import nextTypescript from 'eslint-config-next/typescript'
 import {dirname, join} from 'node:path'
 import {fileURLToPath} from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-})
-
+// eslint-config-next@16 exports native flat configs, so they are spread in
+// directly instead of being loaded through FlatCompat.
 const eslintConfig = [
   includeIgnoreFile(join(__dirname, '.gitignore')),
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  ...nextCoreWebVitals,
+  ...nextTypescript,
 ]
 
 export default eslintConfig

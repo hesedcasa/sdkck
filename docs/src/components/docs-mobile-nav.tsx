@@ -10,15 +10,19 @@ import {cn} from '@/lib/utils'
 export function DocsMobileNav() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+  const [prevPathname, setPrevPathname] = useState(pathname)
 
   const currentPage = useMemo(() => {
     const page = allDocsPages.find((p) => p.href === pathname)
     return page ?? allDocsPages[0]
   }, [pathname])
 
-  useEffect(() => {
+  // Close the menu when the route changes (state adjustment during render,
+  // per the React docs, instead of setState inside an effect).
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname)
     setOpen(false)
-  }, [pathname])
+  }
 
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
