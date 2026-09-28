@@ -230,7 +230,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.36.4 linux-x64 node-v22.23.2
+sdkck/0.37.0 linux-x64 node-v22.23.2
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -636,7 +636,7 @@ DESCRIPTION
   Display help for sdkck.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/6.2.53/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/7.0.0/src/commands/help.ts)_
 
 ## `sdkck permission allow PATTERN`
 
