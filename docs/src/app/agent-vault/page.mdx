@@ -16,7 +16,7 @@ sdkck jira issue PROJ-123
 
 There is no wrapper to run and no infisical CLI to install: the invocation is re-executed with the proxy environment, exactly as with the broker backend. Both values can instead come from `<configDir>/agent-vault.json` (`"sessionToken"`, `"proxy"`, `"caFingerprint"`).
 
-Sidekick fetches the proxy's root CA from `http://<proxy>/_agent-vault/ca` at startup, pins it when `AGENT_VAULT_CA_FINGERPRINT` is set, and routes all traffic through `http://x-agent-vault:<session-token>@<proxy>`. Sessions are created and revoked in the Infisical dashboard (or by the infisical CLI); an expired or revoked session shows up as `403`s on proxied requests — `407` means the token went missing, `502`/`503` that the proxy cannot reach Infisical or lost its own access.
+Sidekick fetches the proxy's root CA from `http://<proxy>/_agent-vault/ca` at startup, pins it when `AGENT_VAULT_CA_FINGERPRINT` is set, and routes all traffic through `http://x-agent-vault:<session-token>@<proxy>`. The session token itself travels to the proxy on every request, in cleartext unless the proxy address is `https://` — that is Infisical's own scheme, and their guidance applies unchanged: keep the proxy on a private network, or front it with TLS and pass the `https://` address. Sessions are created and revoked in the Infisical dashboard (or by the infisical CLI); an expired or revoked session shows up as `403`s on proxied requests — `407` means the token went missing, `502`/`503` that the proxy cannot reach Infisical or lost its own access.
 
 When **both** backends are configured the platform backend wins. The self-hosted broker below remains fully supported.
 

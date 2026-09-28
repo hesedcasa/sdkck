@@ -12,6 +12,8 @@ import {type AssembleEnvOptions, assembleInterceptedEnv} from './proxy.js'
 const CA_PATH = '/_agent-vault/ca'
 /** Default CA-fetch timeout, matching the HttpClient convention (30s). */
 const DEFAULT_CA_TIMEOUT_MS = 30_000
+/** Upper bound on the buffered CA response; a real certificate is a few KB. */
+const MAX_CA_RESPONSE_BYTES = 1024 * 1024
 
 /** Configuration for the Infisical platform Agent Vault proxy client. */
 export type PlatformProxyConfig = {
@@ -90,7 +92,9 @@ function parseCaResponse(body: string): string {
  *
  * @throws {ApiError} on a non-2xx answer.
  * @throws {AgentVaultError} on malformed JSON, a missing "certificate" field,
- *   a timeout, or a network error.
+ *   a response larger than the size cap, an interrupted response, a timeout,
+ *   or a network error. Every failure mode settles the promise — none of them
+ *   can leave the caller waiting past `timeoutMs`.
  */
 export async function fetchProxyCa(address: URL, timeoutMs = DEFAULT_CA_TIMEOUT_MS): Promise<string> {
   const url = new URL(CA_PATH, address)
@@ -99,19 +103,60 @@ export async function fetchProxyCa(address: URL, timeoutMs = DEFAULT_CA_TIMEOUT_
     const requestFn = url.protocol === 'https:' ? httpsRequest : httpRequest
     let isSettled = false
     let isTimedOut = false
+    let receivedBytes = 0
+
+    // Single settlement funnel. Failure can surface on the request, on the
+    // response stream, or from the timer — and `request.destroy()` does not
+    // reliably emit an 'error' once a response has started, so the timer
+    // rejects directly instead of counting on that. Without the funnel, a
+    // response that starts and then never finishes would hang startup forever.
+    const fail = (error: AgentVaultError | ApiError) => {
+      if (isSettled) return
+      isSettled = true
+      clearTimeout(timeoutId)
+      request.destroy()
+      reject(error)
+    }
+    const succeed = (certificate: string) => {
+      if (isSettled) return
+      isSettled = true
+      clearTimeout(timeoutId)
+      resolve(certificate)
+    }
 
     const request = requestFn(url, {method: 'GET'} as RequestOptions, (response) => {
       const chunks: Buffer[] = []
       response.on('data', (chunk: Buffer) => {
+        receivedBytes += chunk.length
+        if (receivedBytes > MAX_CA_RESPONSE_BYTES) {
+          fail(
+            new AgentVaultError(
+              `The Agent Vault proxy CA response from ${CA_PATH} exceeded ${MAX_CA_RESPONSE_BYTES} bytes, so it was not accepted.`,
+            ),
+          )
+          return
+        }
+
         chunks.push(chunk)
       })
+      response.on('aborted', () => {
+        fail(
+          isTimedOut
+            ? new AgentVaultError(`Request timed out after ${timeoutMs}ms: GET ${CA_PATH}`)
+            : new AgentVaultError(`The connection to the Agent Vault proxy was interrupted while fetching the CA from ${CA_PATH}.`),
+        )
+      })
+      response.on('error', (error: Error) => {
+        fail(
+          isTimedOut
+            ? new AgentVaultError(`Request timed out after ${timeoutMs}ms: GET ${CA_PATH}`)
+            : new AgentVaultError(`Network error contacting the Agent Vault proxy: ${error.message}`),
+        )
+      })
       response.on('end', () => {
-        isSettled = true
-        clearTimeout(timeoutId)
-
         const status = response.statusCode ?? 0
         if (status !== 200) {
-          reject(
+          fail(
             new ApiError({
               code: 'unknown',
               headers: new Headers(),
@@ -123,28 +168,24 @@ export async function fetchProxyCa(address: URL, timeoutMs = DEFAULT_CA_TIMEOUT_
         }
 
         try {
-          resolve(parseCaResponse(Buffer.concat(chunks).toString('utf8')))
+          succeed(parseCaResponse(Buffer.concat(chunks).toString('utf8')))
         } catch (error) {
-          reject(error instanceof Error ? error : new AgentVaultError(String(error)))
+          fail(error instanceof Error ? error : new AgentVaultError(String(error)))
         }
       })
     })
 
     const timeoutId = setTimeout(() => {
       isTimedOut = true
-      request.destroy()
+      fail(new AgentVaultError(`Request timed out after ${timeoutMs}ms: GET ${CA_PATH}`))
     }, timeoutMs)
 
     request.on('error', (error: Error) => {
-      if (isSettled) return
-      isSettled = true
-      clearTimeout(timeoutId)
-
-      if (isTimedOut) {
-        reject(new AgentVaultError(`Request timed out after ${timeoutMs}ms: GET ${CA_PATH}`))
-      } else {
-        reject(new AgentVaultError(`Network error contacting the Agent Vault proxy: ${error.message}`))
-      }
+      fail(
+        isTimedOut
+          ? new AgentVaultError(`Request timed out after ${timeoutMs}ms: GET ${CA_PATH}`)
+          : new AgentVaultError(`Network error contacting the Agent Vault proxy: ${error.message}`),
+      )
     })
 
     request.end()
@@ -201,8 +242,12 @@ export type PlatformInterceptResult = {
 /**
  * Build the proxy route for a platform session. The proxy authenticates with
  * HTTP Basic userinfo — username `x-agent-vault`, password = the session
- * token — so the token travels to the proxy on every request; keep the proxy
- * on a private network, as the platform docs warn.
+ * token — so the token travels to the proxy on every request, in cleartext
+ * unless the address is `https://`. That is the platform's own documented
+ * scheme (the enrolled proxy itself listens on `:17323` without TLS), and the
+ * platform docs answer it with a deployment requirement: keep the proxy on a
+ * private network (same host, private LAN, container network), or front it
+ * with TLS and pass the `https://` address — supported here.
  */
 export function buildPlatformContainerConfig(
   address: URL,

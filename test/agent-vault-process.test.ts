@@ -431,5 +431,6 @@ describe('agent-vault process interception', () => {
         await stopPlatformStub(stub.server)
       }
     })
+
   })
 })
