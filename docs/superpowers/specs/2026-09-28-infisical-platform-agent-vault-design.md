@@ -56,6 +56,20 @@ New environment variables, each falling back to a new `agent-vault.json` field (
 
 `AGENT_VAULT_NO_PROXY` / file `noProxy` are unchanged and shared by both backends.
 
+### End-user experience: no wrapper, ever
+
+Once the config resolves, **every existing `sdkck <command>` is brokered automatically** — the `setup-agent-vault` init hook intercepts each invocation at startup and re-executes it with the proxy environment. There is no command to wrap with, no new command to learn, and the infisical CLI is not installed anywhere:
+
+```bash
+export AGENT_VAULT_SESSION_TOKEN=agv_…   # or sessionToken in agent-vault.json
+export AGENT_VAULT_PROXY=proxy.internal:17323
+
+sdkck jira search "…"        # runs brokered — outbound traffic goes through the proxy,
+sdkck sentry list-issues     # real credentials injected in flight; the process never holds them
+```
+
+Setting the two variables (or the file fields) is the only opt-in; `SDKCK_AGENT_VAULT_DISABLED=1` is the per-invocation opt-out. A `run`-style wrapper command would only ever be needed to broker commands that are *not* sdkck (e.g. wrapping `claude` or `codex` directly) — that was declined and stays out of scope (§11).
+
 ### Detection rules (`shouldIntercept`)
 
 1. `SDKCK_AGENT_VAULT_ACTIVE` (sentinel) or `SDKCK_AGENT_VAULT_DISABLED=1` → skip, before any config is read (unchanged).
@@ -122,4 +136,4 @@ Against the user's real proxy (needs from the user at that point: the proxy host
 
 - **macOS keychain trust:** env vars cover Node/Python/curl/Git/Deno; Go binaries (e.g. `gh`) read the system store and need the CA installed there — documented limitation, not implemented.
 - **Session create/list/revoke APIs:** undocumented; the dashboard / infisical CLI owns the lifecycle.
-- **Proxy enrollment, auto-renewal, `sdkck agent-vault run` command.**
+- **Proxy enrollment, auto-renewal, and a `sdkck agent-vault run` wrapper command** — the last of these is *not required for anything in this design*: no `sdkck <command>` ever needs a wrapper (§4, "End-user experience"). The wrapper would exist only to broker non-sdkck agent commands (e.g. `claude`), which was explicitly declined.
