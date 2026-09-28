@@ -20,3 +20,6 @@ pnpm-lock.yaml
 *.tsbuildinfo
 coverage/
 .next/
+
+# git worktrees (superpowers SDD workspaces)
+.worktrees/
