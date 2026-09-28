@@ -118,6 +118,55 @@ export type InterceptResult = {
   session: null | Session
 }
 
+/** Options shared by every path that assembles an intercepted environment. */
+export type AssembleEnvOptions = {
+  /**
+   * Where to write the root CA certificate. Defaults to a file in a private
+   * directory created for this process ({@link defaultCertPath}).
+   */
+  certPath?: string
+  /**
+   * Environment object to mutate. Defaults to `process.env`. Pass a plain
+   * object to build an env for a child process without touching this one.
+   */
+  env?: NodeJS.ProcessEnv
+  /** Extra comma-separated hosts to add to `NO_PROXY`, on top of the inherited ones. */
+  noProxy?: string
+  /** Skip writing the CA certificate — set when it is already on disk at `certPath`. */
+  skipCertWrite?: boolean
+}
+
+/**
+ * Write the root CA certificate and apply the proxy plus CA-trust variables to
+ * a target environment — the tail every credential backend shares, so the
+ * sync-sensitive env construction (`buildProxyEnv`'s variable set) has exactly
+ * one implementation.
+ */
+export async function assembleInterceptedEnv(
+  containerConfig: ContainerConfig,
+  options?: AssembleEnvOptions,
+): Promise<{certPath: string; env: Record<string, string>}> {
+  const certPath = options?.certPath ?? (await defaultCertPath())
+  if (!options?.skipCertWrite) {
+    await writeCaCertificate(containerConfig, certPath)
+  }
+
+  const targetEnv = options?.env ?? process.env
+  const env = buildProxyEnv(containerConfig, certPath)
+  // Preserve whatever the target environment already had bypassed — otherwise
+  // interception silently pulls previously-direct destinations onto the
+  // proxy, which is exactly the failure mode `noProxy` exists to prevent. Both
+  // spellings: `applyProxyEnv` installs uppercase `NO_PROXY` and drops other
+  // case variants, so a caller supplying only the POSIX-lowercase `no_proxy`
+  // would otherwise have it silently cleared rather than merged in.
+  let noProxy = mergeNoProxy(env.NO_PROXY, targetEnv.NO_PROXY)
+  noProxy = mergeNoProxy(noProxy, targetEnv.no_proxy)
+  env.NO_PROXY = mergeNoProxy(noProxy, options?.noProxy)
+  applyProxyEnv(env, targetEnv)
+
+  return {certPath, env}
+}
+
 /**
  * Write the root CA certificate so TLS clients can trust the proxy's
  * on-the-fly certificates.
@@ -253,23 +302,7 @@ function mitmDisabled(): AgentVaultError {
 export async function interceptRequests(vault: VaultClient, options?: InterceptOptions): Promise<InterceptResult> {
   const {containerConfig, mode, session} = await resolveRoute(vault, options)
 
-  const certPath = options?.certPath ?? (await defaultCertPath())
-  if (!options?.skipCertWrite) {
-    await writeCaCertificate(containerConfig, certPath)
-  }
-
-  const targetEnv = options?.env ?? process.env
-  const env = buildProxyEnv(containerConfig, certPath)
-  // Preserve whatever the target environment already had bypassed — otherwise
-  // interception silently pulls previously-direct destinations onto the
-  // proxy, which is exactly the failure mode `noProxy` exists to prevent. Both
-  // spellings: `applyProxyEnv` installs uppercase `NO_PROXY` and drops other
-  // case variants, so a caller supplying only the POSIX-lowercase `no_proxy`
-  // would otherwise have it silently cleared rather than merged in.
-  let noProxy = mergeNoProxy(env.NO_PROXY, targetEnv.NO_PROXY)
-  noProxy = mergeNoProxy(noProxy, targetEnv.no_proxy)
-  env.NO_PROXY = mergeNoProxy(noProxy, options?.noProxy)
-  applyProxyEnv(env, targetEnv)
+  const {certPath, env} = await assembleInterceptedEnv(containerConfig, options)
 
   return {certPath, containerConfig, env, mode, session}
 }
