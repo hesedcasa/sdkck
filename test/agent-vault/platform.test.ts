@@ -133,6 +133,8 @@ describe('agent-vault platform primitives', () => {
 
     it('normalizes the optional sha256 prefix and case away', () => {
       expect(normalizeFingerprint('sha256:ab cd')).to.equal('ABCD')
+      // The form the dashboard and the proxy's CA endpoint actually display.
+      expect(normalizeFingerprint('SHA256:C9:EB:E5')).to.equal('C9EBE5')
       expect(normalizeFingerprint('ABCD')).to.equal('ABCD')
     })
   })

@@ -170,7 +170,14 @@ export function certificateFingerprint(pem: string): string {
 
 /** Normalize a configured pin: optional `SHA256:` prefix and any whitespace off, uppercase. */
 export function normalizeFingerprint(value: string): string {
-  return value.trim().replace(/^sha256:/i, '').replaceAll(/\s+/g, '').toUpperCase()
+  return value
+    .trim()
+    .replace(/^sha256:/i, '')
+    // The dashboard and the proxy's own CA endpoint display the digest
+    // colon-separated (`SHA256:C9:EB:...`) — the form a user copies — so the
+    // separators must not survive into the comparison.
+    .replaceAll(/[\s:]/g, '')
+    .toUpperCase()
 }
 
 /** Options for {@link PlatformProxy.intercept}. */
