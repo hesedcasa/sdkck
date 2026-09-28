@@ -117,6 +117,7 @@ export async function fetchProxyCa(address: URL, timeoutMs = DEFAULT_CA_TIMEOUT_
       request.destroy()
       reject(error)
     }
+
     const succeed = (certificate: string) => {
       if (isSettled) return
       isSettled = true

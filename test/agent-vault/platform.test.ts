@@ -118,13 +118,17 @@ describe('agent-vault platform primitives', () => {
         response.write('{"certificate": "-----BEGIN CERT')
         // deliberately never ends the response
       })
-      await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+      await new Promise<void>((resolve) => {
+        server.listen(0, '127.0.0.1', resolve)
+      })
       const {port} = server.address() as AddressInfo
       const url = new URL(`http://127.0.0.1:${port}`)
 
       const error = await fetchProxyCa(url, 100).catch((error_: unknown) => error_)
       server.closeAllConnections()
-      await new Promise((resolve) => server.close(resolve))
+      await new Promise((resolve) => {
+        server.close(resolve)
+      })
 
       expect(error).to.be.instanceOf(AgentVaultError)
       expect((error as Error).message).to.match(/timed out after 100ms/)
@@ -135,7 +139,9 @@ describe('agent-vault platform primitives', () => {
         response.writeHead(200, {'Content-Type': 'application/json'})
         response.end('x'.repeat(1024 * 1024 + 1))
       })
-      await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+      await new Promise<void>((resolve) => {
+        server.listen(0, '127.0.0.1', resolve)
+      })
       const {port} = server.address() as AddressInfo
       const url = new URL(`http://127.0.0.1:${port}`)
 
@@ -152,11 +158,13 @@ describe('agent-vault platform primitives', () => {
         response.write('{"certificate": "-----BEGIN CERT')
         setTimeout(() => response.destroy(), 50)
       })
-      await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+      await new Promise<void>((resolve) => {
+        server.listen(0, '127.0.0.1', resolve)
+      })
       const {port} = server.address() as AddressInfo
       const url = new URL(`http://127.0.0.1:${port}`)
 
-      const error = await fetchProxyCa(url, 5_000).catch((error_: unknown) => error_)
+      const error = await fetchProxyCa(url, 5000).catch((error_: unknown) => error_)
       await stopStub(server)
 
       expect(error).to.be.instanceOf(AgentVaultError)
