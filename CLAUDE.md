@@ -114,6 +114,16 @@ A TypeScript client for [Infisical Agent Vault](https://github.com/Infisical/age
 
 This is the interception/injection half of the upstream SDK — credential resolution plus proxy configuration. Vault, credential and service-rule management is not implemented here; configure those through the Agent Vault CLI or dashboard.
 
+**Two backends share this SDK, auto-detected from which config fields are set — tokens stay opaque, there is no prefix sniffing:**
+
+<!-- prettier-ignore -->
+| backend | fields | what it is |
+| --- | --- | --- |
+| `platform` | `sessionToken` (`agv_...`) + `proxy` (`host:17323`) | Infisical SaaS Agent Vault: access bundles, time-bound sessions, enrolled forward proxies. CA from `GET http://<proxy>/_agent-vault/ca` (JSON `.certificate`); proxy auth via HTTP Basic userinfo `x-agent-vault:<token>`. Client: `PlatformProxy` (`src/agent-vault/platform.ts`). |
+| `broker` | `token` (`av_agt_...`) + `vault` | Self-hosted OSS broker ([github.com/Infisical/agent-vault](https://github.com/Infisical/agent-vault)): management API `:14321`, MITM proxy `:14322`. Client: `AgentVault`/`VaultClient`. |
+
+When both are fully configured the platform backend wins (documented resolution order, like env-over-file). A lone platform field throws instead of half-configuring; a lone broker field is silently ignored (unchanged). Both backends produce the same `ContainerConfig` and share the env-assembly tail (`assembleInterceptedEnv` in `src/agent-vault/proxy.ts` — the single implementation of `buildProxyEnv`'s variable set).
+
 ```typescript
 import {AgentVault} from 'sdkck'
 
@@ -153,7 +163,7 @@ Notes:
 
 #### Intercepting every command (`setup-agent-vault` init hook)
 
-With a token and a vault both resolvable — from `AGENT_VAULT_TOKEN`/`AGENT_VAULT_VAULT`, or, for whichever is unset, `<configDir>/agent-vault.json` — every sdkck invocation runs with its outbound traffic brokered: the `setup-agent-vault` init hook (`src/hooks/init/setup-agent-vault.ts`) reads the config file once against the real `configDir` (so the interception decision and the credentials used to act on it never disagree), resolves a proxy credential (`auto` mode — see above), writes the root CA to a temporary directory, and **re-executes the same invocation** with the proxy environment applied, then exits with the child's status.
+With either backend's fields resolvable — platform `AGENT_VAULT_SESSION_TOKEN`+`AGENT_VAULT_PROXY`, or broker `AGENT_VAULT_TOKEN`+`AGENT_VAULT_VAULT`, each from the environment or `<configDir>/agent-vault.json` (platform fields win when both are configured) — every sdkck invocation runs with its outbound traffic brokered: the `setup-agent-vault` init hook (`src/hooks/init/setup-agent-vault.ts`) reads the config file once against the real `configDir` (so the interception decision and the credentials used to act on it never disagree), resolves an `InterceptTarget` (`shouldIntercept` in `src/agent-vault-process.ts`), sets up the proxy route (fetching the platform proxy's CA from `/_agent-vault/ca` via `node:http`, verifying an optional `caFingerprint` SHA-256 pin), and **re-executes the same invocation** with the proxy environment applied, then exits with the child's status.
 
 The re-exec is the point. Node reads `NODE_USE_ENV_PROXY` and `NODE_EXTRA_CA_CERTS` at process startup, so a process cannot proxy its own `fetch` by mutating `process.env` — verified: pre-start env makes `fetch` dial the proxy, while a runtime mutation goes straight out to DNS. Running the command in a process that _started_ with the environment covers in-process `fetch`, every plugin's HTTP, and any subprocess (git, curl, python), in one mechanism.
 
@@ -210,12 +220,14 @@ CI: `.github/workflows/run-e2e-tests.yml` runs the whole suite on demand (`workf
 - **`AGENT_VAULT_TOKEN` / `AGENT_VAULT_ADDR`:** Default token and management API address for the Agent Vault SDK (`src/agent-vault/`). Each falls back to the `token`/`address` fields of `<configDir>/agent-vault.json` when unset, then the address falls back to `http://localhost:14321`; a missing token (from all three sources) throws.
 - **`AGENT_VAULT_VAULT`:** Vault to broker credentials from. Falls back to the `vault` field of `<configDir>/agent-vault.json` when unset. Having a token and a vault resolvable from any combination of env vars and that file turns on command-wide interception (see the Agent Vault section). `SDKCK_AGENT_VAULT_DISABLED=1` skips it for one invocation; `SDKCK_AGENT_VAULT_ACTIVE` is set internally on the re-executed child and should not be set by hand.
 - **`AGENT_VAULT_NO_PROXY`:** Comma-separated hosts that bypass Agent Vault interception entirely. Falls back to the `noProxy` field of `<configDir>/agent-vault.json` when unset. Merged into the child's `NO_PROXY` alongside the broker's own bypass entries. Needed for any internal-only destination — Agent Vault's MITM proxy 502s on private-IP destinations by design (SSRF guard), so a command that talks to internal infra (e.g. an internal Jenkins) must list that host here once interception is on.
+- **`AGENT_VAULT_SESSION_TOKEN` / `AGENT_VAULT_PROXY`:** Infisical *platform* Agent Vault session token (`agv_...`, issued once by the dashboard) and proxy address (`host:17323` or an `http(s)://` URL). Each falls back to the `sessionToken`/`proxy` fields of `<configDir>/agent-vault.json`. Having either one set (from any source) turns on platform-backend interception — both are required, and a lone field fails the command with a naming error. `AGENT_VAULT_CA_FINGERPRINT` (or `caFingerprint` in the file) pins the proxy CA as an optional SHA-256 fingerprint (`SHA256:...` or bare hex) and aborts on mismatch. Session lifecycle (create/revoke) stays with the Infisical dashboard or the infisical CLI; an expired/revoked session surfaces as 403s on proxied requests, not at startup.
 - **`SDKCK_CONFIG_DIR`:** Overrides the directory `agent-vault.json` (and other sdkck config) is read from. Defaults to matching oclif's own `Config.configDir` for this CLI (`XDG_CONFIG_HOME`/`LOCALAPPDATA`/`~/.config`, joined with `sdkck`).
 - **`OPENAI_API_KEY`:** Required to enable LLM-powered semantic search in `sdkck search`. When unset, search falls back to fuzzy matching. The search command uses `gpt-4o` via the `openai` npm package.
 - **OpenTelemetry toggles:** `OTEL_EXPORTER_OTLP_ENDPOINT` (send traces/metrics to an OTLP/HTTP collector), `OTEL_TRACES_EXPORTER=console` / `OTEL_METRICS_EXPORTER=console` (export to stdout, per signal), `SDKCK_OTEL_DISABLED=true` (disable for sdkck only), `OTEL_SDK_DISABLED=true` (disable instrumentation entirely), `OTEL_DEBUG=1` (OTel diagnostic logging), `SDKCK_OTEL_CAPTURE_ARGV=1` / `SDKCK_OTEL_CAPTURE_ERRORS=1` (opt in to capturing raw arguments / exception messages + stacks, which may contain secrets). See the Telemetry section above. Defaults to JSON files under `<configDir>/logs/`.
 
 ## Gotchas
 
+- **`npm run build` can silently no-op:** `shx rm -rf dist` wipes `dist/`, but `tsc -b` consults the root `tsconfig.tsbuildinfo` rather than the (now missing) output directory — if that file says the inputs are fresh, tsc re-emits nothing and the build exits 0 with `dist/` empty or partial. `bin/run.js` then serves commands off `oclif.manifest.json`, and **init hooks silently never fire** (observed live: agent-vault interception quietly skipped). When `dist/` was deleted out-of-band or behavior looks inexplicably stale after a build, force re-emission with `npx tsc -b --force`.
 - **Lint false-positive after build:** `npm run build` wipes `dist/`, so the `posttest` lint step always errors on `bin/run.js` (`Unable to resolve path to module '../dist/api-dynamic-commands.js'`). Pre-existing; not a regression.
 - **`@scalar/openapi-parser` peer dep:** Installing this package also requires `npm install @scalar/types` explicitly — npm does not auto-install it.
 - **`@scalar/postman-to-openapi` peer dep:** Same pattern — also requires `npm install @scalar/types` explicitly.

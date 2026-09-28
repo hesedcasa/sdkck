@@ -65,6 +65,30 @@ describe('agent-vault config file', () => {
       })
     })
 
+    it('reads the platform fields from the file', async () => {
+      await writeFile(
+        join(tmpDir, 'agent-vault.json'),
+        JSON.stringify({
+          caFingerprint: 'SHA256:ABCD',
+          proxy: 'proxy.internal:17323',
+          sessionToken: 'agv_file',
+        }),
+        'utf8',
+      )
+
+      expect(readAgentVaultFileConfig(tmpDir)).to.deep.equal({
+        caFingerprint: 'SHA256:ABCD',
+        proxy: 'proxy.internal:17323',
+        sessionToken: 'agv_file',
+      })
+    })
+
+    it('throws when a platform field is not a string', async () => {
+      await writeFile(join(tmpDir, 'agent-vault.json'), JSON.stringify({proxy: 17_323}), 'utf8')
+
+      expect(() => readAgentVaultFileConfig(tmpDir)).to.throw(AgentVaultError, /"proxy" must be a string/)
+    })
+
     it('ignores fields that are absent from the file', async () => {
       await writeFile(join(tmpDir, 'agent-vault.json'), JSON.stringify({token: 'av_agt_file'}), 'utf8')
 

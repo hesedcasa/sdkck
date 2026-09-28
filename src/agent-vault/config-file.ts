@@ -4,15 +4,21 @@ import {join} from 'node:path'
 
 import {AgentVaultError} from './errors.js'
 
-/** Config-file fallback for `AGENT_VAULT_TOKEN` / `AGENT_VAULT_ADDR` / `AGENT_VAULT_VAULT`. */
+/** Config-file fallback for the Agent Vault environment variables. */
 export type AgentVaultFileConfig = {
   address?: string
+  /** Optional SHA-256 pin of the platform proxy CA, fallback for `AGENT_VAULT_CA_FINGERPRINT`. */
+  caFingerprint?: string
   /**
    * Comma-separated hosts to bypass the proxy for, fallback for
-   * `AGENT_VAULT_NO_PROXY`. Merged into `NO_PROXY` alongside the broker's own
+   * `AGENT_VAULT_NO_PROXY`. Merged into `NO_PROXY` alongside the backend's own
    * entries (`localhost`, `127.0.0.1`, its host).
    */
   noProxy?: string
+  /** Infisical platform Agent Vault proxy address, fallback for `AGENT_VAULT_PROXY`. */
+  proxy?: string
+  /** Infisical platform Agent Vault session token (`agv_...`), fallback for `AGENT_VAULT_SESSION_TOKEN`. */
+  sessionToken?: string
   token?: string
   vault?: string
 }
@@ -65,13 +71,13 @@ export function readAgentVaultFileConfig(configDir: string = resolveConfigDir())
 
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
     throw new AgentVaultError(
-      `${path} must contain a JSON object with optional "token", "address", "vault", "noProxy" fields.`,
+      `${path} must contain a JSON object with optional "token", "address", "vault", "noProxy", "sessionToken", "proxy", "caFingerprint" fields.`,
     )
   }
 
-  const {address, noProxy, token, vault} = parsed as Record<string, unknown>
+  const {address, caFingerprint, noProxy, proxy, sessionToken, token, vault} = parsed as Record<string, unknown>
   const result: AgentVaultFileConfig = {}
-  for (const [key, value] of Object.entries({address, noProxy, token, vault})) {
+  for (const [key, value] of Object.entries({address, caFingerprint, noProxy, proxy, sessionToken, token, vault})) {
     if (value === undefined) continue
     if (typeof value !== 'string') {
       throw new AgentVaultError(`${path}: "${key}" must be a string.`)

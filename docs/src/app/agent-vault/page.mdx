@@ -2,6 +2,24 @@
 
 Run commands without giving them real secrets. Point Sidekick at an [Infisical Agent Vault](https://github.com/Infisical/agent-vault) broker and outbound traffic routes through its proxy, which substitutes the real credential on the wire. The command only ever holds a placeholder.
 
+## Infisical platform Agent Vault (SaaS)
+
+Sidekick also speaks Infisical's hosted Agent Vault: **access bundles** hold your services and real credentials, **sessions** are time-bound grants, and an **enrolled proxy** (port `17323`) injects the credential on the wire. Create the bundle and a session in the Infisical dashboard, enroll a proxy, then give Sidekick the session token and the proxy address:
+
+```bash
+export AGENT_VAULT_SESSION_TOKEN=agv_...
+export AGENT_VAULT_PROXY=proxy.internal:17323
+export AGENT_VAULT_CA_FINGERPRINT=SHA256:...   # optional pin of the proxy CA
+
+sdkck jira issue PROJ-123
+```
+
+There is no wrapper to run and no infisical CLI to install: the invocation is re-executed with the proxy environment, exactly as with the broker backend. Both values can instead come from `<configDir>/agent-vault.json` (`"sessionToken"`, `"proxy"`, `"caFingerprint"`).
+
+Sidekick fetches the proxy's root CA from `http://<proxy>/_agent-vault/ca` at startup, pins it when `AGENT_VAULT_CA_FINGERPRINT` is set, and routes all traffic through `http://x-agent-vault:<session-token>@<proxy>`. The session token itself travels to the proxy on every request, in cleartext unless the proxy address is `https://` — that is Infisical's own scheme, and their guidance applies unchanged: keep the proxy on a private network, or front it with TLS and pass the `https://` address. Sessions are created and revoked in the Infisical dashboard (or by the infisical CLI); an expired or revoked session shows up as `403`s on proxied requests — `407` means the token went missing, `502`/`503` that the proxy cannot reach Infisical or lost its own access.
+
+When **both** backends are configured the platform backend wins. The self-hosted broker below remains fully supported.
+
 Agent Vault runs two listeners: a management API (`:14321`) and a transparent MITM proxy (`:14322`). Sidekick talks to the API to set up a route, then sends everything else through the proxy.
 
 ## Turning it on

@@ -6,10 +6,22 @@ export type {AgentVaultFileConfig} from './config-file.js'
 // Errors
 export {AgentVaultError, ApiError} from './errors.js'
 
-// Request interception — routes traffic through the proxy that injects credentials
-export {applyProxyEnv, defaultCertPath, interceptRequests, writeCaCertificate} from './proxy.js'
+// Platform proxy — the Infisical SaaS Agent Vault backend (session token + enrolled proxy)
+export {
+  buildPlatformContainerConfig,
+  certificateFingerprint,
+  fetchProxyCa,
+  normalizeFingerprint,
+  normalizeProxyAddress,
+  PlatformProxy,
+} from './platform.js'
 
-export type {InterceptMode, InterceptOptions, InterceptResult} from './proxy.js'
+export type {PlatformInterceptOptions, PlatformInterceptResult, PlatformProxyConfig} from './platform.js'
+
+// Request interception — routes traffic through the proxy that injects credentials
+export {applyProxyEnv, assembleInterceptedEnv, defaultCertPath, interceptRequests, writeCaCertificate} from './proxy.js'
+
+export type {AssembleEnvOptions, InterceptMode, InterceptOptions, InterceptResult} from './proxy.js'
 
 // Discover — what a token can reach, and the validation agent mode relies on
 export {DiscoverResource} from './resources/discover.js'

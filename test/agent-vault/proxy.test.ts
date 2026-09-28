@@ -8,6 +8,7 @@ import {
   AgentVaultError,
   ApiError,
   applyProxyEnv,
+  assembleInterceptedEnv,
   defaultCertPath,
   interceptRequests,
   writeCaCertificate,
@@ -126,6 +127,34 @@ describe('agent-vault request interception', () => {
       await writeCaCertificate({caCertificate: CA_PEM, env: {} as never}, join(linkDir, 'ca.pem'))
 
       expect(await readFile(join(realDir, 'ca.pem'), 'utf8')).to.equal(CA_PEM)
+    })
+  })
+
+  describe('assembleInterceptedEnv', () => {
+    it('writes the certificate and applies the proxy env to the passed object', async () => {
+      const target: NodeJS.ProcessEnv = {}
+      const certPath = join(tmpDir, 'assembled', 'ca.pem')
+
+      const {certPath: written, env} = await assembleInterceptedEnv(
+        {
+          caCertificate: CA_PEM,
+          env: {
+            HTTP_PROXY: 'http://tok:vault@proxy.internal:14322',
+            HTTPS_PROXY: 'http://tok:vault@proxy.internal:14322',
+            NO_PROXY: 'localhost,127.0.0.1,proxy.internal',
+          },
+        },
+        {certPath, env: target},
+      )
+
+      expect(written).to.equal(certPath)
+      expect(await readFile(certPath, 'utf8')).to.equal(CA_PEM)
+      expect(env.HTTPS_PROXY).to.equal('http://tok:vault@proxy.internal:14322')
+      expect(env.NODE_USE_ENV_PROXY).to.equal('1')
+      expect(env.NODE_EXTRA_CA_CERTS).to.equal(certPath)
+      // Chai's `.equal` is strict identity and the returned env is the fresh
+      // `buildProxyEnv` object, not the mutated target — assert on contents.
+      expect(target).to.deep.equal(env)
     })
   })
 
