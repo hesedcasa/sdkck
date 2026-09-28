@@ -3,34 +3,36 @@ import {type Hook} from '@oclif/core'
 import {
   ADDR_ENV,
   DISABLE_ENV,
+  type InterceptTarget,
   NO_PROXY_ENV,
   runIntercepted,
   SENTINEL_ENV,
   shouldIntercept,
   TOKEN_ENV,
 } from '../../agent-vault-process.js'
-import {AgentVault, AgentVaultError, readAgentVaultFileConfig} from '../../agent-vault/index.js'
+import {AgentVault, AgentVaultError, PlatformProxy, readAgentVaultFileConfig} from '../../agent-vault/index.js'
 
 /**
  * Routes every command's outbound traffic through Agent Vault, which injects
  * the real credentials in flight so no command holds a secret.
  *
- * Active whenever an Agent Vault token and a vault name are both available —
- * from `AGENT_VAULT_TOKEN` / `AGENT_VAULT_VAULT`, or, for whichever of those is
- * unset, `<configDir>/agent-vault.json`. The work happens by re-executing this
- * invocation with the proxy environment in place — Node reads
- * `NODE_USE_ENV_PROXY` and `NODE_EXTRA_CA_CERTS` at startup, so a process
- * cannot proxy its own `fetch` by mutating `process.env`. This hook therefore
- * supervises: the child does the real work and its exit code is passed
- * straight through.
+ * Two backends, auto-detected by `shouldIntercept` from which config fields
+ * are set: the Infisical SaaS platform Agent Vault (`AGENT_VAULT_SESSION_TOKEN`
+ * + `AGENT_VAULT_PROXY`, both from the environment or `agent-vault.json`) or
+ * the self-hosted OSS broker (`AGENT_VAULT_TOKEN` + `AGENT_VAULT_VAULT`). The
+ * work happens by re-executing this invocation with the proxy environment in
+ * place — Node reads `NODE_USE_ENV_PROXY` and `NODE_EXTRA_CA_CERTS` at
+ * startup, so a process cannot proxy its own `fetch` by mutating
+ * `process.env`. This hook therefore supervises: the child does the real work
+ * and its exit code is passed straight through.
  *
- * Fails closed. If the session cannot be minted the command does not run,
+ * Fails closed. If the proxy route cannot be set up the command does not run,
  * rather than sending requests that bypass the broker.
  *
  * `AGENT_VAULT_NO_PROXY` (or `noProxy` in the config file) adds hosts that
- * bypass the proxy entirely — for internal destinations Agent Vault was never
- * meant to broker, which its own MITM proxy rejects outright with a 502
- * rather than forwarding unbrokered.
+ * bypass the proxy entirely — for internal destinations the proxies refuse or
+ * cannot serve (the platform proxy 403s unbundled hosts under strict policy;
+ * the broker's MITM proxy 502s private IPs).
  */
 const hook: Hook<'init'> = async function () {
   // Bypass checks come first and never touch the config file: a malformed,
@@ -39,27 +41,49 @@ const hook: Hook<'init'> = async function () {
   // sentinel set).
   if (process.env[SENTINEL_ENV] || process.env[DISABLE_ENV]) return
 
-  // Read once against the real configDir, so the vault name resolved here and
-  // the token/address the child is set up with can never disagree with each
+  // Read once against the real configDir, so the backend resolved here and
+  // the credentials the child is set up with can never disagree with each
   // other about which config file backed them.
   const fileConfig = readAgentVaultFileConfig(this.config.configDir)
-  const vault = shouldIntercept(process.env, fileConfig)
-  if (!vault) return
 
   // Only setup failures are caught here: this.exit() throws, and catching that
   // would turn a clean child run into a spurious "interception failed".
+  let target: InterceptTarget | undefined
   let exitCode = 1
   try {
-    const agentVault = new AgentVault({
-      address: process.env[ADDR_ENV] ?? fileConfig.address,
-      token: process.env[TOKEN_ENV] ?? fileConfig.token,
-    })
+    target = shouldIntercept(process.env, fileConfig)
+    if (!target) return
+
     const noProxy = process.env[NO_PROXY_ENV] ?? fileConfig.noProxy
-    exitCode = await runIntercepted({agentVault, noProxy, vault})
+    exitCode = await runIntercepted({
+      agentVault:
+        target.kind === 'broker'
+          ? new AgentVault({
+              address: process.env[ADDR_ENV] ?? fileConfig.address,
+              token: process.env[TOKEN_ENV] ?? fileConfig.token,
+            })
+          : undefined,
+      noProxy,
+      platformProxy:
+        target.kind === 'platform'
+          ? new PlatformProxy({
+              caFingerprint: target.caFingerprint,
+              proxy: target.proxy,
+              sessionToken: target.sessionToken,
+            })
+          : undefined,
+      target,
+    })
   } catch (error) {
     const reason = error instanceof AgentVaultError || error instanceof Error ? error.message : String(error)
+    const subject =
+      target?.kind === 'platform'
+        ? `session through ${target.proxy}`
+        : target
+          ? `vault "${target.vault}"`
+          : undefined
     this.error(
-      `Agent Vault interception could not be set up for vault "${vault}", so the command was not run: ${reason}\n` +
+      `Agent Vault interception could not be set up${subject ? ` for ${subject}` : ''}, so the command was not run: ${reason}\n` +
         `Set ${DISABLE_ENV}=1 to run without brokered credentials.`,
       {exit: 1},
     )

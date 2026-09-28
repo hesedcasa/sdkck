@@ -38,6 +38,9 @@ describe('init/setup-agent-vault hook', () => {
     'AGENT_VAULT_TOKEN',
     'AGENT_VAULT_VAULT',
     'AGENT_VAULT_ADDR',
+    'AGENT_VAULT_SESSION_TOKEN',
+    'AGENT_VAULT_PROXY',
+    'AGENT_VAULT_CA_FINGERPRINT',
     'SDKCK_AGENT_VAULT_DISABLED',
     'SDKCK_AGENT_VAULT_ACTIVE',
   ]
@@ -125,6 +128,38 @@ describe('init/setup-agent-vault hook', () => {
   it('honors the re-executed-child sentinel without reading the config file at all', async () => {
     await writeFile(join(tmpDir, 'agent-vault.json'), '{not json', 'utf8')
     process.env.SDKCK_AGENT_VAULT_ACTIVE = '1'
+    const {context} = makeContext(tmpDir)
+
+    await hook.call(context, makeOpts(tmpDir))
+  })
+
+  it('attempts interception for a platform session and fails closed when unreachable', async () => {
+    process.env.AGENT_VAULT_SESSION_TOKEN = 'agv_env'
+    process.env.AGENT_VAULT_PROXY = '127.0.0.1:1' // nothing listens here
+    const {context, errorMessage} = makeContext(tmpDir)
+
+    const error = await hook.call(context, makeOpts(tmpDir)).catch((error_: unknown) => error_)
+
+    expect(error).to.be.instanceOf(Error)
+    expect(errorMessage()).to.match(/session through 127\.0\.0\.1:1/)
+    expect(errorMessage()).to.match(/command was not run/)
+    expect(errorMessage()).to.match(/SDKCK_AGENT_VAULT_DISABLED=1/)
+  })
+
+  it('fails closed on an incomplete platform config, naming the missing variable', async () => {
+    process.env.AGENT_VAULT_SESSION_TOKEN = 'agv_env'
+    const {context, errorMessage} = makeContext(tmpDir)
+
+    await hook.call(context, makeOpts(tmpDir)).catch((error_: unknown) => error_)
+
+    expect(errorMessage()).to.match(/AGENT_VAULT_PROXY/)
+    expect(errorMessage()).to.match(/command was not run/)
+  })
+
+  it('does not attempt platform interception when disabled', async () => {
+    process.env.AGENT_VAULT_SESSION_TOKEN = 'agv_env'
+    process.env.AGENT_VAULT_PROXY = 'proxy.internal:17323'
+    process.env.SDKCK_AGENT_VAULT_DISABLED = '1'
     const {context} = makeContext(tmpDir)
 
     await hook.call(context, makeOpts(tmpDir))
