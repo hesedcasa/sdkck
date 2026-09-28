@@ -8,11 +8,15 @@ export {AgentVaultError, ApiError} from './errors.js'
 
 // Platform proxy — the Infisical SaaS Agent Vault backend (session token + enrolled proxy)
 export {
+  buildPlatformContainerConfig,
   certificateFingerprint,
   fetchProxyCa,
   normalizeFingerprint,
   normalizeProxyAddress,
+  PlatformProxy,
 } from './platform.js'
+
+export type {PlatformInterceptOptions, PlatformInterceptResult, PlatformProxyConfig} from './platform.js'
 
 // Request interception — routes traffic through the proxy that injects credentials
 export {applyProxyEnv, assembleInterceptedEnv, defaultCertPath, interceptRequests, writeCaCertificate} from './proxy.js'

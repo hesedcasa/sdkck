@@ -3,12 +3,25 @@ import {createHash} from 'node:crypto'
 import {request as httpRequest, type RequestOptions} from 'node:http'
 import {request as httpsRequest} from 'node:https'
 
+import type {ContainerConfig} from './resources/mitm.js'
+
 import {AgentVaultError, ApiError} from './errors.js'
+import {type AssembleEnvOptions, assembleInterceptedEnv} from './proxy.js'
 
 /** Path on the platform proxy that serves its root CA certificate. */
 const CA_PATH = '/_agent-vault/ca'
 /** Default CA-fetch timeout, matching the HttpClient convention (30s). */
 const DEFAULT_CA_TIMEOUT_MS = 30_000
+
+/** Configuration for the Infisical platform Agent Vault proxy client. */
+export type PlatformProxyConfig = {
+  /** Optional SHA-256 pin of the proxy CA (`SHA256:<hex>` or bare hex). */
+  caFingerprint?: string
+  /** Proxy address: `host:17323` or a full `http://`/`https://` URL. */
+  proxy: string
+  /** The session token (`agv_...`) issued by the dashboard. */
+  sessionToken: string
+}
 
 /**
  * Parse a proxy address, defaulting the scheme to `http://` — the bare
@@ -158,4 +171,97 @@ export function certificateFingerprint(pem: string): string {
 /** Normalize a configured pin: optional `SHA256:` prefix and any whitespace off, uppercase. */
 export function normalizeFingerprint(value: string): string {
   return value.trim().replace(/^sha256:/i, '').replaceAll(/\s+/g, '').toUpperCase()
+}
+
+/** Options for {@link PlatformProxy.intercept}. */
+export type PlatformInterceptOptions = AssembleEnvOptions & {
+  /** CA fetch timeout in milliseconds. Default: 30000. */
+  timeoutMs?: number
+}
+
+/** What {@link PlatformProxy.intercept} configured. */
+export type PlatformInterceptResult = {
+  /** Path the root CA certificate was written to. */
+  certPath: string
+  /** The proxy route that was applied. */
+  containerConfig: ContainerConfig
+  /** The proxy and CA-trust variables that were applied. */
+  env: Record<string, string>
+  /** Always `'platform'` — the credential backend that authenticated the proxy. */
+  mode: 'platform'
+}
+
+/**
+ * Build the proxy route for a platform session. The proxy authenticates with
+ * HTTP Basic userinfo — username `x-agent-vault`, password = the session
+ * token — so the token travels to the proxy on every request; keep the proxy
+ * on a private network, as the platform docs warn.
+ */
+export function buildPlatformContainerConfig(
+  address: URL,
+  sessionToken: string,
+  caCertificate: string,
+): ContainerConfig {
+  const proxyUrl = `${address.protocol}//x-agent-vault:${encodeURIComponent(sessionToken)}@${address.host}`
+
+  return {
+    caCertificate,
+    env: {
+      HTTP_PROXY: proxyUrl,
+      HTTPS_PROXY: proxyUrl,
+      NO_PROXY: `localhost,127.0.0.1,${address.hostname}`,
+    },
+  }
+}
+
+/**
+ * Client for one session against an Infisical platform Agent Vault proxy —
+ * the SaaS backend (access bundles, time-bound sessions, enrolled proxies on
+ * `:17323`), distinct from the self-hosted broker client (`AgentVault`).
+ *
+ * ```typescript
+ * const proxy = new PlatformProxy({proxy: 'proxy.internal:17323', sessionToken: 'agv_...'})
+ * const {certPath, env, mode} = await proxy.intercept()
+ * // From here a plain request is intercepted and the credential injected:
+ * await fetch('https://api.github.com/user') // no token in this process
+ * ```
+ */
+export class PlatformProxy {
+  private readonly address: URL
+  private readonly caFingerprint?: string
+  private readonly sessionToken: string
+
+  constructor(config: PlatformProxyConfig) {
+    this.address = normalizeProxyAddress(config.proxy)
+    this.caFingerprint = config.caFingerprint
+    this.sessionToken = config.sessionToken
+  }
+
+  /**
+   * Fetch the proxy CA — verifying the configured fingerprint pin, when there
+   * is one — write it to disk and apply the proxy plus CA-trust variables to
+   * the target environment.
+   *
+   * There is no pre-flight validation of the session on the platform backend:
+   * an expired or revoked session surfaces as 403s on the proxied requests
+   * themselves (407 would mean the token went missing, 502/503 that the proxy
+   * cannot reach Infisical or lost its own access).
+   *
+   * @throws {AgentVaultError} when the CA cannot be fetched or the fingerprint
+   *   pin does not match. Callers fail closed rather than run unbrokered.
+   */
+  async intercept(options?: PlatformInterceptOptions): Promise<PlatformInterceptResult> {
+    const caCertificate = await fetchProxyCa(this.address, options?.timeoutMs)
+
+    if (this.caFingerprint && normalizeFingerprint(this.caFingerprint) !== certificateFingerprint(caCertificate)) {
+      throw new AgentVaultError(
+        'The Agent Vault proxy CA does not match the configured fingerprint (AGENT_VAULT_CA_FINGERPRINT / caFingerprint), so traffic was not brokered.',
+      )
+    }
+
+    const containerConfig = buildPlatformContainerConfig(this.address, this.sessionToken, caCertificate)
+    const {certPath, env} = await assembleInterceptedEnv(containerConfig, options)
+
+    return {certPath, containerConfig, env, mode: 'platform'}
+  }
 }

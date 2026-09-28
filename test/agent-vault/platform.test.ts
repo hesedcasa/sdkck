@@ -1,15 +1,20 @@
 import {expect} from 'chai'
 import {Buffer} from 'node:buffer'
 import {createHash} from 'node:crypto'
+import {mkdtemp, readFile, rm} from 'node:fs/promises'
 import {createServer, type Server} from 'node:http'
 import {type AddressInfo} from 'node:net'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
 
 import {AgentVaultError, ApiError} from '../../src/agent-vault/errors.js'
 import {
+  buildPlatformContainerConfig,
   certificateFingerprint,
   fetchProxyCa,
   normalizeFingerprint,
   normalizeProxyAddress,
+  PlatformProxy,
 } from '../../src/agent-vault/index.js'
 
 const CA_PEM = '-----BEGIN CERTIFICATE-----\nstub\n-----END CERTIFICATE-----\n'
@@ -129,6 +134,114 @@ describe('agent-vault platform primitives', () => {
     it('normalizes the optional sha256 prefix and case away', () => {
       expect(normalizeFingerprint('sha256:ab cd')).to.equal('ABCD')
       expect(normalizeFingerprint('ABCD')).to.equal('ABCD')
+    })
+  })
+
+  describe('PlatformProxy', () => {
+    let tmpDir: string
+    let stub: {server: Server; url: URL}
+
+    beforeEach(async () => {
+      tmpDir = await mkdtemp(join(tmpdir(), 'sdkck-platform-proxy-'))
+      stub = await startCaStub()
+    })
+
+    afterEach(async () => {
+      await stopStub(stub.server)
+      await rm(tmpDir, {force: true, recursive: true})
+    })
+
+    it('applies the platform proxy env to the passed object without touching process.env', async () => {
+      const target: NodeJS.ProcessEnv = {}
+      const before = {...process.env}
+
+      const result = await new PlatformProxy({proxy: stub.url.origin, sessionToken: 'agv_tok'}).intercept({
+        certPath: join(tmpDir, 'ca.pem'),
+        env: target,
+      })
+
+      expect(result.mode).to.equal('platform')
+      expect(result.env.HTTPS_PROXY).to.equal(`http://x-agent-vault:agv_tok@127.0.0.1:${stub.url.port}`)
+      expect(result.env.HTTP_PROXY).to.equal(result.env.HTTPS_PROXY)
+      expect(result.env.NODE_USE_ENV_PROXY).to.equal('1')
+      expect(result.env.NO_PROXY).to.equal('localhost,127.0.0.1,127.0.0.1')
+      expect(result.env.NODE_EXTRA_CA_CERTS).to.equal(join(tmpDir, 'ca.pem'))
+      // `assembleInterceptedEnv` returns a snapshot object and copies the same
+      // properties into the caller's `env` — contents match, identity does not.
+      expect(target).to.deep.equal(result.env)
+      expect(process.env).to.deep.equal(before)
+    })
+
+    it('percent-encodes the session token in the proxy userinfo', async () => {
+      const result = await new PlatformProxy({proxy: stub.url.origin, sessionToken: 'agv_a b/c'}).intercept({
+        certPath: join(tmpDir, 'ca.pem'),
+        env: {},
+      })
+
+      expect(result.env.HTTPS_PROXY).to.contain('x-agent-vault:agv_a%20b%2Fc@')
+    })
+
+    it('writes the fetched CA to the requested path', async () => {
+      const result = await new PlatformProxy({proxy: stub.url.origin, sessionToken: 'agv_tok'}).intercept({
+        certPath: join(tmpDir, 'ca.pem'),
+        env: {},
+      })
+
+      expect(await readFile(result.certPath, 'utf8')).to.equal(CA_PEM)
+      expect(result.containerConfig.caCertificate).to.equal(CA_PEM)
+    })
+
+    it('merges the noProxy option and inherited bypasses into NO_PROXY', async () => {
+      const result = await new PlatformProxy({proxy: stub.url.origin, sessionToken: 'agv_tok'}).intercept({
+        certPath: join(tmpDir, 'ca.pem'),
+        env: {NO_PROXY: 'parent.internal', no_proxy: 'lower.internal'} as NodeJS.ProcessEnv,
+        noProxy: 'config.internal',
+      })
+
+      expect(result.env.NO_PROXY).to.equal(
+        'localhost,127.0.0.1,127.0.0.1,parent.internal,lower.internal,config.internal',
+      )
+    })
+
+    it('accepts a matching CA fingerprint pin in any spelling', async () => {
+      const pin = `sha256:${certificateFingerprint(CA_PEM).toLowerCase()}`
+
+      const result = await new PlatformProxy({
+        caFingerprint: pin,
+        proxy: stub.url.origin,
+        sessionToken: 'agv_tok',
+      }).intercept({certPath: join(tmpDir, 'ca.pem'), env: {}})
+
+      expect(result.mode).to.equal('platform')
+    })
+
+    it('fails closed on a fingerprint mismatch, before any env is applied', async () => {
+      const target: NodeJS.ProcessEnv = {}
+      const certPath = join(tmpDir, 'never-written.pem')
+
+      const error = await new PlatformProxy({
+        caFingerprint: 'sha256:deadbeef',
+        proxy: stub.url.origin,
+        sessionToken: 'agv_tok',
+      })
+        .intercept({certPath, env: target})
+        .catch((error_: unknown) => error_)
+
+      expect(error).to.be.instanceOf(AgentVaultError)
+      expect((error as Error).message).to.match(/fingerprint/i)
+      expect(target).to.deep.equal({})
+    })
+
+    it('exposes the parsed proxy through buildPlatformContainerConfig', () => {
+      const config = buildPlatformContainerConfig(
+        normalizeProxyAddress('proxy.internal:17323'),
+        'agv_tok',
+        CA_PEM,
+      )
+
+      expect(config.env.HTTPS_PROXY).to.equal('http://x-agent-vault:agv_tok@proxy.internal:17323')
+      expect(config.env.NO_PROXY).to.equal('localhost,127.0.0.1,proxy.internal')
+      expect(config.caCertificate).to.equal(CA_PEM)
     })
   })
 })
