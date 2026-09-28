@@ -158,6 +158,20 @@ describe('agent-vault process interception', () => {
       })
     })
 
+    it('treats an empty CA fingerprint env as unset so the file-config pin still applies', () => {
+      expect(
+        shouldIntercept(
+          {[CA_FINGERPRINT_ENV]: '  ', [PROXY_ENV]: 'proxy.internal:17323', [SESSION_TOKEN_ENV]: 'agv_abc'},
+          {caFingerprint: 'SHA256:ABCD'},
+        ),
+      ).to.deep.equal({
+        caFingerprint: 'SHA256:ABCD',
+        kind: 'platform',
+        proxy: 'proxy.internal:17323',
+        sessionToken: 'agv_abc',
+      })
+    })
+
     it('resolves platform fields from the file config, env winning per field', () => {
       expect(
         shouldIntercept({[PROXY_ENV]: 'env.internal:17323'}, {proxy: 'file.internal:17323', sessionToken: 'agv_file'}),

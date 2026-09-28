@@ -233,7 +233,9 @@ export class PlatformProxy {
 
   constructor(config: PlatformProxyConfig) {
     this.address = normalizeProxyAddress(config.proxy)
-    this.caFingerprint = config.caFingerprint
+    // An empty fingerprint means "no pin" — normalize it away so no code path
+    // holds a meaningless pin that merely looks configured.
+    this.caFingerprint = config.caFingerprint?.trim() || undefined
     this.sessionToken = config.sessionToken
   }
 

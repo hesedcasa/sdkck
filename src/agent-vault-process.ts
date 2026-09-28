@@ -59,6 +59,9 @@ export function shouldIntercept(
 ): InterceptTarget | undefined {
   if (env[SENTINEL_ENV] || env[DISABLE_ENV]) return undefined
 
+  // An empty value (e.g. `AGENT_VAULT_CA_FINGERPRINT=${PIN:-}`) means unset, so
+  // it falls through to the file-config pin instead of shadowing it.
+  const envCaFingerprint = env[CA_FINGERPRINT_ENV]?.trim() || undefined
   const sessionToken = env[SESSION_TOKEN_ENV] ?? fileConfig.sessionToken
   const proxy = env[PROXY_ENV] ?? fileConfig.proxy
   if (sessionToken !== undefined || proxy !== undefined) {
@@ -71,7 +74,7 @@ export function shouldIntercept(
     }
 
     return {
-      caFingerprint: env[CA_FINGERPRINT_ENV] ?? fileConfig.caFingerprint,
+      caFingerprint: envCaFingerprint ?? fileConfig.caFingerprint,
       kind: 'platform',
       proxy,
       sessionToken,

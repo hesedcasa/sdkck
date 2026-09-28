@@ -215,6 +215,13 @@ describe('agent-vault platform primitives', () => {
       expect(result.mode).to.equal('platform')
     })
 
+    it('resolves with an empty CA fingerprint, which means no pin rather than a degenerate check', async () => {
+      const result = await new PlatformProxy({caFingerprint: '', proxy: stub.url.origin, sessionToken: 'agv_tok'})
+        .intercept({certPath: join(tmpDir, 'ca.pem'), env: {}})
+
+      expect(result.mode).to.equal('platform')
+    })
+
     it('fails closed on a fingerprint mismatch, before any env is applied', async () => {
       const target: NodeJS.ProcessEnv = {}
       const certPath = join(tmpDir, 'never-written.pem')
