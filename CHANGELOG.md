@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.37.0](https://github.com/hesedcasa/sdkck/compare/v0.36.4...v0.37.0) (2026-09-28)
+
+
+### 🎉 Features
+
+* **agent-vault:** add Infisical platform Agent Vault support ([#238](https://github.com/hesedcasa/sdkck/issues/238)) ([8d722fe](https://github.com/hesedcasa/sdkck/commit/8d722fe858f2361b30f777af6c52ae2df0459cda))
+
+
+### 📄 Documentation
+
+* **agent-vault:** add implementation plan for the platform Agent Vault backend ([5536ea2](https://github.com/hesedcasa/sdkck/commit/5536ea2fd094381787de5695791bfc2267fb2994))
+* **agent-vault:** add Infisical platform Agent Vault design spec ([56691c2](https://github.com/hesedcasa/sdkck/commit/56691c2bf0b6e209e9a10f155eb1462b8881b856))
+* **agent-vault:** clarify no run-wrapper is needed — existing sdkck commands broker automatically ([68e5354](https://github.com/hesedcasa/sdkck/commit/68e535414816ee28c57bf89ee14f7f5a86bc58cc))
+
 ## [0.36.4](https://github.com/hesedcasa/sdkck/compare/v0.36.3...v0.36.4) (2026-09-23)
 
 
