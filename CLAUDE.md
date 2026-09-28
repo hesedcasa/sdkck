@@ -227,6 +227,7 @@ CI: `.github/workflows/run-e2e-tests.yml` runs the whole suite on demand (`workf
 
 ## Gotchas
 
+- **`npm run build` can silently no-op:** `shx rm -rf dist` wipes `dist/`, but `tsc -b` consults the root `tsconfig.tsbuildinfo` rather than the (now missing) output directory — if that file says the inputs are fresh, tsc re-emits nothing and the build exits 0 with `dist/` empty or partial. `bin/run.js` then serves commands off `oclif.manifest.json`, and **init hooks silently never fire** (observed live: agent-vault interception quietly skipped). When `dist/` was deleted out-of-band or behavior looks inexplicably stale after a build, force re-emission with `npx tsc -b --force`.
 - **Lint false-positive after build:** `npm run build` wipes `dist/`, so the `posttest` lint step always errors on `bin/run.js` (`Unable to resolve path to module '../dist/api-dynamic-commands.js'`). Pre-existing; not a regression.
 - **`@scalar/openapi-parser` peer dep:** Installing this package also requires `npm install @scalar/types` explicitly — npm does not auto-install it.
 - **`@scalar/postman-to-openapi` peer dep:** Same pattern — also requires `npm install @scalar/types` explicitly.
