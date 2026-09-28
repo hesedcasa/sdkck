@@ -81,6 +81,19 @@ One CLI to search, connect, and command every tool in your stack. Zero context w
 
 ### Credential Brokering (Agent Vault)
 
+- Two backends, auto-detected: the **Infisical platform Agent Vault** (SaaS) and the **self-hosted OSS broker**. For the platform one, create an access bundle and a session in the Infisical dashboard, enroll a proxy, then export the two values it gives you:
+
+  ```bash
+  export AGENT_VAULT_SESSION_TOKEN=agv_...   # from Sessions → Create Session
+  export AGENT_VAULT_PROXY=proxy.internal:17323
+  export AGENT_VAULT_CA_FINGERPRINT=SHA256:...   # optional CA pin
+
+  # Nothing else to configure — every invocation is brokered from here on
+  sdkck jira issue PROJ-123
+  ```
+
+  No wrapper command and no infisical CLI: existing `sdkck <command>` invocations are re-executed with the proxy environment automatically. Both values (plus `sessionToken`/`proxy`/`caFingerprint`) can instead live in `<configDir>/agent-vault.json`. `SDKCK_AGENT_VAULT_DISABLED=1` skips brokering for one invocation.
+
 - Run every command without giving it a real secret. Point Sidekick at an [Infisical Agent Vault](https://github.com/Infisical/agent-vault) broker and all outbound traffic — Sidekick's, every plugin's, and any subprocess it spawns — routes through its proxy, which injects the real credential on the wire.
 
   ```bash
