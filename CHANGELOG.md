@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.37.1](https://github.com/hesedcasa/sdkck/compare/v0.37.0...v0.37.1) (2026-09-29)
+
+
+### 🛠️ Fixes
+
+* **docs:** declare eslint compat devdeps and adopt flat config ([#242](https://github.com/hesedcasa/sdkck/issues/242)) ([9800d56](https://github.com/hesedcasa/sdkck/commit/9800d56ce18fdf0cd7673ac8ed3b538eb9617d4e))
+* **docs:** remove set-state-in-effect lint errors in docs components ([#240](https://github.com/hesedcasa/sdkck/issues/240)) ([f201158](https://github.com/hesedcasa/sdkck/commit/f201158cc232a89e5610984c211e4054578879a4))
+
+
+### 📄 Documentation
+
+* realign README, docs site, and CLAUDE.md with sdkck 0.37.0 CLI ([#243](https://github.com/hesedcasa/sdkck/issues/243)) ([121cafc](https://github.com/hesedcasa/sdkck/commit/121cafc59c2ed329568021029ac1d88141598820))
+
 ## [0.37.0](https://github.com/hesedcasa/sdkck/compare/v0.36.4...v0.37.0) (2026-09-28)
 
 
