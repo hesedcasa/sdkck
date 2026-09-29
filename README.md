@@ -230,7 +230,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.37.0 linux-x64 node-v22.23.2
+sdkck/0.37.1 linux-x64 node-v22.23.2
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
