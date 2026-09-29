@@ -16,6 +16,15 @@ export function DocsMobileNav() {
     return page ?? allDocsPages[0]
   }, [pathname])
 
+  // Close the menu on any navigation, including browser back/forward, which
+  // never hits the link onClick. Adjusting state during render is the
+  // React-sanctioned way to react to a prop change without an effect.
+  const [prevPathname, setPrevPathname] = useState(pathname)
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname)
+    setOpen(false)
+  }
+
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
     return () => {
