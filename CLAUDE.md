@@ -20,61 +20,51 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
-- **Framework:** oclif v4 — commands are auto-discovered from `src/commands/` (compiled to `dist/commands/`). Each file exports a class extending `Command`.
-- **Entry points:** `bin/run.js` (production), `bin/dev.js` (development with ts-node/esm loader)
-- **Plugin system:** Uses oclif's built-in plugin architecture (`@oclif/plugin-plugins`, `@oclif/plugin-update`, etc.). Third-party plugins are loaded via `@oclif/plugin-*` glob in package.json `oclif.plugins`.
+- **Framework:** oclif v5 (`@oclif/core` ^5). This repo's `src/` contains no commands — user-facing commands ship in the bundled plugins `@hesed/api2cli`, `@hesed/permission`, and `@hesed/search` (package.json `oclif.plugins`) and in the JIT plugins (`oclif.jitPlugins`).
+- **Entry points:** `bin/run.js` (production), `bin/dev.js` (development with ts-node/esm loader). Both patch `Config.load` to call `registerApiCommands` from `@hesed/api2cli` and to guarded-`import()` `@hesed/mcp-client`, registering the dynamic commands at startup.
+- **Plugin system:** Uses oclif's built-in plugin architecture (`@oclif/plugin-plugins`, `@oclif/plugin-commands`, `@oclif/plugin-help`, `@oclif/plugin-not-found`, `@oclif/plugin-version`). Third-party plugins are loaded via `@oclif/plugin-*` glob in package.json `oclif.plugins`.
 - **Topic separator:** Space-based (`topicSeparator: " "`), so commands use `sdkck topic command` not `sdkck topic:command`.
 - **Module system:** ESM (`"type": "module"` in package.json, `"module": "Node16"` in tsconfig)
+- **Repository layout:** `src/` holds only platform code — `agent-vault/` (Agent Vault SDK), `hooks/init/` (`setup-agent-vault`, `setup-file-logging`, `setup-telemetry`), `hooks/jit_plugin_not_installed/` (`jit-install`), `agent-vault-process.ts`, `telemetry.ts`, `file-logger.ts`, `index.ts`. `plugins/` contains the Claude Code plugin definitions (`api`, `cli`, `mcp`). The feature implementations live in the external `@hesed/*` plugin repos.
 - **Claude Code plugins:** `plugins/` contains Claude Code plugin definitions (`api`, `cli`, `mcp`) — agents, skills, and hooks that extend Claude Code using sdkck itself. Not part of the TypeScript build.
 
 ## Built-in Features
 
 ### API Import (`api` topic)
 
-`api import <source>` reads an OpenAPI spec (JSON/YAML), Postman collection, or GraphQL schema (SDL file, introspection JSON, or live endpoint) and stores each operation as a `StoredOperation`. The name defaults to the spec title slug but can be overridden with `--name`. The `init` hook (`src/hooks/init/register-api-commands.ts`) runs at startup and calls `registerApiCommands` to load every stored operation as a first-class oclif command under `<specName> <operationId>`. These dynamic commands appear in `sdkck help` and `sdkck commands` exactly like static commands.
+`api import <source>` reads an OpenAPI spec (JSON/YAML), Postman collection, or GraphQL schema (SDL file, introspection JSON, or live endpoint) and stores each operation as a `StoredOperation`. The name defaults to the spec title slug but can be overridden with `--name`. Dynamic commands are registered at startup: `bin/run.js`/`bin/dev.js` call `registerApiCommands` (from `@hesed/api2cli`) to load every stored operation as a first-class oclif command under `<specName> <operationId>`. These dynamic commands appear in `sdkck help` and `sdkck commands` exactly like static commands.
 
-Key files: `src/api-store.ts` (CRUD for stored specs/ops), `src/api-dynamic-commands.ts` (command factory), `src/hooks/init/register-api-commands.ts`, `src/postman-converter.ts` (Postman→OpenAPI via `@scalar/postman-to-openapi`), `src/graphql-converter.ts` (GraphQL SDL/introspection → StoredOperations).
+The whole `api` topic lives in the `@hesed/api2cli` plugin (`^0.5.1` in package.json) — a separate repo, extracted from this one in v0.27.0 (CHANGELOG #142/#146). Storage helpers, the Postman/GraphQL converters, and the command factory all live there now.
 
-Other subcommands: `api auth`, `api call`, `api list`, `api config`, `api remove`, `api profile`.
+Other subcommands: `api auth add/update/delete/list/profile`, `api call`, `api list`, `api config`, `api remove`.
 
 `api call --toon` encodes JSON responses with TOON format for token-efficient LLM consumption.
 
 `api import --insecure` and `api config --insecure` skip TLS certificate verification — useful for self-signed certs. `--no-insecure` disables it on an already-imported spec.
 
-**Storage layout:** stored under `<configDir>/api-<name>.json`. `readStore` also reads legacy `openapi-<name>.json` files for backward compat; `writeStore` migrates by deleting the legacy file after the first successful write.
+**Storage layout** (managed by api2cli): stored under `<configDir>/api-<name>.json`. `readStore` also reads legacy `openapi-<name>.json` files for backward compat; `writeStore` migrates by deleting the legacy file after the first successful write.
 
 ### Permission Allowlist (`permission` topic)
 
-`permission allow/disallow <pattern>` manages a JSON rule list at `<configDir>/permission.json`. Two hooks enforce rules:
+`permission allow/disallow <pattern>` manages a JSON rule list at `<configDir>/permission.json`. Rules are enforced by the `@hesed/permission` plugin (`^0.3.0` in package.json; extracted from this repo in v0.27.0, CHANGELOG #138): its init hook hides disallowed commands from `sdkck help`/`sdkck commands` and blocks `--help` on disallowed commands via early exit, and its prerun hook is the safety net that blocks execution of any disallowed command that reaches the run stage.
 
-- **Init hook** (`src/hooks/init/apply-permission.ts`): runs at startup, hides disallowed commands from `sdkck help`/`sdkck commands`, and blocks `--help` on disallowed commands via early exit.
-- **Prerun hook** (`src/hooks/prerun/check-permission.ts`): safety net that blocks execution of any disallowed command that reaches the run stage.
+First matching rule wins; unmatched commands are allowed. Rules use glob-style patterns against the space-separated command ID (mirrored in `docs/src/app/permissions/page.mdx`).
 
-First matching rule wins; unmatched commands are allowed. Rules use glob-style patterns against the space-separated command ID.
-
-Key file: `src/permission-config.ts`.
-
-Subcommands: `permission allow`, `permission disallow`, `permission list`, `permission export`, `permission import`, `permission reset`.
+Subcommands: `permission allow`, `permission check`, `permission disallow`, `permission export`, `permission import`, `permission list`, `permission remove`, `permission reset`.
 
 ### MCP Server (`mcp` topic)
 
 `mcp start` launches an MCP server (stdio by default; `--transport http --port 3000 --host 127.0.0.1` for HTTP) that exposes every sdkck CLI command as an MCP tool to any connected client (e.g. Claude Code, Cursor).
 
-Key file: `src/mcp-server.ts`. Exports:
+The server lives in the JIT plugin `@hesed/mcp-server` (extracted from this repo in v0.27.0, CHANGELOG #141), including the `@modelcontextprotocol/sdk` dependency.
 
-- `startMcpServer(config)` — entry point called by `McpStart`
-- `createMcpServer(config)` — returns a configured `McpServer` instance (useful in tests)
-- `buildArgv(cmd, toolArgs)` — maps MCP tool arguments → oclif argv array
-
-Two tools are exposed: `search_tools` (keyword-indexed search over all available commands with sampling) and `run_command` (accepts command ID + args object, builds argv, runs the command).
+Two tools are exposed: `search_tools` (keyword-indexed search over all available commands; accepts a `query` plus an optional `limit`, default 5) and `run_command` (accepts command ID + args object, builds argv, runs the command).
 
 To wire it up in Claude Code, add to `.mcp.json`:
 
 ```json
 {"mcpServers": {"sdkck": {"command": "./bin/run.js", "args": ["mcp", "start"]}}}
 ```
-
-Dep: `@modelcontextprotocol/sdk` (^1.29.0). No extra peer dep installs needed.
 
 ### MCP HTTP Authentication (`mcp token` subtopic)
 
@@ -84,7 +74,7 @@ Dep: `@modelcontextprotocol/sdk` (^1.29.0). No extra peer dep installs needed.
 
 `mcp client add <name> --command <cmd>` connects to an external MCP server (stdio via `--command`/`--args`/`--env`, or HTTP via `--url`/`--header`) and registers its tools as native sdkck CLI commands. Tools are cached; `mcp client list [--tools]` shows configured servers. `mcp client auth`, `mcp client refresh`, and `mcp client remove` manage credentials and lifecycle.
 
-Key file: `src/mcp-client-store.ts`.
+The client (store and dynamic command registration) lives in the JIT plugin `@hesed/mcp-client` (extracted in v0.27.0, CHANGELOG #139/#140) — the same plugin `bin/run.js`/`bin/dev.js` guarded-`import()` at startup.
 
 ### Telemetry (OpenTelemetry)
 
@@ -228,7 +218,6 @@ CI: `.github/workflows/run-e2e-tests.yml` runs the whole suite on demand (`workf
 ## Gotchas
 
 - **`npm run build` can silently no-op:** `shx rm -rf dist` wipes `dist/`, but `tsc -b` consults the root `tsconfig.tsbuildinfo` rather than the (now missing) output directory — if that file says the inputs are fresh, tsc re-emits nothing and the build exits 0 with `dist/` empty or partial. `bin/run.js` then serves commands off `oclif.manifest.json`, and **init hooks silently never fire** (observed live: agent-vault interception quietly skipped). When `dist/` was deleted out-of-band or behavior looks inexplicably stale after a build, force re-emission with `npx tsc -b --force`.
-- **Lint false-positive after build:** `npm run build` wipes `dist/`, so the `posttest` lint step always errors on `bin/run.js` (`Unable to resolve path to module '../dist/api-dynamic-commands.js'`). Pre-existing; not a regression.
 - **`@scalar/openapi-parser` peer dep:** Installing this package also requires `npm install @scalar/types` explicitly — npm does not auto-install it.
 - **`@scalar/postman-to-openapi` peer dep:** Same pattern — also requires `npm install @scalar/types` explicitly.
 - **`extractOperations` expects a dereferenced spec:** Call `loadSpec` (which runs `dereference` internally) before passing a spec to `extractOperations`. Tests that call `extractOperations` directly should use inline specs without `$ref`s.
@@ -236,7 +225,7 @@ CI: `.github/workflows/run-e2e-tests.yml` runs the whole suite on demand (`workf
 
 ## Conventions
 
-- **Node version:** v22 (see `.nvmrc`). Build uses this version; tests run against Node 22–24.
+- **Node version:** minimum v22 (`package.json` `engines`); `.nvmrc` pins v24 and CI builds on it. Tests run against Node 22–24.
 - **Package manager:** npm only (yarn.lock and pnpm-lock.yaml are gitignored).
 - **PR titles** must follow [Conventional Commits](https://www.conventionalcommits.org/) (enforced by CI).
 - **Releases** managed via [release-please](https://github.com/googleapis/release-please).

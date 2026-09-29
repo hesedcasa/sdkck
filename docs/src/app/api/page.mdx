@@ -128,27 +128,32 @@ sdkck petstore getPetById --help
 
 ## Authentication
 
-Configure auth per spec:
+Auth profiles are managed with `api auth` subcommands (`add`, `update`, `delete`, `list`, `profile`):
 
 ```bash
-# Bearer token
-sdkck api auth petstore --type bearer --token sk-...
+# Add a bearer token profile
+sdkck api auth add petstore --type bearer --token sk-...
 
 # API key
-sdkck api auth petstore --type apikey --api-key mykey
-sdkck api auth petstore --type apikey --api-key mykey --api-key-header X-API-Key
+sdkck api auth add petstore --type apikey --api-key mykey
+sdkck api auth add petstore --type apikey --api-key mykey --api-key-header X-API-Key
 
 # Basic auth
-sdkck api auth petstore --type basic --username user --password secret
+sdkck api auth add petstore --type basic --username user --password secret
 
 # Custom headers
-sdkck api auth petstore --type custom --header X-Tenant-ID=acme --header X-App-Key=secret
+sdkck api auth add petstore --type custom --header X-Tenant-ID=acme --header X-App-Key=secret
 
-# Remove auth
-sdkck api auth petstore --type none
+# Update a profile
+sdkck api auth update petstore --type bearer --token sk-new
 
-# View current settings
-sdkck api auth petstore --show
+# Delete a profile
+sdkck api auth delete petstore
+
+# List profiles / view or set the default profile
+sdkck api auth list petstore
+sdkck api auth profile petstore
+sdkck api auth profile petstore --default prod
 ```
 
 ![OpenAPI authentication](/openapi-03.webp)
