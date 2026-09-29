@@ -17,10 +17,6 @@ export function DocsMobileNav() {
   }, [pathname])
 
   useEffect(() => {
-    setOpen(false)
-  }, [pathname])
-
-  useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
     return () => {
       document.body.style.overflow = ''
@@ -103,6 +99,7 @@ export function DocsMobileNav() {
                               : 'text-muted-foreground hover:text-foreground',
                           )}
                           href={item.href}
+                          onClick={() => setOpen(false)}
                         >
                           {item.name}
                         </Link>

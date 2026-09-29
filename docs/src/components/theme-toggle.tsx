@@ -1,15 +1,15 @@
 'use client'
 
 import {useTheme} from 'next-themes'
-import {useEffect, useState} from 'react'
+import {useSyncExternalStore} from 'react'
+
+const emptySubscribe = () => () => {}
 
 export function ThemeToggle() {
   const {setTheme, theme} = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  // Hydration-safe mounted check: the server snapshot renders the placeholder,
+  // the client snapshot renders the toggle.
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false)
 
   if (!mounted) {
     return <div className="w-8 h-8" />
