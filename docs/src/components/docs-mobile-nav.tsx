@@ -16,9 +16,14 @@ export function DocsMobileNav() {
     return page ?? allDocsPages[0]
   }, [pathname])
 
-  useEffect(() => {
+  // Close the menu on any navigation, including browser back/forward, which
+  // never hits the link onClick. Adjusting state during render is the
+  // React-sanctioned way to react to a prop change without an effect.
+  const [prevPathname, setPrevPathname] = useState(pathname)
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname)
     setOpen(false)
-  }, [pathname])
+  }
 
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
@@ -103,6 +108,7 @@ export function DocsMobileNav() {
                               : 'text-muted-foreground hover:text-foreground',
                           )}
                           href={item.href}
+                          onClick={() => setOpen(false)}
                         >
                           {item.name}
                         </Link>
