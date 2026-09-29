@@ -27,10 +27,10 @@ One CLI to search, connect, and command every tool in your stack. Zero context w
 
   ```bash
   # Import an OpenAPI spec from a URL or local file
-  sdkck openapi import https://petstore3.swagger.io/api/v3/openapi.json --name petstore
+  sdkck api import https://petstore3.swagger.io/api/v3/openapi.json --name petstore
 
   # Import a Postman collection the same way
-  sdkck openapi import ./postman_collection.json --name myapi
+  sdkck api import ./postman_collection.json --name myapi
 
   # Every operation is now a real command
   sdkck petstore listPets
@@ -44,8 +44,8 @@ One CLI to search, connect, and command every tool in your stack. Zero context w
 - Auth is built in — configure bearer tokens, API keys, or basic auth once and every generated command uses it automatically:
 
   ```bash
-  sdkck openapi auth petstore --type bearer --token sk-...
-  sdkck openapi auth myapi --type apikey --api-key mykey --api-key-header X-API-Key
+  sdkck api auth add petstore --type bearer --token sk-...
+  sdkck api auth add myapi --type apikey --api-key mykey --api-key-header X-API-Key
   ```
 
 ### Semantic Search
@@ -129,7 +129,7 @@ stays clean for actual reasoning.
 npm install -g sdkck
 
 # Turn any OpenAPI spec into CLI commands instantly
-sdkck openapi import https://petstore3.swagger.io/api/v3/openapi.json --name petstore
+sdkck api import https://petstore3.swagger.io/api/v3/openapi.json --name petstore
 sdkck petstore listPets
 
 # Search for commands
@@ -148,7 +148,7 @@ sdkck search "find recent errors in production"
 - Install as Claude Code plugin:
 ```bash
 claude plugin marketplace add hesedcasa/sdkck
-claude plugin install sidekick@sidekick
+claude plugin install sidekick@cli
 ```
 
 - Or simply add this instruction to your AGENT.md or CLAUDE.md file
