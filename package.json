@@ -38,7 +38,7 @@
   "devDependencies": {
     "@eslint/compat": "^2",
     "@oclif/prettier-config": "^0.2.1",
-    "@oclif/test": "^4",
+    "@oclif/test": "^5",
     "@types/chai": "^5",
     "@types/chai-as-promised": "^8.0.2",
     "@types/js-yaml": "^4.0.9",
