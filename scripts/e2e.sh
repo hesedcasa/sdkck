@@ -11,6 +11,12 @@
 #   npm run test:e2e -- --grep jira             # extra args go through to mocha
 #   npm run test:e2e -- --keep                  # leave containers/home behind
 #
+# CI splits the run in two so that nothing which installs packages ever shares
+# a job with the sandbox credentials (or the OIDC token that fetches them):
+#   E2E_SDKCK_HOME=<dir> npm run test:e2e -- --setup-only  # build + install
+#   E2E_SDKCK_HOME=<dir> npm run test:e2e -- --skip-setup  # containers + tests
+# Both take the sdkck home from E2E_SDKCK_HOME and never delete it.
+#
 # Plugins come from one of two sources (E2E_PLUGIN_SOURCE):
 #   local (default) — build and npm pack the sibling repos (../jira, ../conni,
 #     ../bb, ../sentry, ../trello, ../mysql, ../psql, ../api2cli; override the
@@ -20,10 +26,14 @@
 #     runs, proving the host against the published releases users get. No
 #     sibling checkouts needed.
 #
-# Secrets are loaded from .env at the repo root when it exists (bash sources
-# it verbatim); the suite never touches the developer's real sdkck config —
-# every subprocess gets SDKCK_CONFIG_DIR/SDKCK_DATA_DIR/SDKCK_CACHE_DIR
-# redirected into throwaway directories.
+# The credentials come from Infisical: when any the selected plugins need
+# aren't already exported, the script re-runs itself under `infisical run`,
+# signed in either by a one-time `infisical login` or, in a headless sandbox,
+# by a machine identity's INFISICAL_UNIVERSAL_AUTH_CLIENT_ID and
+# INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET. The suite never touches the
+# developer's real sdkck config — every subprocess gets
+# SDKCK_CONFIG_DIR/SDKCK_DATA_DIR/SDKCK_CACHE_DIR redirected into throwaway
+# directories.
 #
 # Requires Docker with the Compose plugin when mysql or psql is selected.
 set -euo pipefail
@@ -53,28 +63,39 @@ MYSQL_COMPOSE="$REPO_ROOT/test/e2e/docker/mysql/compose.yaml"
 PSQL_COMPOSE="$REPO_ROOT/test/e2e/docker/psql/compose.yaml"
 
 KEEP=0
+SETUP_ONLY=0
+SKIP_SETUP=0
 MOCHA_ARGS=()
 USER_GREP=0
 
 for arg in "$@"; do
   case "$arg" in
     --keep) KEEP=1 ;;
+    --setup-only) SETUP_ONLY=1 ;;
+    --skip-setup) SKIP_SETUP=1 ;;
     --grep|-g) USER_GREP=1; MOCHA_ARGS+=("$arg") ;;
     *) MOCHA_ARGS+=("$arg") ;;
   esac
 done
 
+if [ "$SETUP_ONLY" -ne 0 ] && [ "$SKIP_SETUP" -ne 0 ]; then
+  echo "error: --setup-only and --skip-setup are mutually exclusive" >&2
+  exit 1
+fi
+
+if { [ "$SETUP_ONLY" -ne 0 ] || [ "$SKIP_SETUP" -ne 0 ]; } && [ -z "${E2E_SDKCK_HOME:-}" ]; then
+  echo "error: --setup-only and --skip-setup need E2E_SDKCK_HOME set to the sdkck home to share" >&2
+  exit 1
+fi
+
+if [ "$SKIP_SETUP" -ne 0 ] && [ ! -d "${E2E_SDKCK_HOME}/data" ]; then
+  echo "error: --skip-setup found no installed plugins under $E2E_SDKCK_HOME; run --setup-only first" >&2
+  exit 1
+fi
+
 # ---------------------------------------------------------------------------
 # Credentials
 # ---------------------------------------------------------------------------
-
-if [ -f "$REPO_ROOT/.env" ]; then
-  echo "==> Loading secrets from .env"
-  set -a
-  # shellcheck disable=SC1091
-  . "$REPO_ROOT/.env"
-  set +a
-fi
 
 plugin_selected() {
   case " $SELECTED " in
@@ -84,7 +105,7 @@ plugin_selected() {
 }
 
 # The env vars each plugin's tests need, checked up front so the run fails in
-# seconds — not after a full build — when a key is missing from .env.
+# seconds — not after a full build — when a key is missing.
 required_env_for() {
   case "$1" in
     jira|conni) echo "ATLASSIAN_URL ATLASSIAN_EMAIL ATLASSIAN_API_TOKEN" ;;
@@ -96,6 +117,21 @@ required_env_for() {
   esac
 }
 
+# Every credential any plugin's tests use. Building, packing and installing run
+# repository, dependency and freshly fetched plugin scripts that never need
+# them, so those steps run through without_credentials.
+ALL_CREDENTIALS="ATLASSIAN_URL ATLASSIAN_EMAIL ATLASSIAN_API_TOKEN BITBUCKET_API_TOKEN
+BITBUCKET_EMAIL E2E_WORKSPACE SENTRY_API_KEY SENTRY_URL TRELLO_API_KEY TRELLO_SECRET
+LINEAR_API_KEY VERCEL_API_KEY CONTEXT7_API_KEY"
+
+without_credentials() {
+  local unset_args=()
+  for var in $ALL_CREDENTIALS; do
+    unset_args+=(-u "$var")
+  done
+  env "${unset_args[@]}" "$@"
+}
+
 missing_secrets=()
 for plugin in $SELECTED; do
   for var in $(required_env_for "$plugin"); do
@@ -105,9 +141,40 @@ for plugin in $SELECTED; do
   done
 done
 
+# --setup-only only builds and installs, so it needs no credentials (and in CI
+# must not have them).
+if [ "$SETUP_ONLY" -ne 0 ]; then
+  missing_secrets=()
+fi
+
+# E2E_VIA_INFISICAL stops a second re-exec when Infisical lacks a secret. The
+# absolute path matters: $0 may be relative to the directory we just left.
+if [ "${#missing_secrets[@]}" -gt 0 ] && [ -z "${E2E_VIA_INFISICAL:-}" ] &&
+  command -v infisical >/dev/null; then
+  infisical_args=(--silent)
+  if [ -n "${INFISICAL_UNIVERSAL_AUTH_CLIENT_ID:-}" ]; then
+    # The CLI reads the client id and secret from the environment; passing
+    # them as flags would put the secret in the process list.
+    INFISICAL_TOKEN="$(infisical login --method=universal-auth --silent --plain)"
+    export INFISICAL_TOKEN
+  fi
+  # A machine identity token ignores .infisical.json, so pass its project ID.
+  if [ -n "${INFISICAL_TOKEN:-}" ]; then
+    infisical_args+=(--projectId "$(node -p "require('./.infisical.json').workspaceId")")
+  fi
+  E2E_VIA_INFISICAL=1 exec infisical run "${infisical_args[@]}" -- "$REPO_ROOT/scripts/e2e.sh" "$@"
+fi
+
+# The sandbox credentials are all the tests need; keep the Infisical ones out
+# of their environment.
+unset INFISICAL_TOKEN INFISICAL_UNIVERSAL_AUTH_CLIENT_ID INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET
+
 if [ "${#missing_secrets[@]}" -gt 0 ]; then
   echo "error: missing credentials: ${missing_secrets[*]}" >&2
-  echo "Add them to .env at the repo root, or narrow the run: E2E_PLUGINS=\"jira\" npm run test:e2e" >&2
+  echo "Check they exist in Infisical's dev environment and that the" >&2
+  echo "Infisical CLI is installed and logged in (infisical login), or set" >&2
+  echo "INFISICAL_UNIVERSAL_AUTH_CLIENT_ID and _CLIENT_SECRET. Or narrow the run:" >&2
+  echo "  E2E_PLUGINS=\"jira\" npm run test:e2e" >&2
   exit 1
 fi
 
@@ -118,7 +185,7 @@ fi
 MYSQL_STARTED=0
 PSQL_STARTED=0
 
-if plugin_selected mysql || plugin_selected psql; then
+if [ "$SETUP_ONLY" -eq 0 ] && { plugin_selected mysql || plugin_selected psql; }; then
   if ! docker compose version >/dev/null 2>&1; then
     echo "error: docker compose is required when mysql or psql is selected" >&2
     exit 1
@@ -163,7 +230,9 @@ start_psql() {
 
 # Deliberately NOT named SDKCK_HOME: an inherited SDKCK_HOME could point at
 # the developer's real sdkck setup, and the EXIT trap must never rm -rf that.
-# This variable only ever holds a path this script itself mktemp'd.
+# This variable only ever holds a path this script itself mktemp'd; a home
+# handed in through E2E_SDKCK_HOME (--setup-only/--skip-setup) is never
+# deleted.
 SDKCK_E2E_HOME=""
 
 cleanup() {
@@ -179,6 +248,11 @@ cleanup() {
         mv "$E2E_PLUGIN_ROOT/$plugin/README.md.e2e-bak" "$E2E_PLUGIN_ROOT/$plugin/README.md"
       fi
     done
+  fi
+
+  # Nothing was created in the sandboxes or started in Docker yet.
+  if [ "$SETUP_ONLY" -ne 0 ]; then
+    exit "$status"
   fi
 
   if [ "$KEEP" -ne 0 ]; then
@@ -248,17 +322,17 @@ pack_plugin() {
 
   echo "==> Building and packing $name" >&2
   if [ ! -d "$dir/node_modules" ]; then
-    (cd "$dir" && npm ci --silent 1>&2)
+    (cd "$dir" && without_credentials npm ci --silent 1>&2)
   fi
 
-  (cd "$dir" && npm run --silent build 1>&2)
+  (cd "$dir" && without_credentials npm run --silent build 1>&2)
 
   cp "$dir/README.md" "$dir/README.md.e2e-bak"
   local tgz
-  tgz="$(cd "$dir" && npm pack --pack-destination "$SDKCK_E2E_HOME" | tail -n 1)"
+  tgz="$(cd "$dir" && without_credentials npm pack --pack-destination "$E2E_SDKCK_HOME" | tail -n 1)"
   mv "$dir/README.md.e2e-bak" "$dir/README.md"
 
-  echo "$SDKCK_E2E_HOME/$tgz"
+  echo "$E2E_SDKCK_HOME/$tgz"
 }
 
 # Installs an install spec — a `file:` URL to a packed tarball (local source)
@@ -270,11 +344,50 @@ install_plugin() {
   echo "==> Installing $name into the throwaway home"
   # A tarball must be passed as a `file:` URL: sdkck resolves any bare path
   # containing a slash as a GitHub org/repo.
-  SDKCK_CACHE_DIR="$SDKCK_E2E_HOME/cache" \
-  SDKCK_CONFIG_DIR="$SDKCK_E2E_HOME/config" \
-  SDKCK_DATA_DIR="$SDKCK_E2E_HOME/data" \
+  without_credentials \
+    SDKCK_CACHE_DIR="$E2E_SDKCK_HOME/cache" \
+    SDKCK_CONFIG_DIR="$E2E_SDKCK_HOME/config" \
+    SDKCK_DATA_DIR="$E2E_SDKCK_HOME/data" \
     node "$REPO_ROOT/bin/run.js" plugins install "$spec" >/dev/null
 }
+
+if [ "$SKIP_SETUP" -eq 0 ]; then
+  echo "==> Building sdkck"
+  without_credentials npm run --silent build
+
+  if [ "$SETUP_ONLY" -ne 0 ]; then
+    mkdir -p "$E2E_SDKCK_HOME"
+  else
+    SDKCK_E2E_HOME="$(mktemp -d)"
+    export E2E_SDKCK_HOME="$SDKCK_E2E_HOME"
+  fi
+
+  for plugin in $SELECTED; do
+    if [ "$E2E_PLUGIN_SOURCE" = "npm" ]; then
+      # @latest matches what package.json's jitPlugins pins, and what a user
+      # gets on first use. api2cli is additionally bundled as a package.json
+      # dependency; installing latest shadows that pin for this run.
+      install_plugin "@hesed/$plugin@latest" "@hesed/$plugin@latest"
+      continue
+    fi
+
+    dir="$E2E_PLUGIN_ROOT/$plugin"
+    if [ ! -d "$dir" ]; then
+      echo "error: plugin repo not found: $dir (set E2E_PLUGIN_ROOT, or use E2E_PLUGIN_SOURCE=npm)" >&2
+      exit 1
+    fi
+
+    tgz="$(pack_plugin "$dir")"
+    install_plugin "file:$tgz" "@hesed/$plugin (local $dir)"
+  done
+fi
+
+if [ "$SETUP_ONLY" -ne 0 ]; then
+  echo "==> sdkck and plugins installed into $E2E_SDKCK_HOME"
+  exit 0
+fi
+
+export E2E_SDKCK_HOME
 
 if plugin_selected mysql; then
   start_mysql
@@ -283,31 +396,6 @@ fi
 if plugin_selected psql; then
   start_psql
 fi
-
-echo "==> Building sdkck"
-npm run --silent build
-
-SDKCK_E2E_HOME="$(mktemp -d)"
-export E2E_SDKCK_HOME="$SDKCK_E2E_HOME"
-
-for plugin in $SELECTED; do
-  if [ "$E2E_PLUGIN_SOURCE" = "npm" ]; then
-    # @latest matches what package.json's jitPlugins pins, and what a user
-    # gets on first use. api2cli is additionally bundled as a package.json
-    # dependency; installing latest shadows that pin for this run.
-    install_plugin "@hesed/$plugin@latest" "@hesed/$plugin@latest"
-    continue
-  fi
-
-  dir="$E2E_PLUGIN_ROOT/$plugin"
-  if [ ! -d "$dir" ]; then
-    echo "error: plugin repo not found: $dir (set E2E_PLUGIN_ROOT, or use E2E_PLUGIN_SOURCE=npm)" >&2
-    exit 1
-  fi
-
-  tgz="$(pack_plugin "$dir")"
-  install_plugin "file:$tgz" "@hesed/$plugin (local $dir)"
-done
 
 # ---------------------------------------------------------------------------
 # Run the suite
