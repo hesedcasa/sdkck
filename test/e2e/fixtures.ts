@@ -27,7 +27,7 @@ function requireVars(names: string[], context: string): Record<string, string> {
   if (missing.length > 0) {
     throw new Error(
       `Missing ${missing.join(', ')} (needed by the ${context} e2e tests). ` +
-        'scripts/e2e.sh loads .env automatically — check it has these keys, or narrow the run with E2E_PLUGINS.',
+        'They come from Infisical — run under `infisical run --` (scripts/e2e.sh does it for you), or narrow the run with E2E_PLUGINS.',
     )
   }
 
@@ -73,7 +73,7 @@ export function requireBitbucketEnv(): {apiToken: string; email: string; workspa
 /**
  * Reads the Sentry sandbox credentials.
  *
- * The .env at the repo root names the API root `SENTRY_URL`; the sentry plugin
+ * The sandbox credentials name the API root `SENTRY_URL`; the sentry plugin
  * calls it `SENTRY_HOST` and expects the full API root, so a bare host gets
  * `/api/0` appended. SENTRY_HOST wins when both are set.
  *
@@ -104,7 +104,7 @@ export function requireTrelloEnv(): {apiKey: string; apiToken: string} {
   if (!apiKey || !apiToken) {
     throw new Error(
       'Missing TRELLO_API_KEY or TRELLO_SECRET. ' +
-        'scripts/e2e.sh loads .env automatically — check it has these keys, or narrow the run with E2E_PLUGINS.',
+        'They come from Infisical — run under `infisical run --` (scripts/e2e.sh does it for you), or narrow the run with E2E_PLUGINS.',
     )
   }
 
