@@ -8,7 +8,7 @@ const LINEAR_GRAPHQL_URL = 'https://api.linear.app/graphql'
 const LINEAR_SCHEMA_URL =
   'https://raw.githubusercontent.com/linear/linear/refs/heads/master/packages/sdk/src/schema.graphql'
 const VERCEL_SPEC_URL = 'https://openapi.vercel.sh/'
-const CONTEXT7_SPEC_URL = 'https://raw.githubusercontent.com/upstash/context7/refs/heads/master/docs/openapi.json'
+const CONTEXT7_SPEC_URL = 'https://context7.com/openapi.json'
 
 /**
  * The api leg: the local `@hesed/api2cli` build, installed over the npm-pinned
