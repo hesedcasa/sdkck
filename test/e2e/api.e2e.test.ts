@@ -88,6 +88,20 @@ describe('e2e: api plugin via sdkck', () => {
     expect(code).to.equal(0)
   })
 
+  // Regression (0.37.0): `commands` and `search` run on plugins built against
+  // a different @oclif/core than the host, which rebuild the config through
+  // their own Config.load — the dynamic operations vanished from both.
+  it('lists the dynamic operation commands in `sdkck commands`', async () => {
+    const commands = await runSdkckJson<Array<{id: string}>>(['commands', '--json'], configDir)
+    const ids = commands.map((c) => c.id)
+    expect(ids).to.include.members(['linear:viewer', 'vercel:getAuthUser', 'context7:searchLibraries'])
+  })
+
+  it('finds the dynamic operation commands with `sdkck search`', async () => {
+    const results = await runSdkckJson<Array<{commandId: string}>>(['search', 'getAuthUser', '--json'], configDir)
+    expect(results.map((r) => r.commandId)).to.include('vercel getAuthUser')
+  })
+
   it('removes an imported spec', async () => {
     const {code} = await runSdkck(['api', 'remove', 'context7'], configDir)
     expect(code).to.equal(0)

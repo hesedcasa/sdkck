@@ -219,7 +219,7 @@ export async function eventually<T>(
  * `api` gets an empty dir: its stores are created by the commands under test
  * (`api import`, `api auth add`), not seeded here.
  */
-export type PluginName = 'api' | 'bb' | 'conni' | 'jira' | 'mysql' | 'psql' | 'sentry' | 'trello'
+export type PluginName = 'api' | 'bb' | 'conni' | 'jira' | 'mcp-client' | 'mysql' | 'psql' | 'sentry' | 'trello'
 
 /**
  * Writes a throwaway config dir holding the plugin's `<topic>-config.json`
@@ -239,7 +239,8 @@ export async function createConfigDir(plugin: PluginName): Promise<string> {
   let config: Record<string, unknown>
 
   switch (plugin) {
-    case 'api': {
+    case 'api':
+    case 'mcp-client': {
       return dir
     }
 

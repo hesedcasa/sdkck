@@ -19,9 +19,11 @@
 #
 # Plugins come from one of two sources (E2E_PLUGIN_SOURCE):
 #   local (default) — build and npm pack the sibling repos (../jira, ../conni,
-#     ../bb, ../sentry, ../trello, ../mysql, ../psql, ../api2cli; override the
-#     parent dir with E2E_PLUGIN_ROOT) and install the tarballs: what a
-#     developer iterating across repos wants.
+#     ../bb, ../sentry, ../trello, ../mysql, ../psql, ../api2cli,
+#     ../mcp-client; override the parent dir with E2E_PLUGIN_ROOT) and install
+#     the tarballs: what a developer iterating across repos wants. mcp-client
+#     alone falls back to npm when its sibling is not checked out — that leg
+#     tests the host's dynamic-command registration, not the plugin.
 #   npm — install @hesed/<name>@latest straight from the registry: what CI
 #     runs, proving the host against the published releases users get. No
 #     sibling checkouts needed.
@@ -41,7 +43,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO_ROOT="$PWD"
 
-ALL_PLUGINS="jira conni bb sentry trello mysql psql api2cli"
+ALL_PLUGINS="jira conni bb sentry trello mysql psql api2cli mcp-client"
 if [ -n "${E2E_PLUGINS:-}" ]; then
   SELECTED="$E2E_PLUGINS"
 else
@@ -372,6 +374,11 @@ if [ "$SKIP_SETUP" -eq 0 ]; then
     fi
 
     dir="$E2E_PLUGIN_ROOT/$plugin"
+    if [ ! -d "$dir" ] && [ "$plugin" = "mcp-client" ]; then
+      echo "==> $dir not found; using @hesed/mcp-client@latest from npm"
+      install_plugin "@hesed/$plugin@latest" "@hesed/$plugin@latest"
+      continue
+    fi
     if [ ! -d "$dir" ]; then
       echo "error: plugin repo not found: $dir (set E2E_PLUGIN_ROOT, or use E2E_PLUGIN_SOURCE=npm)" >&2
       exit 1
