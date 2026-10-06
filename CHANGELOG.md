@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.37.2](https://github.com/hesedcasa/sdkck/compare/v0.37.1...v0.37.2) (2026-10-06)
+
+
+### 🛠️ Fixes
+
+* keep dynamic API and MCP client commands visible in commands and search ([#249](https://github.com/hesedcasa/sdkck/issues/249)) ([ef902e4](https://github.com/hesedcasa/sdkck/commit/ef902e490c3a83218f0dfa60799a6811e048d456))
+
 ## [0.37.1](https://github.com/hesedcasa/sdkck/compare/v0.37.0...v0.37.1) (2026-09-29)
 
 
