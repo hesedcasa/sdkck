@@ -30,9 +30,24 @@ async function registerMcpClientCommands(config) {
 // `search` came up without any dynamic command. Mirroring the dynamic commands
 // onto the root plugin, whose instance every such reload reuses, carries them
 // into the rebuilt config too.
+const PERSISTED = Symbol('sdkck.persistedDynamicCommands')
+
 function persistDynamicCommands(config) {
+  const root = config.rootPlugin
   const owned = new Set(config.getPluginsList().flatMap((p) => p.commands.flatMap((c) => [c.id, ...(c.aliases ?? [])])))
-  config.rootPlugin.commands.push(...config.commands.filter((c) => !owned.has(c.id)))
+  const dynamic = config.commands.filter((c) => !owned.has(c.id))
+  root.commands.push(...dynamic)
+  root[PERSISTED] = [...(root[PERSISTED] ?? []), ...dynamic]
+}
+
+// Undoes persistDynamicCommands on a plugin about to be reused by a reload, so
+// the reloaded config re-reads the stores instead of inheriting commands for a
+// spec or MCP server that has since been removed.
+function unpersistDynamicCommands(plugin) {
+  const persisted = new Set(plugin?.[PERSISTED])
+  if (persisted.size === 0) return
+  plugin.commands = plugin.commands.filter((c) => !persisted.has(c))
+  plugin[PERSISTED] = []
 }
 
 // Patch Config.load so every config instance (including those created inside
@@ -40,6 +55,8 @@ function persistDynamicCommands(config) {
 // This also ensures commands are present when normalizeArgv() parses argv.
 const originalLoad = Config.load.bind(Config)
 Config.load = async (...args) => {
+  // A reload (Config.load(existingConfig)) reuses that config's plugins.
+  unpersistDynamicCommands(args[0]?.rootPlugin)
   const config = await originalLoad(...args)
   await registerApiCommands(config).catch(() => {})
   await registerMcpClientCommands(config)
