@@ -1,0 +1,75 @@
+name: Dependabot auto-merge
+
+# Squash-merges a Dependabot PR once every check on its head commit has passed.
+#
+# Runs whenever one of the PR workflows below finishes, so the last one to
+# complete performs the merge. main has no required status checks, so GitHub's
+# native auto-merge would merge immediately; this job checks every check run
+# and commit status itself instead (including third-party ones like CodeRabbit).
+on:
+  workflow_run:
+    workflows:
+      - Compile and run tests
+      - Conventional Commit
+    types:
+      - completed
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: dependabot-auto-merge-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  auto-merge:
+    name: Merge passing Dependabot PR
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      startsWith(github.event.workflow_run.head_branch, 'dependabot/')
+    steps:
+      - name: Merge when all checks pass
+        env:
+          # A merge made with GITHUB_TOKEN does not trigger push workflows
+          # (release-please). Set AUTO_MERGE_TOKEN to a PAT to have them run.
+          GH_TOKEN: ${{ secrets.AUTO_MERGE_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+
+          pr=$(gh pr list --state open --head "$HEAD_BRANCH" \
+            --json number,author,headRefOid,isDraft \
+            --jq '.[] | select(.author.login == "app/dependabot" or .author.login == "dependabot[bot]")')
+          if [ -z "$pr" ]; then
+            echo "No open Dependabot PR for $HEAD_BRANCH."
+            exit 0
+          fi
+
+          number=$(jq -r .number <<<"$pr")
+          if [ "$(jq -r .headRefOid <<<"$pr")" != "$HEAD_SHA" ]; then
+            echo "PR #$number has moved past $HEAD_SHA; a newer run will decide."
+            exit 0
+          fi
+          if [ "$(jq -r .isDraft <<<"$pr")" = "true" ]; then
+            echo "PR #$number is a draft."
+            exit 0
+          fi
+
+          # Buckets: pass, fail, pending, skipping, cancel.
+          checks=$(gh pr checks "$number" --json name,bucket || true)
+          echo "$checks" | jq -r '.[] | "\(.bucket)\t\(.name)"'
+          if [ "$(jq 'length' <<<"$checks")" -eq 0 ]; then
+            echo "No checks reported yet."
+            exit 0
+          fi
+          not_passed=$(jq '[.[] | select(.bucket != "pass" and .bucket != "skipping")] | length' <<<"$checks")
+          if [ "$not_passed" -ne 0 ]; then
+            echo "PR #$number has $not_passed check(s) not passed yet; not merging."
+            exit 0
+          fi
+
+          gh pr merge "$number" --squash --match-head-commit "$HEAD_SHA"
