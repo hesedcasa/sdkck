@@ -21,8 +21,11 @@ on:
   workflow_dispatch:
 
 permissions:
+  # checks/statuses: read lets the default token see check results.
+  checks: read
   contents: write
   pull-requests: write
+  statuses: read
 
 concurrency:
   group: dependabot-auto-merge
@@ -52,7 +55,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          prs=$(gh pr list --state open --author 'app/dependabot' \
+          prs=$(gh pr list --state open --author 'app/dependabot' --limit 500 \
             --json number,headRefOid,isDraft \
             --jq '.[] | select(.isDraft | not) | "\(.number) \(.headRefOid)"')
           if [ -z "$prs" ]; then
@@ -60,15 +63,16 @@ jobs:
             exit 0
           fi
 
-          while read -r number sha; do
+          while read -r number sha <&3; do
             echo "::group::PR #$number ($sha)"
 
             # gh exits non-zero when checks are pending or failing; the JSON is
             # still printed then. Anything that is not a non-empty array of
             # passed/skipped checks means "do not merge" (fail closed).
-            checks=$(gh pr checks "$number" --json name,bucket 2>/dev/null) || true
-            if ! jq -e 'type == "array" and length > 0' <<<"$checks" >/dev/null 2>&1; then
-              echo "Could not read checks; not merging."
+            checks=$(gh pr checks "$number" --json name,bucket) || true
+            if [ -z "$checks" ] ||
+              ! jq -e 'type == "array" and length > 0' <<<"$checks" >/dev/null 2>&1; then
+              echo "::warning::Could not read checks for PR #$number; not merging."
               echo "::endgroup::"
               continue
             fi
@@ -91,4 +95,4 @@ jobs:
             gh pr merge "$number" --squash --match-head-commit "$sha" \
               || echo "::warning::Merging PR #$number failed."
             echo "::endgroup::"
-          done <<<"$prs"
+          done 3<<<"$prs"
