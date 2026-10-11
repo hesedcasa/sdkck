@@ -1,0 +1,94 @@
+name: Dependabot auto-merge
+
+# Squash-merges each open Dependabot PR once every check on its head commit has
+# passed.
+#
+# main has no required status checks, so GitHub's native auto-merge would merge
+# immediately; this job checks every check run and commit status itself instead.
+# It re-evaluates whenever a PR workflow finishes or a commit status (e.g.
+# CodeRabbit) succeeds, plus an hourly sweep in case a check finishes last
+# without matching either trigger. Each run checks all open Dependabot PRs.
+on:
+  workflow_run:
+    workflows:
+      - Compile and run tests
+      - Conventional Commit
+    types:
+      - completed
+  status:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: dependabot-auto-merge
+  cancel-in-progress: false
+
+jobs:
+  auto-merge:
+    name: Merge passing Dependabot PRs
+    runs-on: ubuntu-latest
+    if: >-
+      (github.event_name != 'workflow_run' ||
+        (github.event.workflow_run.conclusion == 'success' &&
+         startsWith(github.event.workflow_run.head_branch, 'dependabot/'))) &&
+      (github.event_name != 'status' || github.event.state == 'success')
+    steps:
+      - name: Merge PRs whose checks all passed
+        env:
+          # A merge made with GITHUB_TOKEN does not trigger push workflows
+          # (release-please). Set AUTO_MERGE_TOKEN to a PAT to have them run.
+          GH_TOKEN: ${{ secrets.AUTO_MERGE_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          # Gate checks that must be reported and passing on the head commit, so
+          # a PR is never merged on a partial set of results before its tests
+          # have registered. "[Required] Tests passed" only passes once every
+          # test matrix job has succeeded.
+          REQUIRED_CHECKS: '["[Required] Tests passed", "[Required] Validate PR title"]'
+        run: |
+          set -euo pipefail
+
+          prs=$(gh pr list --state open --author 'app/dependabot' \
+            --json number,headRefOid,isDraft \
+            --jq '.[] | select(.isDraft | not) | "\(.number) \(.headRefOid)"')
+          if [ -z "$prs" ]; then
+            echo "No open Dependabot PRs."
+            exit 0
+          fi
+
+          while read -r number sha; do
+            echo "::group::PR #$number ($sha)"
+
+            # gh exits non-zero when checks are pending or failing; the JSON is
+            # still printed then. Anything that is not a non-empty array of
+            # passed/skipped checks means "do not merge" (fail closed).
+            checks=$(gh pr checks "$number" --json name,bucket 2>/dev/null) || true
+            if ! jq -e 'type == "array" and length > 0' <<<"$checks" >/dev/null 2>&1; then
+              echo "Could not read checks; not merging."
+              echo "::endgroup::"
+              continue
+            fi
+            jq -r '.[] | "\(.bucket)\t\(.name)"' <<<"$checks"
+            if ! jq -e 'all(.bucket == "pass" or .bucket == "skipping")' <<<"$checks" >/dev/null; then
+              echo "Not every check has passed; not merging."
+              echo "::endgroup::"
+              continue
+            fi
+            if ! jq -e --argjson required "$REQUIRED_CHECKS" \
+              '[.[] | select(.bucket == "pass") | .name] as $passed | all($required[]; IN($passed[]))' \
+              <<<"$checks" >/dev/null; then
+              echo "Required checks have not all reported a pass yet; not merging."
+              echo "::endgroup::"
+              continue
+            fi
+
+            # --match-head-commit refuses the merge if the PR moved past the
+            # commit whose checks were just read.
+            gh pr merge "$number" --squash --match-head-commit "$sha" \
+              || echo "::warning::Merging PR #$number failed."
+            echo "::endgroup::"
+          done <<<"$prs"
