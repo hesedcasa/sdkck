@@ -44,6 +44,11 @@ jobs:
           # (release-please). Set AUTO_MERGE_TOKEN to a PAT to have them run.
           GH_TOKEN: ${{ secrets.AUTO_MERGE_TOKEN || secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
+          # Gate checks that must be reported and passing on the head commit, so
+          # a PR is never merged on a partial set of results before its tests
+          # have registered. "[Required] Tests passed" only passes once every
+          # test matrix job has succeeded.
+          REQUIRED_CHECKS: '["[Required] Tests passed", "[Required] Validate PR title"]'
         run: |
           set -euo pipefail
 
@@ -70,6 +75,13 @@ jobs:
             jq -r '.[] | "\(.bucket)\t\(.name)"' <<<"$checks"
             if ! jq -e 'all(.bucket == "pass" or .bucket == "skipping")' <<<"$checks" >/dev/null; then
               echo "Not every check has passed; not merging."
+              echo "::endgroup::"
+              continue
+            fi
+            if ! jq -e --argjson required "$REQUIRED_CHECKS" \
+              '[.[] | select(.bucket == "pass") | .name] as $passed | all($required[]; IN($passed[]))' \
+              <<<"$checks" >/dev/null; then
+              echo "Required checks have not all reported a pass yet; not merging."
               echo "::endgroup::"
               continue
             fi
