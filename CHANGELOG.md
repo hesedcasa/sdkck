@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.37.3](https://github.com/hesedcasa/sdkck/compare/v0.37.2...v0.37.3) (2026-10-11)
+
+
+### 🛠️ Fixes
+
+* **dependabot-auto-merge:** harden check reading and PR listing ([#257](https://github.com/hesedcasa/sdkck/issues/257)) ([0af7b98](https://github.com/hesedcasa/sdkck/commit/0af7b986d07bb2d8d492302d608047a9614605ef))
+
 ## [0.37.2](https://github.com/hesedcasa/sdkck/compare/v0.37.1...v0.37.2) (2026-10-06)
 
 
