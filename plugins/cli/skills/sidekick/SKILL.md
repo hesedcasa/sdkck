@@ -52,7 +52,7 @@ Only when `sdkck search` returns no relevant match may you fall back to MCP, Bas
 
 ## Long text — pass a file, never inline
 
-Endpoint security (SentinelOne) blocks processes with very large command lines, so **never pass long text inline** — not as a literal string and not as `"$(cat file)"` (the shell expands it onto the command line). Write the content to a file with the Write tool and pass it as `@<path>` in place of the text (`@-` reads stdin; `@@` for a literal leading `@`):
+**Never pass long text inline** — not as a literal string and not as `"$(cat file)"` (the shell expands it onto the command line). Write the content to a file with the Write tool and pass it as `@<path>` in place of the text (`@-` reads stdin; `@@` for a literal leading `@`):
 
 ```bash
 sdkck jira issue comment PROJ-123 @/tmp/comment.md
