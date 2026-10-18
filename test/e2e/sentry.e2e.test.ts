@@ -38,7 +38,9 @@ describe('e2e: sentry plugin via sdkck', () => {
 
   it('errors on an unknown profile rather than falling back to the default', async () => {
     const {code, stdout} = await runSdkck(['sentry', 'org', '--profile', 'nosuch'], configDir)
-    expect(code).to.equal(1)
+    // The plugin reports it with `this.error()`, whose default exit is 2; since
+    // @oclif/core 5.1.8 that code survives JSON mode too (it used to become 1).
+    expect(code).to.equal(2)
 
     // Structured presence only: a payload carrying an error — instead of the
     // default profile's issue listing — is what proves there was no silent
