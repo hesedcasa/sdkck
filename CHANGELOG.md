@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.37.3](https://github.com/hesedcasa/sdkck/compare/v0.37.2...v0.37.3) (2026-10-18)
+
+
+### 🛠️ Fixes
+
+* **dependabot-auto-merge:** harden check reading and PR listing ([#257](https://github.com/hesedcasa/sdkck/issues/257)) ([0af7b98](https://github.com/hesedcasa/sdkck/commit/0af7b986d07bb2d8d492302d608047a9614605ef))
+
+
+### 📄 Documentation
+
+* **sidekick:** tell agents to pass long text via file flags ([#266](https://github.com/hesedcasa/sdkck/issues/266)) ([28ee3bf](https://github.com/hesedcasa/sdkck/commit/28ee3bf0519b756f408d8c3ebb95a09cba5fa9d2))
+
 ## [0.37.2](https://github.com/hesedcasa/sdkck/compare/v0.37.1...v0.37.2) (2026-10-06)
 
 
