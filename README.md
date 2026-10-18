@@ -230,7 +230,7 @@ $ npm install -g sdkck
 $ sdkck COMMAND
 running command...
 $ sdkck (--version)
-sdkck/0.37.2 linux-x64 node-v22.23.3
+sdkck/0.37.3 linux-x64 node-v22.23.3
 $ sdkck --help [COMMAND]
 USAGE
   $ sdkck COMMAND
@@ -616,7 +616,7 @@ DESCRIPTION
   List all sdkck commands.
 ```
 
-_See code: [@oclif/plugin-commands](https://github.com/oclif/plugin-commands/blob/4.2.0/src/commands/commands.ts)_
+_See code: [@oclif/plugin-commands](https://github.com/oclif/plugin-commands/blob/5.0.4/src/commands/commands.ts)_
 
 ## `sdkck help [COMMAND]`
 
@@ -636,7 +636,7 @@ DESCRIPTION
   Display help for sdkck.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/7.0.0/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/7.0.4/src/commands/help.ts)_
 
 ## `sdkck permission allow PATTERN`
 
@@ -662,7 +662,7 @@ EXAMPLES
   $ sdkck permission allow "jira issue create"
 ```
 
-_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.0/src/commands/permission/allow.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.1/src/commands/permission/allow.ts)_
 
 ## `sdkck permission check COMMAND`
 
@@ -686,7 +686,7 @@ EXAMPLES
   $ sdkck permission check jira issue create
 ```
 
-_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.0/src/commands/permission/check.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.1/src/commands/permission/check.ts)_
 
 ## `sdkck permission disallow PATTERN`
 
@@ -712,7 +712,7 @@ EXAMPLES
   $ sdkck permission disallow "jira issue create"
 ```
 
-_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.0/src/commands/permission/disallow.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.1/src/commands/permission/disallow.ts)_
 
 ## `sdkck permission export FILE`
 
@@ -732,7 +732,7 @@ EXAMPLES
   $ sdkck permission export permission.json
 ```
 
-_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.0/src/commands/permission/export.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.1/src/commands/permission/export.ts)_
 
 ## `sdkck permission import FILE`
 
@@ -752,7 +752,7 @@ EXAMPLES
   $ sdkck permission import permission.json
 ```
 
-_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.0/src/commands/permission/import.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.1/src/commands/permission/import.ts)_
 
 ## `sdkck permission list`
 
@@ -774,7 +774,7 @@ EXAMPLES
   $ sdkck permission list --json
 ```
 
-_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.0/src/commands/permission/list.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.1/src/commands/permission/list.ts)_
 
 ## `sdkck permission remove PATTERN`
 
@@ -804,7 +804,7 @@ EXAMPLES
   $ sdkck permission remove jira --disallow
 ```
 
-_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.0/src/commands/permission/remove.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.1/src/commands/permission/remove.ts)_
 
 ## `sdkck permission reset`
 
@@ -826,7 +826,7 @@ EXAMPLES
   $ sdkck permission reset --confirm
 ```
 
-_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.0/src/commands/permission/reset.ts)_
+_See code: [@hesed/permission](https://github.com/hesedcasa/permission/blob/v0.3.1/src/commands/permission/reset.ts)_
 
 ## `sdkck plugins`
 
