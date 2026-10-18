@@ -52,18 +52,18 @@ Only when `sdkck search` returns no relevant match may you fall back to MCP, Bas
 
 ## Long text — pass a file, never inline
 
-Endpoint security (SentinelOne) blocks processes with very large command lines, so **never pass long text inline** — not as a literal string and not as `"$(cat file)"` (the shell expands it onto the command line). Write the content to a file with the Write tool and use the command's file flag (`-` reads stdin):
+Endpoint security (SentinelOne) blocks processes with very large command lines, so **never pass long text inline** — not as a literal string and not as `"$(cat file)"` (the shell expands it onto the command line). Write the content to a file with the Write tool and pass it as `@<path>` in place of the text (`@-` reads stdin; `@@` for a literal leading `@`):
 
 ```bash
-sdkck jira issue comment PROJ-123 --body-file /tmp/comment.md
+sdkck jira issue comment PROJ-123 @/tmp/comment.md
 sdkck jira issue update PROJ-123 --fields description=@/tmp/desc.md
-sdkck conni content comment 123456 --body-file /tmp/comment.md
+sdkck conni content comment 123456 @/tmp/comment.md
 sdkck conni content update 123456 --fields body=@/tmp/page.md
-sdkck bb pr comment my-ws my-repo 42 --body-file /tmp/review.md
-sdkck bb pr create my-ws my-repo --title "..." --source feat --destination main --description-file /tmp/pr.md
+sdkck bb pr comment my-ws my-repo 42 --body @/tmp/review.md
+sdkck bb pr create my-ws my-repo --title "..." --source feat --destination main --description @/tmp/pr.md
 ```
 
-Check `--help` for others (`--comment-file` on `jira issue worklog`, `--body-file` on the comment-update/reply commands).
+The same `@<path>` form works on the other text-taking commands (`jira issue create --fields`, `jira issue worklog`'s comment, the `comment-update`/`comment-reply` commands, `conni content create --fields`, `bb pr update --description`) — check `--help`.
 
 ## Built-in topics
 
