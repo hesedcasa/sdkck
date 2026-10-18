@@ -50,20 +50,15 @@ Only when `sdkck search` returns no relevant match may you fall back to MCP, Bas
    sdkck mysql query "SELECT ..."
    ```
 
-## Long text — pass a file, never inline
+## Long text
 
-**Never pass long text inline** — not as a literal string and not as `"$(cat file)"` (the shell expands it onto the command line). Write the content to a file with the Write tool and pass it as `@<path>` in place of the text (`@-` reads stdin; `@@` for a literal leading `@`):
+Write long text to a file and pass `@<path>` instead of the text — never inline, never `"$(cat file)"`:
 
 ```bash
 sdkck jira issue comment PROJ-123 @/tmp/comment.md
 sdkck jira issue update PROJ-123 --fields description=@/tmp/desc.md
-sdkck conni content comment 123456 @/tmp/comment.md
-sdkck conni content update 123456 --fields body=@/tmp/page.md
-sdkck bb pr comment my-ws my-repo 42 --body @/tmp/review.md
 sdkck bb pr create my-ws my-repo --title "..." --source feat --destination main --description @/tmp/pr.md
 ```
-
-The same `@<path>` form works on the other text-taking commands (`jira issue create --fields`, `jira issue worklog`'s comment, the `comment-update`/`comment-reply` commands, `conni content create --fields`, `bb pr update --description`) — check `--help`.
 
 ## Built-in topics
 
