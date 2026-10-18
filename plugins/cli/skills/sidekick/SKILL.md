@@ -50,6 +50,16 @@ Only when `sdkck search` returns no relevant match may you fall back to MCP, Bas
    sdkck mysql query "SELECT ..."
    ```
 
+## Long text
+
+Write long text to a file and pass `@<path>` instead of the text — never inline, never `"$(cat file)"`:
+
+```bash
+sdkck jira issue comment PROJ-123 @/tmp/comment.md
+sdkck jira issue update PROJ-123 --fields description=@/tmp/desc.md
+sdkck bb pr create my-ws my-repo --title "..." --source feat --destination main --description @/tmp/pr.md
+```
+
 ## Built-in topics
 
 - **`api`** — `import {spec}` ingests an OpenAPI spec, Postman collection, or GraphQL schema (SDL/introspection/endpoint URL) and registers each operation as `sdkck {name} {operationId}`. Also: `list`, `call`, `auth`, `config`, `remove`.
