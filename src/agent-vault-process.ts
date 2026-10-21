@@ -24,6 +24,14 @@ export const PROXY_ENV = 'AGENT_VAULT_PROXY'
 /** Optional SHA-256 pin of the platform proxy CA. */
 export const CA_FINGERPRINT_ENV = 'AGENT_VAULT_CA_FINGERPRINT'
 
+/**
+ * Silences the warning Node 22 prints the first time `fetch` builds its
+ * `EnvHttpProxyAgent` under `NODE_USE_ENV_PROXY` — noise on every intercepted
+ * command. Set through `NODE_OPTIONS` rather than the child's argv so Node
+ * subprocesses inheriting the proxy environment stay quiet too.
+ */
+const DISABLE_PROXY_WARNING = '--disable-warning=UNDICI-EHPA'
+
 /** The self-hosted OSS broker credential path. */
 export type BrokerTarget = {kind: 'broker'; vault: string}
 /** The Infisical SaaS platform proxy credential path. */
@@ -131,6 +139,11 @@ export async function runIntercepted(options: InterceptedRunOptions): Promise<nu
   const childEnv: NodeJS.ProcessEnv = {...sourceEnv, [SENTINEL_ENV]: '1'}
   for (const key of [TOKEN_ENV, SESSION_TOKEN_ENV, PROXY_ENV, CA_FINGERPRINT_ENV]) {
     Reflect.deleteProperty(childEnv, key)
+  }
+
+  const nodeOptions = childEnv.NODE_OPTIONS?.trim()
+  if (!nodeOptions?.split(/\s+/).includes(DISABLE_PROXY_WARNING)) {
+    childEnv.NODE_OPTIONS = nodeOptions ? `${nodeOptions} ${DISABLE_PROXY_WARNING}` : DISABLE_PROXY_WARNING
   }
 
   const certDir = await mkdtemp(join(tmpdir(), 'sdkck-agent-vault-'))
