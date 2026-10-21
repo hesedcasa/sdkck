@@ -68,6 +68,7 @@ const out = {
   https_proxy: process.env.HTTPS_PROXY,
   no_proxy: process.env.NO_PROXY,
   node_use_env_proxy: process.env.NODE_USE_ENV_PROXY,
+  node_options: process.env.NODE_OPTIONS ?? null,
   extra_ca: process.env.NODE_EXTRA_CA_CERTS,
   sentinel: process.env.${SENTINEL_ENV},
   token: process.env.${TOKEN_ENV} ?? null,
@@ -272,6 +273,30 @@ describe('agent-vault process interception', () => {
       expect(code).to.equal(0)
       const seen = JSON.parse(await readFile(reportFile, 'utf8'))
       expect(seen.no_proxy).to.equal('localhost,127.0.0.1,localhost,10.40.1.11,*.internal')
+    })
+
+    it('silences the experimental EnvHttpProxyAgent warning, keeping inherited NODE_OPTIONS', async () => {
+      const reportFile = join(tmpDir, 'node-options-report.json')
+      const script = join(tmpDir, 'node-options-report.cjs')
+      await writeFile(script, REPORT_SCRIPT, 'utf8')
+
+      const run = async (env: NodeJS.ProcessEnv) => {
+        const code = await runIntercepted({
+          agentVault: stubAgentVault(),
+          argv: [script],
+          env: {...env, REPORT_FILE: reportFile, [TOKEN_ENV]: 'av_agt_abc', [VAULT_ENV]: 'my-project'},
+          execArgv: [],
+          target: {kind: 'broker', vault: 'my-project'},
+        })
+        expect(code).to.equal(0)
+        return JSON.parse(await readFile(reportFile, 'utf8')).node_options
+      }
+
+      expect(await run({})).to.equal('--disable-warning=UNDICI-EHPA')
+      expect(await run({NODE_OPTIONS: '--max-old-space-size=512'})).to.equal(
+        '--max-old-space-size=512 --disable-warning=UNDICI-EHPA',
+      )
+      expect(await run({NODE_OPTIONS: '--disable-warning=UNDICI-EHPA'})).to.equal('--disable-warning=UNDICI-EHPA')
     })
 
     it('preserves a NO_PROXY the parent process already had, on top of the configured bypass', async () => {
