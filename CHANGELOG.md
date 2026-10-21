@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.37.4](https://github.com/hesedcasa/sdkck/compare/v0.37.3...v0.37.4) (2026-10-21)
+
+
+### 🛠️ Fixes
+
+* **agent-vault:** silence experimental EnvHttpProxyAgent warning ([#268](https://github.com/hesedcasa/sdkck/issues/268)) ([420299a](https://github.com/hesedcasa/sdkck/commit/420299a232addae667d7ced057174ca4fe90ced7))
+
 ## [0.37.3](https://github.com/hesedcasa/sdkck/compare/v0.37.2...v0.37.3) (2026-10-18)
 
 
