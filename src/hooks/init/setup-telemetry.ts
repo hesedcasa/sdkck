@@ -1,5 +1,7 @@
 import {type Hook} from '@oclif/core'
 
+import type {InstrumentCommand} from '../../telemetry.js'
+
 import {isTelemetryEnvDisabled} from '../../telemetry-env.js'
 
 // Tag the wrapper so runCommand is wrapped exactly once per config, even if the
@@ -34,17 +36,32 @@ const hook: Hook<'init'> = async function (opts) {
 
   const originalRunCommand = current.bind(config)
   const wrapper = async function (id: string, argv: string[] = [], cachedCommand: unknown = null): Promise<unknown> {
-    const {initTelemetry, instrumentCommand} = await import('../../telemetry.js')
-    // initTelemetry is idempotent, so calling it on every dispatch only
-    // initialises the providers once.
-    initTelemetry({configDir: config.configDir, version: config.version})
+    // Telemetry setup is best-effort: a failed SDK import or provider setup
+    // (e.g. an unwritable logs directory throwing ENOTDIR out of the file
+    // exporters' constructors) leaves the command uninstrumented rather than
+    // failing it — matching oclif, which swallowed the same errors back when
+    // initTelemetry ran in the init hook. Only the setup lives in this try: the
+    // command itself runs below, outside it, so a genuine command error can
+    // never be mistaken for a setup failure and run twice.
+    let instrument: InstrumentCommand | undefined
+    try {
+      const {initTelemetry, instrumentCommand} = await import('../../telemetry.js')
+      // initTelemetry is idempotent, so calling it on every dispatch only
+      // initialises the providers once.
+      initTelemetry({configDir: config.configDir, version: config.version})
+      instrument = instrumentCommand
+    } catch {
+      // Telemetry stays off for this dispatch; the command runs uninstrumented.
+    }
+
     // Resolve the command up front for accurate id/plugin attributes. This is a
     // plain lookup that executes nothing, and it falls back gracefully when the
     // command isn't resolvable yet (e.g. a JIT plugin's first, pre-install run).
     const cmd = cfg.findCommand?.(id) as undefined | {id?: string; pluginName?: string}
-    return instrumentCommand({argv, id: cmd?.id ?? id, plugin: cmd?.pluginName}, async () =>
-      originalRunCommand(id, argv, cachedCommand),
-    )
+    const run = async () => originalRunCommand(id, argv, cachedCommand)
+    return instrument
+      ? instrument({argv, id: cmd?.id ?? id, plugin: cmd?.pluginName}, run)
+      : run()
   } as RunCommand
   wrapper[WRAPPED] = true
   cfg.runCommand = wrapper

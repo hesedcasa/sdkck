@@ -285,8 +285,7 @@ export function initTelemetry(opts: {configDir: string; version?: string}): void
 export async function instrumentCommand<T>(
   info: {argv?: string[]; id?: string; plugin?: string},
   run: () => Promise<T>,
-): Promise<T> {
-  if (!state) return run()
+): Promise<T> {  if (!state) return run()
 
   const {captureArgv, captureErrors, commandCounter, durationHistogram, errorCounter, meterProvider, tracer} = state
   const commandId = info.id ?? 'unknown'
@@ -360,6 +359,10 @@ export async function instrumentCommand<T>(
     }
   })
 }
+
+/** The shape of `instrumentCommand`, for callers that hold it optionally. */
+// ts-prune-ignore-next
+export type InstrumentCommand = typeof instrumentCommand
 
 /** Flush and shut down the providers. Best-effort; safe to call when disabled. */
 // ts-prune-ignore-next

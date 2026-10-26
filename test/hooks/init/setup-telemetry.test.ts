@@ -1,5 +1,5 @@
 import {expect} from 'chai'
-import {mkdtemp, readFile, rm} from 'node:fs/promises'
+import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
@@ -146,5 +146,22 @@ describe('init/setup-telemetry hook', () => {
     // Callback still runs and returns its value untouched.
     expect(result).to.equal('done')
     expect(await tracesFileExists(tmpDir)).to.equal(false)
+  })
+
+  it('runs the command uninstrumented when telemetry setup fails, instead of failing the command', async () => {
+    // A file planted where the logs directory should be makes mkdirSync throw
+    // ENOTDIR out of the file exporters' constructors inside the lazy telemetry
+    // setup. Telemetry is reporting, never a precondition: the command must
+    // still run — as it did when oclif swallowed the same error from the init
+    // hook before the setup moved into the runCommand wrapper.
+    const blocker = join(tmpDir, 'blocker')
+    await writeFile(blocker, 'not a directory')
+    const config = makeConfig(join(blocker, 'config'))
+
+    await hook.call({} as never, makeOpts(config))
+    const result = await config.runCommand('x')
+
+    expect(result).to.equal('done')
+    expect(await tracesFileExists(join(blocker, 'config'))).to.equal(false)
   })
 })
