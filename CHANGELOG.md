@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.37.5](https://github.com/hesedcasa/sdkck/compare/v0.37.4...v0.37.5) (2026-10-26)
+
+
+### ♻️ Chores
+
+* defer OTel SDK and pino loads out of CLI startup ([#274](https://github.com/hesedcasa/sdkck/issues/274)) ([1937c0d](https://github.com/hesedcasa/sdkck/commit/1937c0dc5c35064ec886ebfb33597d14f5b85568))
+
 ## [0.37.4](https://github.com/hesedcasa/sdkck/compare/v0.37.3...v0.37.4) (2026-10-21)
 
 
