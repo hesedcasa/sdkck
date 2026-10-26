@@ -32,6 +32,8 @@ import {ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION} from '@opentelemetry/semantic-c
 import {appendFileSync, mkdirSync} from 'node:fs'
 import {dirname, join} from 'node:path'
 
+import {isEnvTrue, isTelemetryEnvDisabled} from './telemetry-env.js'
+
 /**
  * OpenTelemetry instrumentation for sdkck. Every CLI command is wrapped in a
  * trace span; a counter and duration histogram are recorded per invocation and
@@ -81,10 +83,6 @@ let isDisabled = false
 // Depth of nested command runs (`config.runCommand`) so metrics are only
 // force-flushed once the outermost command completes.
 let activeDepth = 0
-
-function isEnvTrue(value: string | undefined): boolean {
-  return value !== undefined && ['1', 'on', 'true', 'yes'].includes(value.trim().toLowerCase())
-}
 
 function hasOtlpEndpoint(): boolean {
   return Boolean(
@@ -219,10 +217,7 @@ function buildMetricExporter(logDir: string): PushMetricExporter {
  */
 export function initTelemetry(opts: {configDir: string; version?: string}): void {
   if (state || isDisabled) return
-  // `SDKCK_OTEL_DISABLED` turns telemetry off for sdkck specifically, without
-  // affecting the standard `OTEL_SDK_DISABLED` that other OpenTelemetry-enabled
-  // tools on the host may rely on.
-  if (isEnvTrue(process.env.SDKCK_OTEL_DISABLED) || isEnvTrue(process.env.OTEL_SDK_DISABLED)) {
+  if (isTelemetryEnvDisabled()) {
     isDisabled = true
     return
   }

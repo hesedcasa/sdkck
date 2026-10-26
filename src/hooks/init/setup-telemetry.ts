@@ -1,6 +1,6 @@
 import {type Hook} from '@oclif/core'
 
-import {initTelemetry, instrumentCommand} from '../../telemetry.js'
+import {isTelemetryEnvDisabled} from '../../telemetry-env.js'
 
 // Tag the wrapper so runCommand is wrapped exactly once per config, even if the
 // init hook fires more than once in a single process.
@@ -12,7 +12,14 @@ type RunCommand = ((id: string, argv?: string[], cachedCommand?: unknown) => Pro
 
 const hook: Hook<'init'> = async function (opts) {
   const {config} = opts
-  initTelemetry({configDir: config.configDir, version: config.version})
+
+  // telemetry.js statically imports the OpenTelemetry SDK (~130 modules, a
+  // large share of this CLI's total module-load cost). Importing it lazily —
+  // inside the wrapper, at the first command dispatch — keeps `--version`,
+  // help, completions, pre-dispatch errors and every telemetry-disabled run
+  // from paying for it at startup. The disabled check must also not touch
+  // telemetry.js, which is why it lives in telemetry-env.js.
+  if (isTelemetryEnvDisabled()) return
 
   // Instrument at Config.runCommand rather than Command.prototype._run. Every
   // command is dispatched through the root config's runCommand — including
@@ -27,6 +34,10 @@ const hook: Hook<'init'> = async function (opts) {
 
   const originalRunCommand = current.bind(config)
   const wrapper = async function (id: string, argv: string[] = [], cachedCommand: unknown = null): Promise<unknown> {
+    const {initTelemetry, instrumentCommand} = await import('../../telemetry.js')
+    // initTelemetry is idempotent, so calling it on every dispatch only
+    // initialises the providers once.
+    initTelemetry({configDir: config.configDir, version: config.version})
     // Resolve the command up front for accurate id/plugin attributes. This is a
     // plain lookup that executes nothing, and it falls back gracefully when the
     // command isn't resolvable yet (e.g. a JIT plugin's first, pre-install run).
