@@ -16,7 +16,7 @@
     "@oclif/plugin-commands": "^5.0.4",
     "@oclif/plugin-help": "^7",
     "@oclif/plugin-not-found": "^3.2.74",
-    "@oclif/plugin-plugins": "^5.4.56",
+    "@oclif/plugin-plugins": "^7.0.13",
     "@oclif/plugin-version": "^2.2.36",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/core": "^2.10.0",
