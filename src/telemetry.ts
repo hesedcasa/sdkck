@@ -1,4 +1,5 @@
 import {
+  context,
   type Counter,
   diag,
   DiagConsoleLogger,
@@ -7,8 +8,10 @@ import {
   type Meter,
   metrics as metricsApi,
   SpanStatusCode,
+  trace,
   type Tracer,
 } from '@opentelemetry/api'
+import {AsyncLocalStorageContextManager} from '@opentelemetry/context-async-hooks'
 import {type ExportResult, ExportResultCode} from '@opentelemetry/core'
 import {OTLPMetricExporter} from '@opentelemetry/exporter-metrics-otlp-http'
 import {OTLPTraceExporter} from '@opentelemetry/exporter-trace-otlp-http'
@@ -22,12 +25,17 @@ import {
   type ResourceMetrics,
 } from '@opentelemetry/sdk-metrics'
 import {
+  AlwaysOffSampler,
+  AlwaysOnSampler,
   ConsoleSpanExporter,
-  NodeTracerProvider,
+  ParentBasedSampler,
   type ReadableSpan,
+  type Sampler,
   SimpleSpanProcessor,
   type SpanExporter,
-} from '@opentelemetry/sdk-trace-node'
+  TraceIdRatioBasedSampler,
+  TracerProvider,
+} from '@opentelemetry/sdk-trace'
 import {ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION} from '@opentelemetry/semantic-conventions'
 import {appendFileSync, mkdirSync} from 'node:fs'
 import {dirname, join} from 'node:path'
@@ -75,7 +83,7 @@ type TelemetryState = {
   meter: Meter
   meterProvider: MeterProvider
   tracer: Tracer
-  tracerProvider: NodeTracerProvider
+  tracerProvider: TracerProvider
 }
 
 let state: TelemetryState | undefined
@@ -199,6 +207,42 @@ class FileMetricExporter implements PushMetricExporter {
   }
 }
 
+/** The trace SDK no longer resolves sampler configuration from the environment. */
+function buildTraceSampler(): Sampler {
+  const name = process.env.OTEL_TRACES_SAMPLER ?? 'parentbased_always_on'
+  let root: Sampler
+  switch (name) {
+    case 'always_off':
+    case 'parentbased_always_off': {
+      root = new AlwaysOffSampler()
+      break
+    }
+
+    case 'always_on':
+    case 'parentbased_always_on': {
+      root = new AlwaysOnSampler()
+      break
+    }
+
+    case 'parentbased_traceidratio':
+    case 'traceidratio': {
+      const arg = process.env.OTEL_TRACES_SAMPLER_ARG
+      const ratio = arg?.trim() ? Number(arg) : 1
+      const isValid = Number.isFinite(ratio) && ratio >= 0 && ratio <= 1
+      if (!isValid) diag.warn('Invalid OTEL_TRACES_SAMPLER_ARG; using ratio 1')
+      root = new TraceIdRatioBasedSampler(isValid ? ratio : 1)
+      break
+    }
+
+    default: {
+      diag.warn('Unsupported OTEL_TRACES_SAMPLER; using parentbased_always_on')
+      return new ParentBasedSampler({root: new AlwaysOnSampler()})
+    }
+  }
+
+  return name.startsWith('parentbased_') ? new ParentBasedSampler({root}) : root
+}
+
 function buildTraceExporter(logDir: string): SpanExporter {
   if (hasOtlpEndpoint()) return new OTLPTraceExporter()
   if (isTraceConsoleExporter()) return new ConsoleSpanExporter()
@@ -233,11 +277,16 @@ export function initTelemetry(opts: {configDir: string; version?: string}): void
     ...(opts.version && {[ATTR_SERVICE_VERSION]: opts.version}),
   })
 
-  const tracerProvider = new NodeTracerProvider({
+  const tracerProvider = new TracerProvider({
     resource,
-    spanProcessors: [new SimpleSpanProcessor(buildTraceExporter(logDir))],
+    sampler: buildTraceSampler(),
+    spanProcessors: [new SimpleSpanProcessor({exporter: buildTraceExporter(logDir)})],
   })
-  tracerProvider.register()
+  // 3.x moved global registration out of the provider: `register()` no longer
+  // exists, so the global tracer provider and async context manager (which
+  // `register()` used to set up for Node) are wired explicitly.
+  context.setGlobalContextManager(new AsyncLocalStorageContextManager())
+  trace.setGlobalTracerProvider(tracerProvider)
 
   const meterProvider = new MeterProvider({
     readers: [

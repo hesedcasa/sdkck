@@ -1,3 +1,4 @@
+import {context, ROOT_CONTEXT, trace, TraceFlags} from '@opentelemetry/api'
 import {expect} from 'chai'
 import {access, mkdtemp, readFile, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
@@ -47,7 +48,12 @@ async function readLines<T>(file: string): Promise<T[]> {
 describe('telemetry', () => {
   let tmpDir: string
 
+  let samplerEnv: Array<string | undefined>
+
   beforeEach(async () => {
+    samplerEnv = [process.env.OTEL_TRACES_SAMPLER, process.env.OTEL_TRACES_SAMPLER_ARG]
+    delete process.env.OTEL_TRACES_SAMPLER
+    delete process.env.OTEL_TRACES_SAMPLER_ARG
     resetTelemetryForTests()
     tmpDir = await mkdtemp(join(tmpdir(), 'sdkck-telemetry-'))
     delete process.env.OTEL_SDK_DISABLED
@@ -60,6 +66,11 @@ describe('telemetry', () => {
   })
 
   afterEach(async () => {
+    for (const [index, key] of ['OTEL_TRACES_SAMPLER', 'OTEL_TRACES_SAMPLER_ARG'].entries()) {
+      if (samplerEnv[index] === undefined) delete process.env[key]
+      else process.env[key] = samplerEnv[index]
+    }
+
     await shutdownTelemetry()
     resetTelemetryForTests()
     await rm(tmpDir, {force: true, recursive: true})
@@ -125,6 +136,55 @@ describe('telemetry', () => {
     expect(duration!.unit).to.equal('ms')
     expect(metrics.find((m) => m.name === 'sdkck.command.errors')).to.equal(undefined)
   })
+
+  const initialiseTelemetry = () => initTelemetry({configDir: tmpDir})
+
+  for (const [sampler, arg, sampled] of [
+    ['always_off', undefined, false],
+    ['always_on', undefined, true],
+    ['traceidratio', '0', false],
+    ['traceidratio', '1', true],
+    ['parentbased_always_off', undefined, false],
+    ['parentbased_always_on', undefined, true],
+    ['parentbased_traceidratio', '0', false],
+    ['parentbased_traceidratio', '1', true],
+    ['traceidratio', undefined, true],
+    ['traceidratio', 'invalid', true],
+    ['traceidratio', '-1', true],
+    ['traceidratio', '2', true],
+    ['unsupported', undefined, true],
+  ] as const) {
+    it(`honours sampler ${sampler} with argument ${arg}`, async () => {
+      process.env.OTEL_TRACES_SAMPLER = sampler
+      if (arg !== undefined) process.env.OTEL_TRACES_SAMPLER_ARG = arg
+      initialiseTelemetry()
+
+      expect(await instrumentCommand({id: 'sampled'}, async () => 'ok')).to.equal('ok')
+      expect(await fileExists(tracesFile())).to.equal(sampled)
+      const metrics = await readLines<MetricEntry>(metricsFile())
+      expect(metrics.find((m) => m.name === 'sdkck.command.count')!.value).to.equal(1)
+    })
+  }
+
+  for (const sampler of ['always_off', 'always_on', 'parentbased_always_off', 'parentbased_always_on', 'parentbased_traceidratio']) {
+    for (const sampled of [false, true]) {
+      it(`${sampler} handles a ${sampled ? 'sampled' : 'unsampled'} parent`, async () => {
+        process.env.OTEL_TRACES_SAMPLER = sampler
+        process.env.OTEL_TRACES_SAMPLER_ARG = '0'
+        initialiseTelemetry()
+        const parent = trace.setSpanContext(ROOT_CONTEXT, {
+          isRemote: true,
+          spanId: '1234567890123456',
+          traceFlags: sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,
+          traceId: '12345678901234567890123456789012',
+        })
+
+        await context.with(parent, () => instrumentCommand({id: 'child'}, async () => 'ok'))
+        const expected = sampler.startsWith('parentbased_') ? sampled : sampler === 'always_on'
+        expect(await fileExists(tracesFile())).to.equal(expected)
+      })
+    }
+  }
 
   it('sends traces to the console (not the file) when OTEL_TRACES_EXPORTER=console, per signal', async () => {
     process.env.OTEL_TRACES_EXPORTER = 'console'
