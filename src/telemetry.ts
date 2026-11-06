@@ -1,4 +1,5 @@
 import {
+  context,
   type Counter,
   diag,
   DiagConsoleLogger,
@@ -7,8 +8,10 @@ import {
   type Meter,
   metrics as metricsApi,
   SpanStatusCode,
+  trace,
   type Tracer,
 } from '@opentelemetry/api'
+import {AsyncLocalStorageContextManager} from '@opentelemetry/context-async-hooks'
 import {type ExportResult, ExportResultCode} from '@opentelemetry/core'
 import {OTLPMetricExporter} from '@opentelemetry/exporter-metrics-otlp-http'
 import {OTLPTraceExporter} from '@opentelemetry/exporter-trace-otlp-http'
@@ -23,11 +26,11 @@ import {
 } from '@opentelemetry/sdk-metrics'
 import {
   ConsoleSpanExporter,
-  NodeTracerProvider,
   type ReadableSpan,
   SimpleSpanProcessor,
   type SpanExporter,
-} from '@opentelemetry/sdk-trace-node'
+  TracerProvider,
+} from '@opentelemetry/sdk-trace'
 import {ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION} from '@opentelemetry/semantic-conventions'
 import {appendFileSync, mkdirSync} from 'node:fs'
 import {dirname, join} from 'node:path'
@@ -75,7 +78,7 @@ type TelemetryState = {
   meter: Meter
   meterProvider: MeterProvider
   tracer: Tracer
-  tracerProvider: NodeTracerProvider
+  tracerProvider: TracerProvider
 }
 
 let state: TelemetryState | undefined
@@ -233,11 +236,15 @@ export function initTelemetry(opts: {configDir: string; version?: string}): void
     ...(opts.version && {[ATTR_SERVICE_VERSION]: opts.version}),
   })
 
-  const tracerProvider = new NodeTracerProvider({
+  const tracerProvider = new TracerProvider({
     resource,
-    spanProcessors: [new SimpleSpanProcessor(buildTraceExporter(logDir))],
+    spanProcessors: [new SimpleSpanProcessor({exporter: buildTraceExporter(logDir)})],
   })
-  tracerProvider.register()
+  // 3.x moved global registration out of the provider: `register()` no longer
+  // exists, so the global tracer provider and async context manager (which
+  // `register()` used to set up for Node) are wired explicitly.
+  context.setGlobalContextManager(new AsyncLocalStorageContextManager())
+  trace.setGlobalTracerProvider(tracerProvider)
 
   const meterProvider = new MeterProvider({
     readers: [
