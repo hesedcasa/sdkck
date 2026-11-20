@@ -151,6 +151,12 @@ claude plugin marketplace add hesedcasa/sdkck
 claude plugin install sidekick@cli
 ```
 
+- Or install the `sidekick` skill with the [skills CLI](https://github.com/vercel-labs/skills) to use with Cursor, Codex, OpenCode, and [40+ other agents](https://github.com/vercel-labs/skills#supported-agents):
+```bash
+npx skills add hesedcasa/sdkck --skill sidekick
+```
+See [Install skill](https://hesedcasa.github.io/sdkck/installation#install-skill) for the global (`-g`) and per-agent (`-a cursor|codex|opencode`) flags, and for the `extract-api` skill.
+
 - Or simply add this instruction to your AGENT.md or CLAUDE.md file
 ```
 Before any tool call run `sdkck commands | grep <keywords>` to find the available tools in sdkck, e.g.: `sdkck commands | grep -i "\|atlassian\|issue"`

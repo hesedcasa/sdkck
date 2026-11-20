@@ -46,6 +46,38 @@ sdkck plugins install @hesed/jira
 sdkck plugins install https://github.com/someuser/someplugin
 ```
 
+## Install skill
+
+Agent skills are not sdkck plugins: they install instructions from GitHub into your coding agent, so they do not replace the `sdkck` executable installed above. Install with the [skills CLI](https://github.com/vercel-labs/skills) to use with Cursor, Codex, OpenCode, and [40+ other agents](https://github.com/vercel-labs/skills#supported-agents):
+
+```bash
+npx skills add hesedcasa/sdkck --skill sidekick
+```
+
+Install globally (available across all projects):
+
+```bash
+npx skills add hesedcasa/sdkck --skill sidekick -g
+```
+
+Target a specific agent:
+
+```bash
+npx skills add hesedcasa/sdkck --skill sidekick -a cursor
+npx skills add hesedcasa/sdkck --skill sidekick -a codex
+npx skills add hesedcasa/sdkck --skill sidekick -a opencode
+```
+
+The `extract-api` skill installs the same way:
+
+```bash
+npx skills add hesedcasa/sdkck --skill extract-api
+```
+
+For multi-page documentation sites, `extract-api` spawns the `web-crawler` agent, defined at `plugins/api/agents/web-crawler.md`, which the skills CLI does not install. The skills CLI also does not install the `PostToolUse` hook at `plugins/api/hooks/hooks.json`, which validates every generated OpenAPI file and reports errors to fix — so that automatic check is missing even for single-page sources. The [Claude Code plugin](/skills/extract-api#claude-code) remains the complete installation route for that skill.
+
+See the [sidekick](/skills/sidekick) and [extract-api](/skills/extract-api) skill pages for full context.
+
 ## Next steps
 
 - [Quick start guide](/quick-start) — Import your first API and run commands
