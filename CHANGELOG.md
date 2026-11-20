@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.37.5](https://github.com/hesedcasa/sdkck/compare/v0.37.4...v0.37.5) (2026-11-20)
+
+
+### 📄 Documentation
+
+* **skills:** document Vercel skills CLI install path ([#297](https://github.com/hesedcasa/sdkck/issues/297)) ([6b7d14e](https://github.com/hesedcasa/sdkck/commit/6b7d14e21b0e0ea81d89a1f3de64721f8ae1e3b5))
+
+
+### ♻️ Chores
+
+* defer OTel SDK and pino loads out of CLI startup ([#274](https://github.com/hesedcasa/sdkck/issues/274)) ([1937c0d](https://github.com/hesedcasa/sdkck/commit/1937c0dc5c35064ec886ebfb33597d14f5b85568))
+
 ## [0.37.4](https://github.com/hesedcasa/sdkck/compare/v0.37.3...v0.37.4) (2026-10-21)
 
 
