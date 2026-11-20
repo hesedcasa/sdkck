@@ -74,7 +74,7 @@ The `extract-api` skill installs the same way:
 npx skills add hesedcasa/sdkck --skill extract-api
 ```
 
-For multi-page documentation sites, `extract-api` spawns the `web-crawler` agent, defined at `plugins/api/agents/web-crawler.md`, which the skills CLI does not install. The [Claude Code plugin](/skills/extract-api#claude-code) remains the complete installation route for that skill.
+For multi-page documentation sites, `extract-api` spawns the `web-crawler` agent, defined at `plugins/api/agents/web-crawler.md`, which the skills CLI does not install. The skills CLI also does not install the `PostToolUse` hook at `plugins/api/hooks/hooks.json`, which validates every generated OpenAPI file and reports errors to fix — so that automatic check is missing even for single-page sources. The [Claude Code plugin](/skills/extract-api#claude-code) remains the complete installation route for that skill.
 
 See the [sidekick](/skills/sidekick) and [extract-api](/skills/extract-api) skill pages for full context.
 
