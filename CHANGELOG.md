@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.37.6](https://github.com/hesedcasa/sdkck/compare/v0.37.5...v0.37.6) (2026-11-21)
+
+
+### 📄 Documentation
+
+* **sidekick:** gate JIT installs and mark sdkck output untrusted ([#298](https://github.com/hesedcasa/sdkck/issues/298)) ([b9ad9e6](https://github.com/hesedcasa/sdkck/commit/b9ad9e6c6c8a8103bc27cce8fbe5bbe193f61d28))
+
 ## [0.37.5](https://github.com/hesedcasa/sdkck/compare/v0.37.4...v0.37.5) (2026-11-20)
 
 
